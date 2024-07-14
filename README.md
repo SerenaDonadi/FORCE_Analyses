@@ -1,2 +1,2 @@
 # FORCE_Analyses
-R script of analyses for FORCE project
+R scripts of analyses for FORCE project
