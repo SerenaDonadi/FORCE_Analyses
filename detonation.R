@@ -24,7 +24,7 @@ library(ExcelFunctionsR)
 # read the whole dataset with Swedish cHaracters 
 # if ANSI doesn't work, try: encoding = "UTF-8", or encoding ="ISO-8859-1", or "latin1"
 
-### 1) gillnets
+### 1) detonation
 deto <- read.csv2("detonation-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
 head(deto)
 unique(deto$Lokal)
