@@ -1,5 +1,4 @@
-R scripts of analyses for FORCE project -- Serena Donadi
-Last update: 2024-08-16
+R scripts of analyses for FORCE project - Serena Donadi
 
 ###
 Questions about gillnets dataset:
