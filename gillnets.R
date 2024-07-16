@@ -45,10 +45,13 @@ gillnets0 <- rename(gillnets, location = 'Lokal')
 
 ### 2) temp
 temp_gillnet <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
-head(temp_gillnet)
+head(temp_gillnet1)
 
 # merge and keep all records in left dataset, and only matching record in righ dataset
 gillnets1<-left_join(gillnets0, temp_gillnet, by = c("year","location")) # 
+
+# rename temp to be more specific
+gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
 
 
 #####
