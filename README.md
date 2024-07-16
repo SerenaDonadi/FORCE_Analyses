@@ -4,7 +4,7 @@ R scripts of analyses for FORCE project - Serena Donadi
 Questions about gillnets dataset:
 ###
 
-- how to calculate CPUE? in a previous project where I used data from KUL, Petr told me that I should divide the abundance per station (and spp) by the product of ansträngning (number of nets) and fisketid (number of days). Also, about fisketid: dygn and natt are not much different, as they don't report the time, so no need to keep them separated. However, I miss fisketid in the current dataset. We thought to start by looking considering only Ansträngning = 1, but if this is the number of nets rather than the effort, we still need the number of days (or nights, no difference). Check also what to do with Ansträngning_enhet = ..*timmarna.
+- how to calculate CPUE? in a previous project where I used data from KUL, Peter told me that I should divide the abundance per station (and spp) by the product of ansträngning (number of nets) and fisketid (number of days). Also, about fisketid: dygn and natt are not much different, as they don't report the time, so no need to keep them separated. However, I miss fisketid in the current dataset. We thought to start by looking considering only Ansträngning = 1, but if this is the number of nets rather than the effort, we still need the number of days (or nights, no difference). Check also what to do with Ansträngning_enhet = ..*timmarna.
 Check and implement script for extraction or check with Agnes
 
 - it would be good to have temp at the time of fishing (check values as before I found 999, which are NAs), to account for potential artifact (i.e. different catchability with temp) by regressing residual variation after accounting for effects of avg year temp (and interactions)
