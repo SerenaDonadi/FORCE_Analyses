@@ -45,13 +45,13 @@ gillnets0 <- rename(gillnets, location = 'Lokal')
 
 ### 2) temp
 temp_gillnet <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
-head(temp_gillnet1)
 
 # merge and keep all records in left dataset, and only matching record in righ dataset
 gillnets1<-left_join(gillnets0, temp_gillnet, by = c("year","location")) # 
 
 # rename temp to be more specific
 gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
+head(gillnets1)
 
 
 #####
@@ -72,4 +72,38 @@ table(gillnets$Störning,gillnets$month)
 gillnets4<-gillnets3 %>% 
   filter(Störning  == "NEJ")
 
+# check and remove outliers:
+summary(gillnets4)
+# remove giant perch, keep gädda
+gillnets5<-gillnets4[!(gillnets4$Artbestämning  == "Abborre" & gillnets4$LANGDGRUPP_LANGD > 70),]
 
+# remove NA in response
+gillnets5a<-gillnets5 %>%
+  filter(!LANGDGRUPP_LANGD == "NA") %>%
+  filter(!LANGDGRUPP_ANTAL == "NA") %>%
+  filter(!Ansträngning == "NA")
+
+summary(gillnets5a)
+str(gillnets5a)
+
+#####
+# Grouping
+#####
+
+gillnets6<-gillnets5a %>% 
+  group_by(LANGDGRUPP_LANGD, location, Artbestämning,year) %>%
+  summarise(sum_LANGDGRUPP_ANTAL=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE),
+            avg_year_temp=mean(avg_year_temp)
+  ) 
+
+#Note: to bring lat and long I shuld convert the longitude/latitude coordinates to 3d cartesian coordinates (x,y,z). Average these 
+# (to give a cartesian vector), and then convert back again. Check scripts and other solution here: 
+# https://gis.stackexchange.com/questions/7555/computing-an-averaged-latitude-and-longitude-coordinates
+# I skip it for now
+
+# Ansträngning may be (check with Peter) given at the level of spatial coordinates - I can't sum up or average the values at this level. I suggest to
+# calculate first CPUE and then group, or make a separate grouped dataset and merge
+
+head(gillnets6)
+summary(gillnets6)
+# there are outiers - check!
