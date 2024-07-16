@@ -50,13 +50,16 @@ head(temp_gillnet)
 # merge and keep all records in left dataset, and only matching record in righ dataset
 gillnets1<-left_join(gillnets0, temp_gillnet, by = c("year","location")) # 
 
+# rename temp to be more specific:
+gillnets1a <- rename(gillnets1, avg_year_temp = 'temp')
+
 
 #####
 # Subsets
 #####
 
 # take only august data for now:
-gillnets2<-gillnets1 %>% 
+gillnets2<-gillnets1a %>% 
   filter(month == 8)
 
 # keep only GODKAND "JA"?
