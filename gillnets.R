@@ -25,7 +25,7 @@ library(ExcelFunctionsR)
 # if ANSI doesn't work, try: encoding = "UTF-8", or encoding ="ISO-8859-1", or "latin1"
 
 ### 1) gillnets
-gillnets <- read.csv2("gillnet-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
+gillnets <- read.csv2("gillnet-data.csv",encoding="latin1",  header=TRUE, sep=",", dec=".")  ## I can't read the last file that Agnes sent me,check
 head(gillnets)
 unique(gillnets$Lokal)
 

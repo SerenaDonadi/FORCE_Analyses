@@ -26,6 +26,14 @@ Check and implement script for extraction or check with Agnes
 
 Agnes check with Matilda, otherwise contact Peter L.
 
+Agnes reply:
+1) I did speak to Matilda and she did not know the answer but agreed that for “timmar” it probably makes sense to translate this into nätter/dygn (e.g. 14 hrs = en natt). We might want to confirm this with Peter though, and alert him to the occasions where there seems to have been a mix-up with the units. I think that the Fisketid is already included in the Ansträngning (it is time*net). I added Fisketid so you can have a look at it yourself, but they are usually the same (since we’re always dealing with one net at the time), except for some of those odd ones where it says e.g. Anstränging = 35, and enhet is e.g. nät*natt (not nät*timme).
+2)    I have added temperature and also depth.
+3)    I would also have expected “_ingen fångst”. Went back and realised I made a mistake in the merging of the catch dataset and the length dataset, as FANGST_ID is NA if there is _ingen fångst. I have now fixed this.
+4)    Again, I spoke to Matilda and she did not know but thought, like we did, that the sizes that were not .5 were probably collected by some other programme that used more precise measurements (so these could probably be sorted into the same .5-categories). Again, we might want to confirm this with Peter.
+5)    Yes you’re right. I’ve added a few more columns to clarify the structure. Redskapsdetaljnummer = mesh size (there are few mesh sizes that should not be included in this type of net [which include 10, 12, 15, 19, 24, 30, 38, 48, 60] so this is perhaps something to check. FANGST_ID = species within mesh section, OBS_ID = net.
+ 
+
 ###
 Questions about detonation dataset:
 ###
