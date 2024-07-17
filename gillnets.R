@@ -24,8 +24,13 @@ library(ExcelFunctionsR)
 # read the whole dataset with Swedish cHaracters 
 # if ANSI doesn't work, try: encoding = "UTF-8", or encoding ="ISO-8859-1", or "latin1"
 
+# to calculate the probability of a file of being encoded in several encodings
+library(readr)
+guess_encoding("gillnet-data.csv", n_max = 1000)
+# try both encoding = "" and fileEncoding = ""
+
 ### 1) gillnets
-gillnets <- read.csv2("gillnet-data.csv",encoding="latin1",  header=TRUE, sep=",", dec=".")  ## I can't read the last file that Agnes sent me,check
+gillnets <- read.csv2("gillnet-data.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".")  ## I can't read the last file that Agnes sent me,check
 head(gillnets)
 unique(gillnets$Lokal)
 
