@@ -36,12 +36,12 @@ unique(gillnets$Lokal)
 
 # make column with only year
 head(gillnets$Fiskedatum)
-gillnets$year<-as.numeric(LEFT(gillnets$Fiskedatum,4))
+gillnets$year<-as.numeric(RIGHT(gillnets$Fiskedatum,4))
 summary(gillnets$year)
 hist(gillnets$year)
 
 # make column with only month
-gillnets$month<-as.numeric(RIGHT(LEFT(gillnets$Fiskedatum,7),2))
+gillnets$month<-as.numeric(LEFT(RIGHT(gillnets$Fiskedatum,7),2))
 summary(gillnets$month)
 hist(gillnets$month)
 
@@ -51,7 +51,7 @@ gillnets0 <- rename(gillnets, location = 'Lokal')
 ### 2) temp
 temp_gillnet <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
 
-# merge and keep all records in left dataset, and only matching record in righ dataset
+# merge and keep all records in left dataset, and only matching record in right dataset
 gillnets1<-left_join(gillnets0, temp_gillnet, by = c("year","location")) # 
 
 # rename temp to be more specific
@@ -67,48 +67,81 @@ head(gillnets1)
 gillnets2<-gillnets1 %>% 
   filter(month == 8)
 
-# keep only GODKAND "JA"?
-table(gillnets$GODKAND,gillnets$month)
-gillnets3<-gillnets2 %>% 
-  filter(GODKAND  == "JA ")
-
+# keep only GODKAND "JA"? But why I don't see NAs?
+table(gillnets2$GODKAND)
+unique(gillnets2$GODKAND) # they should be in there
+gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",]
+unique(gillnets3$GODKAND) 
+      
 # keep only Störning  "NEJ"?
-table(gillnets$Störning,gillnets$month)
+table(gillnets3$Störning,gillnets3$month)
 gillnets4<-gillnets3 %>% 
   filter(Störning  == "NEJ")
 
+# keep only Ansträngning = 1?
+table(gillnets4$Ansträngning)
+gillnets5<-gillnets4 %>% 
+  filter(Ansträngning  == 1)
+
 # check and remove outliers:
-summary(gillnets4)
-# remove giant perch, keep gädda
-gillnets5<-gillnets4[!(gillnets4$Artbestämning  == "Abborre" & gillnets4$LANGDGRUPP_LANGD > 70),]
+summary(gillnets5)
 
-# remove NA in response
-gillnets5a<-gillnets5 %>%
-  filter(!LANGDGRUPP_LANGD == "NA") %>%
-  filter(!LANGDGRUPP_ANTAL == "NA") %>%
-  filter(!Ansträngning == "NA")
+gillnets5 %>%
+  filter(Art  == "Abborre") %>%
+  filter(LANGDGRUPP_LANGD>70)
+# remove giant perch
+gillnets6<-gillnets5[!(gillnets5$Art  == "Abborre" & gillnets5$LANGDGRUPP_LANGD > 70),]
 
-summary(gillnets5a)
-str(gillnets5a)
+# substitute NA to values of temp at the time of fishing equal to 999 (a bit too warm)
+gillnets6$Temp_vittjning_vid_redskap[gillnets6$Temp_vittjning_vid_redskap==999] <- NA
+hist(gillnets6$Temp_vittjning_vid_redskap)
+
+## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
+
+#remove NA in response
+gillnets7<-gillnets6 %>%
+#  filter(!LANGDGRUPP_LANGD == "NA") %>%  #wait, not here, otherwise I delete also inge fångst, which is needed in case of nets where no sp were found
+#  filter(!LANGDGRUPP_ANTAL == "NA") %>%
+  filter(!Ansträngning == "NA") # no need I selected for now only Ansträngning =1. Correction: needed bc in creating dataset 6 it is generating a bit more than 100 records with all NAs
 
 #####
 # Grouping
 #####
 
-gillnets6<-gillnets5a %>% 
-  group_by(LANGDGRUPP_LANGD, location, Artbestämning,year) %>%
-  summarise(sum_LANGDGRUPP_ANTAL=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE),
-            avg_year_temp=mean(avg_year_temp)
+# pool data for lokal and year
+gillnets_antal<-gillnets7 %>% 
+  group_by(location, year, Art, LANGDGRUPP_LANGD) %>%
+  summarise(sum_LANGDGRUPP_ANTAL=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
   ) 
 
-#Note: to bring lat and long I shuld convert the longitude/latitude coordinates to 3d cartesian coordinates (x,y,z). Average these 
+# Note: to bring lat and long I shuold convert the longitude/latitude coordinates to 3d cartesian coordinates (x,y,z). Average these 
 # (to give a cartesian vector), and then convert back again. Check scripts and other solution here: 
 # https://gis.stackexchange.com/questions/7555/computing-an-averaged-latitude-and-longitude-coordinates
 # I skip it for now
 
-# Ansträngning may be (check with Peter) given at the level of spatial coordinates - I can't sum up or average the values at this level. I suggest to
-# calculate first CPUE and then group, or make a separate grouped dataset and merge
+gillnets_effort<-gillnets7 %>% 
+  group_by(location, year) %>%
+  summarise(number_nets=n_distinct(OBS_ID), # check! if correct divide sum_LANGDGRUPP_ANTAL by number_nets to obtain CPUE
+            avg_year_temp=mean(avg_year_temp)
+  ) 
 
-head(gillnets6)
-summary(gillnets6)
-# there are outiers - check!
+# Ansträngning may be (check with Peter) given at the level of spatial coordinates, that is net within lokal.Given that I consider
+# only Ansträngning = 1, i.e. 1 net per day or night, I count how many nets per lokal to extract the effort. Revise if consider
+# other values of Ansträngning
+
+# merge and keep all records in left dataset, and only matching record in right dataset
+gillnets_CPUE<-left_join(gillnets_antal, gillnets_effort, by = c("location","year")) 
+
+summary(gillnets_CPUE)
+# number of nets doesn't seem right, max is 83 - check!
+hist(gillnets_CPUE$number_nets)
+filter(gillnets_CPUE, number_nets == 182)
+# is it possible that 182 nets were deployed in 2018 in Blekinge län??
+
+# calculate CPUE
+gillnets_CPUE$CPUE<-gillnets_CPUE$sum_LANGDGRUPP_ANTAL/gillnets_CPUE$number_nets
+hist(gillnets_CPUE$CPUE)
+summary(gillnets_CPUE$CPUE)
+
+## maybe I should first aggregate in size classes and then calculate CPUE
+  
