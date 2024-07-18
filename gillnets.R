@@ -14,6 +14,7 @@ library(lme4)
 library(car)
 library(visreg)
 library(dplyr)
+
 library(ExcelFunctionsR)
 
 
@@ -133,15 +134,61 @@ gillnets_effort<-gillnets7 %>%
 gillnets_CPUE<-left_join(gillnets_antal, gillnets_effort, by = c("location","year")) 
 
 summary(gillnets_CPUE)
-# number of nets doesn't seem right, max is 83 - check!
 hist(gillnets_CPUE$number_nets)
+# check:
 filter(gillnets_CPUE, number_nets == 182)
 # is it possible that 182 nets were deployed in 2018 in Blekinge län??
+filter(gillnets_CPUE, sum_LANGDGRUPP_ANTAL==4766)
+# stsp in Gaviksfjärden
 
 # calculate CPUE
 gillnets_CPUE$CPUE<-gillnets_CPUE$sum_LANGDGRUPP_ANTAL/gillnets_CPUE$number_nets
 hist(gillnets_CPUE$CPUE)
 summary(gillnets_CPUE$CPUE)
 
-## maybe I should first aggregate in size classes and then calculate CPUE
-  
+# aggregate in size classes:
+table(gillnets_CPUE$LANGDGRUPP_LANGD) # most values are recorded as *.5
+# makes classes of 1 cm as 0.5-1.4, 1.5-2.4,2.5-3.4 etc etc if measurements were rounded up to *.5 value
+# or 1-2,2-3,4-5 etc etc if measurements were taken as closest *.5 value
+
+# this will take forever...
+gillnets_CPUE$length_group_cat<-as.factor(ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<1.4, '1.5',
+                                                 ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<1.5, '1.5', 
+                                                 ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<2.5, '2.5', 
+                                                        ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<3.5, '3.5', 
+                                                               ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<4.5, '4.5', 'E'))))))
+
+# so I round each number - revise once I know how the categories were made
+library(plyr)
+#####
+# using round:
+length_group1<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, round)
+hist(length_group)
+hist(gillnets_CPUE$LANGDGRUPP_LANGD) # some differences
+round_any(2.5, 1, round) # 2
+round_any(1.5, 1, round) # 2 Why both are rounded to 2??
+round_any(0.5, 1, round) # 0
+# this may not be the best way
+
+# using ceiling or floor
+length_group2<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, ceiling) 
+length_group3<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, floor)
+hist(length_group1)
+hist(length_group2)
+hist(length_group3)
+# the best is number 2
+table(gillnets_CPUE$length_group2)
+#####
+gillnets_CPUE$length_group<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, ceiling) 
+
+unique(gillnets_CPUE$Art)
+
+# Abborre dataset
+gillnets_CPUE_abbo<-gillnets_CPUE %>%
+  filter(Art == "Abborre")
+
+# overall distribution: all years and locations
+ggplot(gillnets_CPUE_abbo, aes(x=length_group)) +
+  geom_bar()
+
+# wait, I am doing this right? I should account for CPUE 
