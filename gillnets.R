@@ -233,3 +233,17 @@ ggplot(subset(gillnets_totCPUE_abbo, location %in% "Askrikefjärden"), aes(x=len
   facet_wrap(~year)+
   theme_bw(base_size=15)+
   theme(legend.position="none")
+
+# calculating mean length and skeweness for different locations and years
+gillnets_totCPUE_abbo_meanL<-gillnets_totCPUE_abbo %>% 
+  group_by(location, year) %>%
+  summarise(mean_length_abbo=sum(totCPUE*length_group)/sum(totCPUE) # ok, checked
+  )
+
+# define function for skeweness or calculate it from median and sd
+#However to calculate the median with frquency tables is a mess:
+# https://byjus.com/maths/how-to-find-median/#:~:text=The%20formula%20to%20find%20the%20median%20of%20given,Frequency%20of%20median%20class%20h%20%3D%20Class%20height
+
+
+
+
