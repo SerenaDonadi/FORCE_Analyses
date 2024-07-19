@@ -13,10 +13,10 @@ library(piecewiseSEM)
 library(lme4)
 library(car)
 library(visreg)
-library(plyr)
+#library(plyr)
 library(dplyr)
 
-library(ExcelFunctionsR)
+#library(ExcelFunctionsR)
 
 
 #####
@@ -131,6 +131,7 @@ gillnets7<-gillnets6 %>%
 # Grouping
 #####
 
+### If I ever want to use LANGDGRUPP_LANGD (size not pooled into categories):
 # pool data by size for lokal and year
 gillnets_antal<-gillnets7 %>% 
   group_by(location, year, Art, LANGDGRUPP_LANGD) %>%
@@ -201,7 +202,7 @@ table(gillnets_CPUE$length_group2)
 #####
 gillnets_CPUE$length_group<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, ceiling) 
 
-summary(gillnets_CPUE)
+### If I want to use size categories:
 
 # pool data by size classes for lokal and year
 gillnets_totCPUE<-gillnets_CPUE %>% 
@@ -209,15 +210,26 @@ gillnets_totCPUE<-gillnets_CPUE %>%
   summarise(totCPUE=sum(CPUE ,na.rm=TRUE)
   ) 
 
-# overall barchart for all locations and years
-gillnets_totCPUE$length_group_cat<-as.factor(gillnets_totCPUE$length_group)
-avg<-tapply(gillnets_totCPUE$totCPUE,list(gillnets_totCPUE$length_group_cat,gillnets_totCPUE$Art),sum)
-avg
-barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,ylim=c(0,25),main = "HERR_above18_B_km2") 
-
+# overall barplot for all locations and years but different spp
+ggplot(gillnets_totCPUE, aes(x=length_group, y=totCPUE)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~Art)+
+  theme_bw(base_size=15)
 
 # Abborre dataset
-gillnets_CPUE_abbo<-gillnets_CPUE %>%
+gillnets_totCPUE_abbo<-gillnets_totCPUE %>%
   filter(Art == "Abborre")
 
+# barplots of Abbo for all years but different locations
+ggplot(gillnets_totCPUE_abbo, aes(x=length_group, y=totCPUE, col=location)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~location)+
+  theme_bw(base_size=15)+
+  theme(legend.position="none")
 
+# barplots of Abbo for different years in one specific location
+ggplot(subset(gillnets_totCPUE_abbo, location %in% "Askrikefjärden"), aes(x=length_group, y=totCPUE)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15)+
+  theme(legend.position="none")
