@@ -204,19 +204,20 @@ gillnets_CPUE$length_group<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, ceiling
 summary(gillnets_CPUE)
 
 # pool data by size classes for lokal and year
-detach("package:plyr", unload=TRUE)
-
 gillnets_totCPUE<-gillnets_CPUE %>% 
   group_by(location, year, Art, length_group) %>%
   summarise(totCPUE=sum(CPUE ,na.rm=TRUE)
   ) 
 
+# overall barchart for all locations and years
+gillnets_totCPUE$length_group_cat<-as.factor(gillnets_totCPUE$length_group)
+avg<-tapply(gillnets_totCPUE$totCPUE,list(gillnets_totCPUE$length_group_cat,gillnets_totCPUE$Art),sum)
+avg
+barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,ylim=c(0,25),main = "HERR_above18_B_km2") 
+
+
 # Abborre dataset
 gillnets_CPUE_abbo<-gillnets_CPUE %>%
   filter(Art == "Abborre")
 
-# overall distribution: all years and locations
-ggplot(gillnets_CPUE_abbo, aes(x=length_group)) +
-  geom_bar()
 
-# wait, I am doing this right? I should account for CPUE 
