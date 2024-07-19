@@ -13,6 +13,7 @@ library(piecewiseSEM)
 library(lme4)
 library(car)
 library(visreg)
+library(plyr)
 library(dplyr)
 
 library(ExcelFunctionsR)
@@ -70,19 +71,29 @@ gillnets2<-gillnets1 %>%
 
 # keep only GODKAND "JA"? But why I don't see NAs?
 table(gillnets2$GODKAND)
-unique(gillnets2$GODKAND) # they should be in there
-gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",]
-unique(gillnets3$GODKAND) 
+unique(gillnets2$GODKAND) # they should be in there, but without quote because it is not considered a level
+# when showing a dataset R uses <NA>, this is just the way it displays NA in a factor
+# however, if I use this, it will remove NEJ but also NAs (hence ingen fångst)
+#gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",]
+#unique(gillnets3$GODKAND) # not here
+#table(gillnets2$Art,gillnets2$GODKAND)
+#table(gillnets3$Art,gillnets3$GODKAND) # but here
+# so I trY
+gillnets3a<-subset(gillnets2, GODKAND=="JA "| is.na(GODKAND))
+unique(gillnets3a$GODKAND) 
+table(gillnets3a$Art,gillnets3a$GODKAND) # ok!
+
       
 # keep only Störning  "NEJ"?
-table(gillnets3$Störning,gillnets3$month)
-gillnets4<-gillnets3 %>% 
+table(gillnets3a$Störning,gillnets3a$month)
+gillnets4<-gillnets3a %>% 
   filter(Störning  == "NEJ")
 
 # keep only Ansträngning = 1?
 table(gillnets4$Ansträngning)
+unique(gillnets4$Ansträngning)
 gillnets5<-gillnets4 %>% 
-  filter(Ansträngning  == 1)
+  filter(Ansträngning  == 1 ) # | is or
 
 # check and remove outliers:
 summary(gillnets5)
@@ -90,26 +101,37 @@ summary(gillnets5)
 gillnets5 %>%
   filter(Art  == "Abborre") %>%
   filter(LANGDGRUPP_LANGD>70)
-# remove giant perch
+# remove giant perch 
 gillnets6<-gillnets5[!(gillnets5$Art  == "Abborre" & gillnets5$LANGDGRUPP_LANGD > 70),]
 
 # substitute NA to values of temp at the time of fishing equal to 999 (a bit too warm)
 gillnets6$Temp_vittjning_vid_redskap[gillnets6$Temp_vittjning_vid_redskap==999] <- NA
+hist(gillnets5$Temp_vittjning_vid_redskap)
 hist(gillnets6$Temp_vittjning_vid_redskap)
 
 ## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
+
+summary(gillnets4$Ansträngning)
+summary(gillnets5$Ansträngning)
+summary(gillnets6$Ansträngning) # why? I have here >100 records, with NAs for all variables
+table(gillnets5$Ansträngning)
+table(gillnets6$Ansträngning)
+
+gillnets6 %>%
+  filter(is.na(Ansträngning))
 
 #remove NA in response
 gillnets7<-gillnets6 %>%
 #  filter(!LANGDGRUPP_LANGD == "NA") %>%  #wait, not here, otherwise I delete also inge fångst, which is needed in case of nets where no sp were found
 #  filter(!LANGDGRUPP_ANTAL == "NA") %>%
-  filter(!Ansträngning == "NA") # no need I selected for now only Ansträngning =1. Correction: needed bc in creating dataset 6 it is generating a bit more than 100 records with all NAs
+  filter(!is.na(Ansträngning)) # no need I selected for now only Ansträngning=1. Correction: needed bc when creating dataset 6 it generates >100 records with NAs
+
 
 #####
 # Grouping
 #####
 
-# pool data for lokal and year
+# pool data by size for lokal and year
 gillnets_antal<-gillnets7 %>% 
   group_by(location, year, Art, LANGDGRUPP_LANGD) %>%
   summarise(sum_LANGDGRUPP_ANTAL=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
@@ -120,6 +142,7 @@ gillnets_antal<-gillnets7 %>%
 # https://gis.stackexchange.com/questions/7555/computing-an-averaged-latitude-and-longitude-coordinates
 # I skip it for now
 
+# extract effort (and temp) at location*year level:
 gillnets_effort<-gillnets7 %>% 
   group_by(location, year) %>%
   summarise(number_nets=n_distinct(OBS_ID), # check! if correct divide sum_LANGDGRUPP_ANTAL by number_nets to obtain CPUE
@@ -146,20 +169,17 @@ gillnets_CPUE$CPUE<-gillnets_CPUE$sum_LANGDGRUPP_ANTAL/gillnets_CPUE$number_nets
 hist(gillnets_CPUE$CPUE)
 summary(gillnets_CPUE$CPUE)
 
-# aggregate in size classes:
+# create size classes:
 table(gillnets_CPUE$LANGDGRUPP_LANGD) # most values are recorded as *.5
 # makes classes of 1 cm as 0.5-1.4, 1.5-2.4,2.5-3.4 etc etc if measurements were rounded up to *.5 value
 # or 1-2,2-3,4-5 etc etc if measurements were taken as closest *.5 value
 
 # this will take forever...
-gillnets_CPUE$length_group_cat<-as.factor(ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<1.4, '1.5',
-                                                 ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<1.5, '1.5', 
-                                                 ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<2.5, '2.5', 
-                                                        ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<3.5, '3.5', 
-                                                               ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<4.5, '4.5', 'E'))))))
+#gillnets_CPUE$length_group_cat<-as.factor(ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<1.4, '1.5',
+#                                                 ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<1.5, '1.5', 
+#                                                 ifelse(gillnets_CPUE$LANGDGRUPP_LANGD<2.5, '2.5'))))
 
 # so I round each number - revise once I know how the categories were made
-library(plyr)
 #####
 # using round:
 length_group1<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, round)
@@ -181,7 +201,15 @@ table(gillnets_CPUE$length_group2)
 #####
 gillnets_CPUE$length_group<-round_any(gillnets_CPUE$LANGDGRUPP_LANGD, 1, ceiling) 
 
-unique(gillnets_CPUE$Art)
+summary(gillnets_CPUE)
+
+# pool data by size classes for lokal and year
+detach("package:plyr", unload=TRUE)
+
+gillnets_totCPUE<-gillnets_CPUE %>% 
+  group_by(location, year, Art, length_group) %>%
+  summarise(totCPUE=sum(CPUE ,na.rm=TRUE)
+  ) 
 
 # Abborre dataset
 gillnets_CPUE_abbo<-gillnets_CPUE %>%
