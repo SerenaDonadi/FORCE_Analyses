@@ -5,12 +5,11 @@ setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
 # Libraries ---------------------------------------------------------------
 
-library(gplots)
-
 library(tidyverse)
 #library(ggplot2)
 #library(dplyr)
 #library(tidyr)
+library(gplots)
 library(lattice)
 library(nlme)
 # library(MASS) # potenital name clash problem for function select in dplyr
@@ -20,7 +19,7 @@ library(car)
 library(visreg)
 
 library(ExcelFunctionsR)
-library(plyr)
+#library(plyr)
 
 
 #####
@@ -86,11 +85,16 @@ gillnets3a<-subset(gillnets2, GODKAND=="JA "| is.na(GODKAND)) # | is or
 unique(gillnets3a$GODKAND) 
 table(gillnets3a$Art,gillnets3a$GODKAND) # ok!
 
-      
+## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
+
+# remove fish < 12 cm, which are poorly sampled by gillnets:
+gillnets3<-gillnets3a %>% 
+  filter(LANGDGRUPP_LANGD >= 12 | is.na(LANGDGRUPP_LANGD)) # to keep also values "ingen fångst"
+
 # keep only Störning  "NEJ"?
-unique(gillnets3a$Störning) # there are no NAs
-table(gillnets3a$Störning,gillnets3a$month)
-gillnets4<-gillnets3a %>% 
+unique(gillnets3$Störning) # there are no NAs
+table(gillnets3$Störning,gillnets3$month)
+gillnets4<-gillnets3 %>% 
   filter(Störning  == "NEJ")
 
 # remove columns not needed:
@@ -118,8 +122,6 @@ gillnets6$Temp_vittjning_vid_redskap[gillnets6$Temp_vittjning_vid_redskap==999] 
 hist(gillnets5$Temp_vittjning_vid_redskap)
 hist(gillnets6$Temp_vittjning_vid_redskap)
 
-## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
-
 summary(gillnets4$Ansträngning)
 summary(gillnets5$Ansträngning)
 summary(gillnets6$Ansträngning) # why? I have here >100 records, with NAs for all variables. but the 2 rows less than before
@@ -132,7 +134,6 @@ gillnets6 %>%
 #remove NA in response (but not in LANGDGRUPP_LANGD or LANGDGRUPP_ANTAL, otherwise I delete also inge fångst)
 gillnets7<-gillnets6 %>%
   filter(!is.na(Ansträngning)) # no need I selected for now only Ansträngning=1. Correction: needed bc when creating dataset 6 it generates >100 records with NAs
-
 
 #####
 # Grouping
@@ -151,6 +152,7 @@ table(gillnets7$LANGDGRUPP_LANGD) # most values are recorded as *.5
 # so I round each number - revise once I know how the categories were made
 #####
 # using round:
+#library(plyr)
 length_group1<-round_any(gillnets7$LANGDGRUPP_LANGD, 1, round)
 hist(length_group1)
 hist(gillnets7$LANGDGRUPP_LANGD) # some differences
@@ -241,8 +243,6 @@ hist(gillnets_CPUE$number_nets)
 # check:
 filter(gillnets_CPUE, number_nets == 182)
 # is it possible that 182 nets were deployed in 2018 in Blekinge län??
-filter(gillnets_CPUE, tot_number==4766)
-# stsp in Gaviksfjärden
 
 # third, calculate CPUE
 gillnets_CPUE$CPUE<-gillnets_CPUE$number/gillnets_CPUE$number_nets
@@ -268,7 +268,7 @@ summary(gillnets_totCPUE)
 # gillnets_length_indexes: replicated at level of location, year but only for Abborre - useful for stat. 
 
 # merge/combine as you like!
-# likely combine gillnets_length_indexes with totCPUE, and put totCPUE of different spp in columns
+# combine gillnets_length_indexes with totCPUE, and put totCPUE of different spp in columns:
 
 # spread rows into columns to obtain CPUE of spp as predictors and retain zeros
 gillnets_totCPUE_wide<-pivot_wider(gillnets_totCPUE, names_from = Art, values_from = c(totCPUE, tot_number))
@@ -280,18 +280,19 @@ summary(gillnets_totCPUE_wide)
 gillnets_totCPUE_wide %>%
   filter(totCPUE_Abborre == 0)
 
-# select spp to use as predictors:
+# select spp to use as predictors: Stensimpa and småpigg are not included as they are all below 12 cm
 # run this if it can't find function" select"(caused by name clash in package MASS):
 #find("select")
 #select <- dplyr::select
 gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
-  select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,totCPUE_Mört,totCPUE_Gädda,totCPUE_Storspigg,totCPUE_Stensimpa,
-           totCPUE_Rötsimpa, totCPUE_Bergsimpa,totCPUE_Småspigg)) 
+  select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,totCPUE_Mört,totCPUE_Gädda,totCPUE_Storspigg,
+           totCPUE_Rötsimpa, totCPUE_Bergsimpa)) 
 
 # merge gillnets_length_indexes table with CPUE of spp:
 gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
 
-# ready for analyses!
+# ready for analyses! 
+#OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines
 
 
 # also consider lag? In that case check function "lag" in dplyr
