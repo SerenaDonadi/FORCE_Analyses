@@ -207,19 +207,14 @@ head(gillnets_length_indexes)
 # Type "1" is the "classical" method, which is g1 = (sum((x - mean(x))^3) / n) / (sum((x - mean(x))^2) / n)^1.5
 # Type "2" first calculates the type-1 skewness, then adjusts the result: G1 = g1 * sqrt(n * (n - 1)) / (n - 2). This is what SAS and SPSS usually return.
 # Type "3" first calculates the type-1 skewness, then adjusts the result: b1 = g1 * ((1 - 1 / n))^1.5. This is what Minitab usually returns.apparently there are severalk ways to calculate skeweness based on the type of distribution of my data. check:
-# same for kurtosis. I calculate type 1 and 2.
+# same for kurtosis. I calculate type 1 and 2. They are very similar for skewness, but larger differences for kurtosis
 
-gillnets_indiv %>%
-  filter(Art=="Abborre") %>%
-  skewness(length_group, remove_na = TRUE, type = "2", iterations = 100)
-
-skewness(gillnets_indiv$length_group, remove_na = TRUE, type = "2", iterations = 100)
 
 ### calculate CPUE per size categories, using dataset with ingen fångst
 # first, calculate sum of indiv per size category
 gillnets_freq<-gillnets7 %>% 
   group_by(location, year, Art, length_group) %>%
-  summarise(tot_number=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
+  summarise(number=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
   ) 
 
 # second, calculate effort per each location and year
@@ -250,27 +245,55 @@ filter(gillnets_CPUE, tot_number==4766)
 # stsp in Gaviksfjärden
 
 # third, calculate CPUE
-gillnets_CPUE$CPUE<-gillnets_CPUE$tot_number/gillnets_CPUE$number_nets
+gillnets_CPUE$CPUE<-gillnets_CPUE$number/gillnets_CPUE$number_nets
 hist(gillnets_CPUE$CPUE)
 
 head(gillnets_CPUE)
 
 
-### calculate tot CPUE (pooled across size categories)
+### calculate tot CPUE (pooled across size categories). Bring along number and number of nets
 gillnets_totCPUE<-gillnets_CPUE %>% 
   group_by(location, year, Art) %>%
-  summarise(totCPUE=sum(CPUE ,na.rm=TRUE)
+  summarise(totCPUE=sum(CPUE ,na.rm=TRUE),
+            tot_number=sum(number ,na.rm=TRUE),
+            number_nets=mean(number_nets ,na.rm=TRUE)
   ) 
 
+summary(gillnets_totCPUE)
 
 # SUMMARY of key datasets
-# gillnets_CPUE: replicated at level of location, year, size categories - useful for plotting
-# gillnets_totCPUE: replicated at level of location, year
+# gillnets_CPUE: replicated at level of location, year, size categories (and spp) - useful for plotting
+# gillnets_totCPUE: replicated at level of location, year (and spp)
 # gillnets_length_indexes: replicated at level of location, year but only for Abborre - useful for stat. 
 
 # merge/combine as you like!
 # likely combine gillnets_length_indexes with totCPUE, and put totCPUE of different spp in columns
-# PS: add L90 and skeweness ;)
+
+# spread rows into columns to obtain CPUE of spp as predictors and retain zeros
+gillnets_totCPUE_wide<-pivot_wider(gillnets_totCPUE, names_from = Art, values_from = c(totCPUE, tot_number))
+gillnets_totCPUE_wide[is.na(gillnets_totCPUE_wide)] <- 0
+
+summary(gillnets_totCPUE_wide)
+head(gillnets_totCPUE_wide)
+gillnets_totCPUE_wide[1:5,120:129]
+
+# check difference in number of rows from table totCPUEabbo: ok, 4 cases
+gillnets_totCPUE_wide %>%
+  filter(totCPUE_Abborre == 0)
+
+# select spp to use as predictors:
+gillnets_totCPUE_wide_selection<-gillnets_totCPUE_wide %>%
+  select(c(location,year,number_nets,totCPUE_Abborre)) 
+
+select(gillnets_totCPUE_wide, c(2,3))
+
+
+# merge gillnets_length_indexes table with CPUE of spp:
+
+
+
+# also consider lag? In this case check function "lag" in dplyr
+
 
 #####
 # exploratory plots
