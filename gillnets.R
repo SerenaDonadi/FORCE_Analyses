@@ -8,12 +8,12 @@ setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 library(gplots)
 
 library(tidyverse)
-# library(ggplot2)
+#library(ggplot2)
 #library(dplyr)
 #library(tidyr)
 library(lattice)
 library(nlme)
-library(MASS)
+# library(MASS) # potenital name clash problem for function select in dplyr
 library(piecewiseSEM)
 library(lme4)
 library(car)
@@ -251,12 +251,13 @@ hist(gillnets_CPUE$CPUE)
 head(gillnets_CPUE)
 
 
-### calculate tot CPUE (pooled across size categories). Bring along number and number of nets
+### calculate tot CPUE (pooled across size categories). Bring along number and number of nets and avg temp
 gillnets_totCPUE<-gillnets_CPUE %>% 
   group_by(location, year, Art) %>%
   summarise(totCPUE=sum(CPUE ,na.rm=TRUE),
             tot_number=sum(number ,na.rm=TRUE),
-            number_nets=mean(number_nets ,na.rm=TRUE)
+            number_nets=mean(number_nets ,na.rm=TRUE),
+            avg_year_temp=mean(avg_year_temp ,na.rm=TRUE)
   ) 
 
 summary(gillnets_totCPUE)
@@ -274,25 +275,26 @@ gillnets_totCPUE_wide<-pivot_wider(gillnets_totCPUE, names_from = Art, values_fr
 gillnets_totCPUE_wide[is.na(gillnets_totCPUE_wide)] <- 0
 
 summary(gillnets_totCPUE_wide)
-head(gillnets_totCPUE_wide)
-gillnets_totCPUE_wide[1:5,120:129]
 
 # check difference in number of rows from table totCPUEabbo: ok, 4 cases
 gillnets_totCPUE_wide %>%
   filter(totCPUE_Abborre == 0)
 
 # select spp to use as predictors:
-gillnets_totCPUE_wide_selection<-gillnets_totCPUE_wide %>%
-  select(c(location,year,number_nets,totCPUE_Abborre)) 
-
-select(gillnets_totCPUE_wide, c(2,3))
-
+# run this if it can't find function" select"(caused by name clash in package MASS):
+#find("select")
+#select <- dplyr::select
+gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
+  select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,totCPUE_Mört,totCPUE_Gädda,totCPUE_Storspigg,totCPUE_Stensimpa,
+           totCPUE_Rötsimpa, totCPUE_Bergsimpa,totCPUE_Småspigg)) 
 
 # merge gillnets_length_indexes table with CPUE of spp:
+gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
+
+# ready for analyses!
 
 
-
-# also consider lag? In this case check function "lag" in dplyr
+# also consider lag? In that case check function "lag" in dplyr
 
 
 #####
