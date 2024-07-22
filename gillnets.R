@@ -25,7 +25,7 @@ library(plyr)
 
 #####
 # Read Datasets
-####
+#####
 
 # read the whole dataset with Swedish cHaracters 
 # if ANSI doesn't work, try: encoding = "UTF-8", or encoding ="ISO-8859-1", or "latin1"
@@ -186,14 +186,34 @@ gillnets_indiv<- gillnets7 %>%
 
 head(gillnets_indiv)
 
-# calulate mean, median and L90 and skewenss for Abborre, for each location and year:
+library(datawizard)
+
+# calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year:
 gillnets_length_indexes<- gillnets_indiv %>%
   filter(Art=="Abborre") %>%
   group_by(location, year) %>%
   summarise(mean_length=mean(length_group ,na.rm=TRUE),
-            median_length=median(length_group ,na.rm=TRUE)
-  ) 
+            median_length=median(length_group ,na.rm=TRUE),
+            L90=quantile(length_group ,0.90,na.rm=TRUE),
+            sk1=skewness(length_group ,remove_na = TRUE, type = "1", iterations = 100),
+            sk2=skewness(length_group ,remove_na = TRUE, type = "2", iterations = 100),
+            ku1=kurtosis(length_group ,remove_na = TRUE, type = "1", iterations = 100),
+            ku2=skewness(length_group ,remove_na = TRUE, type = "2", iterations = 100)
+            ) 
+
 head(gillnets_length_indexes)
+
+# From R help(skeweness) in R: there are three different methods for estimating skewness, as discussed in Joanes and Gill (1988):
+# Type "1" is the "classical" method, which is g1 = (sum((x - mean(x))^3) / n) / (sum((x - mean(x))^2) / n)^1.5
+# Type "2" first calculates the type-1 skewness, then adjusts the result: G1 = g1 * sqrt(n * (n - 1)) / (n - 2). This is what SAS and SPSS usually return.
+# Type "3" first calculates the type-1 skewness, then adjusts the result: b1 = g1 * ((1 - 1 / n))^1.5. This is what Minitab usually returns.apparently there are severalk ways to calculate skeweness based on the type of distribution of my data. check:
+# same for kurtosis. I calculate type 1 and 2.
+
+gillnets_indiv %>%
+  filter(Art=="Abborre") %>%
+  skewness(length_group, remove_na = TRUE, type = "2", iterations = 100)
+
+skewness(gillnets_indiv$length_group, remove_na = TRUE, type = "2", iterations = 100)
 
 ### calculate CPUE per size categories, using dataset with ingen fångst
 # first, calculate sum of indiv per size category
@@ -243,7 +263,7 @@ gillnets_totCPUE<-gillnets_CPUE %>%
   ) 
 
 
-# SUMMARY of key dataset
+# SUMMARY of key datasets
 # gillnets_CPUE: replicated at level of location, year, size categories - useful for plotting
 # gillnets_totCPUE: replicated at level of location, year
 # gillnets_length_indexes: replicated at level of location, year but only for Abborre - useful for stat. 
