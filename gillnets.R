@@ -189,8 +189,7 @@ gillnets_indiv<- gillnets7 %>%
 head(gillnets_indiv)
 
 library(datawizard)
-detach("package:plyr", unload=TRUE)
-library(dplyr)
+##library(dplyr)
 
 # calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year:
 gillnets_length_indexes<- gillnets_indiv %>%
@@ -218,7 +217,7 @@ head(gillnets_length_indexes)
 # first, calculate sum of indiv per size category
 gillnets_freq<-gillnets7 %>% 
   group_by(location, year, Art, length_group) %>%
-  summarise(number=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
+  summarise(number_indiv=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
   ) 
 
 # second, calculate effort per each location and year
@@ -247,17 +246,17 @@ filter(gillnets_CPUE, number_nets == 182)
 # is it possible that 182 nets were deployed in 2018 in Blekinge län??
 
 # third, calculate CPUE
-gillnets_CPUE$CPUE<-gillnets_CPUE$number/gillnets_CPUE$number_nets
+gillnets_CPUE$CPUE<-gillnets_CPUE$number_indiv/gillnets_CPUE$number_nets
 hist(gillnets_CPUE$CPUE)
 
 head(gillnets_CPUE)
 
 
-### calculate tot CPUE (pooled across size categories). Bring along number and number of nets and avg temp
+### calculate tot CPUE (pooled across size categories). Bring along number indiv and number of nets and avg temp
 gillnets_totCPUE<-gillnets_CPUE %>% 
   group_by(location, year, Art) %>%
   summarise(totCPUE=sum(CPUE ,na.rm=TRUE),
-            tot_number=sum(number ,na.rm=TRUE),
+            tot_number=sum(number_indiv ,na.rm=TRUE),
             number_nets=mean(number_nets ,na.rm=TRUE),
             avg_year_temp=mean(avg_year_temp ,na.rm=TRUE)
   ) 
@@ -274,11 +273,13 @@ summary(gillnets_totCPUE)
 
 # spread rows into columns to obtain CPUE of spp as predictors and retain zeros
 gillnets_totCPUE_wide<-pivot_wider(gillnets_totCPUE, names_from = Art, values_from = c(totCPUE, tot_number))
-gillnets_totCPUE_wide[is.na(gillnets_totCPUE_wide)] <- 0
+gillnets_totCPUE_wide[is.na(gillnets_totCPUE_wide)] <- 0 # wait, replace with 0 only for spp, not temp!
+gillnets_totCPUE_wide$avg_year_temp[gillnets_totCPUE_wide$avg_year_temp==0] <- NA
 
+head(gillnets_totCPUE_wide)
 summary(gillnets_totCPUE_wide)
 
-# check difference in number of rows from table totCPUEabbo: ok, 4 cases
+# check how many location*year had zero abborre: ok, 4 cases
 gillnets_totCPUE_wide %>%
   filter(totCPUE_Abborre == 0)
 
@@ -295,15 +296,18 @@ gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, 
 
 # ready for analyses! 
 #OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines
-
-
 # also consider lag? In that case check function "lag" in dplyr
+
+# SUMMARY of key datasets
+# gillnets_CPUE: include CPUE separated for size categories. Replicated at level of location, year, size categories (and spp) - useful for plotting
+# gillnets_pool: include length indexes for Abborre and tot CPUE of Abborre and few other spp. Replicated at level of location, year - useful for stat. 
+# (gillnets_totCPUE: include tot CPUE. Replicated at level of location, year (and spp))
 
 
 #####
 # exploratory plots
 #####
-# overall barplot for all locations and years but different spp
+# overall barplot for all locations and years pooled but different spp
 ggplot(gillnets_CPUE, aes(x=length_group, y=CPUE)) +
   geom_bar(stat="identity")+
   facet_wrap(~Art)+
@@ -327,7 +331,23 @@ ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length
   theme_bw(base_size=15)+
   theme(legend.position="none")
 
+#####
+# stats on length indexes
+#####
 
+# check spatial and temporal replication:
+head(gillnets_pool)
+table(gillnets_pool$location,gillnets_pool$year)
+count(gillnets_pool, 'location') 
 
+gillnets_pool %>%
+  count('location')
 
+library(dplyr)
 
+gillnets_pool %>%
+  mutate(n_years=count(location))
+
+gillnets_pool$n_years
+
+gillnets_pool %>% group_by(location, year) %>% summarise(n_years = n(location))
