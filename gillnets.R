@@ -75,7 +75,7 @@ gillnets2<-gillnets1 %>%
 table(gillnets2$GODKAND)
 unique(gillnets2$GODKAND) # they should be in there, but without quote because it is not considered a level
 # when showing a dataset R uses <NA>, this is just the way it displays NA in a factor
-# however, if I use this, it will remove NEJ but also NAs (hence ingen fångst)
+# however, if I use the following script, it will remove NEJ but also NAs (hence ingen fångst)
 #gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",]
 #unique(gillnets3$GODKAND) # not here
 #table(gillnets2$Art,gillnets2$GODKAND)
@@ -124,7 +124,7 @@ hist(gillnets6$Temp_vittjning_vid_redskap)
 
 summary(gillnets4$Ansträngning)
 summary(gillnets5$Ansträngning)
-summary(gillnets6$Ansträngning) # why? I have here >100 records, with NAs for all variables. but the 2 rows less than before
+summary(gillnets6$Ansträngning) # why? I have here >100 records, with NAs for all variables. but 2 rows less than before
 table(gillnets5$Ansträngning)
 table(gillnets6$Ansträngning)
 
@@ -170,7 +170,7 @@ hist(length_group3)
 # the best is number 2
 table(length_group2)
 #####
-gillnets7$length_group<-round_any(gillnets7$LANGDGRUPP_LANGD, 1, ceiling) # subtract 0.5 for original values
+gillnets7$length_group<-round_any(gillnets7$LANGDGRUPP_LANGD, 1, ceiling) # I have to subtract 0.5 to obtain original values
 
 head(gillnets7)
 
@@ -189,6 +189,8 @@ gillnets_indiv<- gillnets7 %>%
 head(gillnets_indiv)
 
 library(datawizard)
+detach("package:plyr", unload=TRUE)
+library(dplyr)
 
 # calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year:
 gillnets_length_indexes<- gillnets_indiv %>%
