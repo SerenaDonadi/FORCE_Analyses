@@ -6,8 +6,8 @@ setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 # Libraries ---------------------------------------------------------------
 
 library(tidyverse)
-#library(ggplot2)
-library(dplyr)
+library(ggplot2)
+#library(dplyr)
 #library(tidyr)
 library(gplots)
 library(lattice)
@@ -336,7 +336,7 @@ ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length
 #####
 
 # check spatial and temporal replication:
-head(gillnets_pool)
+summary(gillnets_pool)
 table(gillnets_pool$location,gillnets_pool$year)
 table(gillnets_pool$year,gillnets_pool$location)
 count(gillnets_pool, 'location') 
@@ -355,7 +355,123 @@ table(gillnets_pool_time$year)
 gillnets_pool # all replicates: 375
 gillnets_pool_time1<-filter(gillnets_pool_time, n>10) # only time series with more than 10 years sampling: 275
 gillnets_pool_time2<-filter(gillnets_pool_time, n>2) # all replicates except location with less than 2 sampling years: 343
-gillnets_pool_space2022<-filter(gillnets_pool_space, year==2022) # only the year with most sampled locations, 2022: 24
+gillnets_pool_space2021<-filter(gillnets_pool_space, year==2021) # only the year with most sampled locations, 2022: 27
 
 # PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
 
+# responseS: mean_length, median_length, L90, sk1$Skewness, sk2$Skewness, ku1$Kurtosis, ku2$Skewness
+# drivers: avg_year_temp, totCPUE_Abborre, totCPUE_Mört, totCPUE_Gädda, totCPUE_Storspigg, totCPUE_Rötsimpa, totCPUE_Bergsimpa
+# random: location, year
+
+# exploratory plots:
+ggplot(gillnets_pool, aes(x=avg_year_temp, y=ku1$Kurtosis, col=year)) +
+  geom_point(size=2)+ 
+  facet_wrap(~location)+
+  theme_bw(base_size=15)
+
+ggplot(gillnets_pool, aes(x=avg_year_temp, y=mean_length, col=location)) +
+  geom_point(size=2)+ 
+  facet_wrap(~year)+
+  theme_bw(base_size=15)
+
+ggplot(gillnets_pool, aes(x=totCPUE_Mört, y=mean_length, col=year)) +
+  geom_point(size=2)+ 
+  facet_wrap(~location)+
+  theme_bw(base_size=15)
+
+# distributional properties
+hist(gillnets_pool$mean_length)
+hist(gillnets_pool$avg_year_temp)
+hist(gillnets_pool$totCPUE_Abborre)
+
+# collinearity
+plot(gillnets_pool$avg_year_temp,gillnets_pool$totCPUE_Abborre)
+plot(gillnets_pool$avg_year_temp,gillnets_pool$totCPUE_Mört)
+plot(gillnets_pool$totCPUE_Abborre,gillnets_pool$totCPUE_Mört)
+
+# time series analyses
+
+# inlcude correlation STR using long time series (gillnets_pool1)
+M0<-gls(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+vif(M0)
+M1<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,method="REML",na.action=na.omit, data=gillnets_pool1)
+M2<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corCompSymm(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+M3<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corExp(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+M4<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+M5<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+M6<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corGaus(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+M7<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corSpher(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+AIC(M0,M1,M2,M3,M4,M5,M6,M7)
+# best M3 and M4
+
+# check variance str:
+M4<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=gillnets_pool1)
+M8<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+M9<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ totCPUE_Abborre),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+M10<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ totCPUE_Mört),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+M11<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),weights=varPower(~ avg_year_temp),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+M12<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),weights=varPower(~ totCPUE_Abborre),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+M13<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+         random=~1|location,correlation=corAR1(form=~year),weights=varPower(~ totCPUE_Mört),
+         method="REML",na.action=na.omit, data=gillnets_pool1)
+M14<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+         random=~1|location,correlation=corAR1(form=~year),weights=varConstPower(~ avg_year_temp),
+         method="REML",na.action=na.omit, data=gillnets_pool1)
+M15<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+         random=~1|location,correlation=corAR1(form=~year),weights=varConstPower(~ totCPUE_Abborre),
+         method="REML",na.action=na.omit, data=gillnets_pool1)
+M16<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+         random=~1|location,correlation=corAR1(form=~year),weights=varConstPower(~ totCPUE_Mört),
+         method="REML",na.action=na.omit, data=gillnets_pool1)
+M17<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+         random=~1|location,correlation=corAR1(form=~year),weights=varIdent(form =~ 1|location),
+         method="REML",na.action=na.omit, data=gillnets_pool1)
+AIC(M4,M8,M9)
+# best M8
+
+# final
+M8<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
+        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+anova.lme(M8, type = "marginal", adjustSigma = F) 
+rsquared(M8)
+summary(M8)
+plot(M8)
+
+library(ggeffects)
+pred <- ggpredict(M8, "avg_year_temp")
+plot(pred)
+pred2 <- ggpredict(M8, "totCPUE_Abborre")
+plot(pred2)
+
+library(effects)
+eff.p1 <- effect("avg_year_temp", M8)
+plot(eff.p1)
+
+# adding year
+M8a<-lme(mean_length~avg_year_temp+totCPUE_Abborre+totCPUE_Mört+year,
+        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
+        method="REML",na.action=na.omit, data=gillnets_pool1)
+vif(M8a)
+anova.lme(M8a, type = "marginal", adjustSigma = F) 
+rsquared(M8a)
+summary(M8a)
