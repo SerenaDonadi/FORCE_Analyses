@@ -7,7 +7,7 @@ setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
 library(tidyverse)
 #library(ggplot2)
-#library(dplyr)
+library(dplyr)
 #library(tidyr)
 library(gplots)
 library(lattice)
@@ -338,16 +338,24 @@ ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length
 # check spatial and temporal replication:
 head(gillnets_pool)
 table(gillnets_pool$location,gillnets_pool$year)
+table(gillnets_pool$year,gillnets_pool$location)
 count(gillnets_pool, 'location') 
 
-gillnets_pool %>%
-  count('location')
+# add n = n years of sampling for each location
+gillnets_pool_time<-gillnets_pool %>%
+  add_count(location)
+gillnets_pool_time$n
+hist(gillnets_pool_time$n)
+# cut off..?
 
-library(dplyr)
+table(gillnets_pool_time$year)
+# 2022 has 24 locations
 
-gillnets_pool %>%
-  mutate(n_years=count(location))
+# make one (or two) subset for time series analyses and one with only spatial replication
+gillnets_pool # all replicates: 375
+gillnets_pool_time1<-filter(gillnets_pool_time, n>10) # only time series with more than 10 years sampling: 275
+gillnets_pool_time2<-filter(gillnets_pool_time, n>2) # all replicates except location with less than 2 sampling years: 343
+gillnets_pool_space2022<-filter(gillnets_pool_space, year==2022) # only the year with most sampled locations, 2022: 24
 
-gillnets_pool$n_years
+# PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
 
-gillnets_pool %>% group_by(location, year) %>% summarise(n_years = n(location))
