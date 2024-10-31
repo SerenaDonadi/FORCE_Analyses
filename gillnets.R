@@ -31,11 +31,12 @@ library(ExcelFunctionsR)
 
 # to calculate the probability of a file of being encoded in several encodings
 library(readr)
-guess_encoding("gillnet-data.csv", n_max = 1000)
+guess_encoding("gillnet-data-unfiltered-NEW.csv", n_max = 1000)
 # try both encoding = "" and fileEncoding = ""
 
 ### 1) gillnets
-gillnets <- read.csv2("gillnet-data.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".")  ## I can't read the last file that Agnes sent me,check
+# gillnets <- read.csv2("gillnet-data.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".")  # old 
+gillnets <- read.csv2("gillnet-data-unfiltered-NEW.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
 head(gillnets)
 
 # make column with only year
@@ -50,13 +51,29 @@ summary(gillnets$month)
 hist(gillnets$month)
 
 # rename columns before merging
-gillnets0 <- rename(gillnets, location = 'Lokal')
+gillnets <- rename(gillnets, location = 'Lokal')
 
 ### 2) temp
-temp_gillnet <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
+
+# avg year temp
+temp_gillnet_year <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".") # year avg temp
+# avg day temp
+temp_gillnet_day <- read.csv2("temperature-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
+
+# something may be wrong with the second one: indeed
+# make column with only year
+head(temp_gillnet_day$date)
+temp_gillnet_day$year<-as.numeric(LEFT(temp_gillnet_day$date,4))
+summary(temp_gillnet_day$year)
+hist(temp_gillnet_day$year)
+
+# make column with only month
+temp_gillnet_day$month<-as.numeric(LEFT(RIGHT(temp_gillnet_day$date,5),2))
+summary(temp_gillnet_day$month)
+hist(temp_gillnet_day$month)
 
 # merge and keep all records in left dataset, and only matching record in right dataset
-gillnets1<-left_join(gillnets0, temp_gillnet, by = c("year","location")) # 
+gillnets1<-left_join(gillnets, temp_gillnet_year, by = c("year","location")) # 
 
 # rename temp to be more specific
 gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
@@ -67,23 +84,85 @@ head(gillnets1)
 # Subsets
 #####
 
+# filter out stations that are disturbed or not GODKAND
+gillnets1 = subset(gillnets1, Störning == "NEJ" | is.na(Störning)) # none
+gillnets1 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
+
+# why I don't see NAs?
+#table(gillnets1$GODKAND)
+#unique(gillnets$GODKAND) # they should be in there, but without quote because it is not considered a level
+# when showing a dataset R uses <NA>, this is just the way it displays NA in a factor
+# however, if I use: gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",] # it will remove NEJ but also NAs (hence ingen fångst), so I use:
+#gillnets2 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
+#unique(gillnets2$GODKAND) 
+#table(gillnets2$Art,gillnets2$GODKAND) # ok!
+
+#####
+# all this does not seem to affect the data! check with Agnes if the filtered and unfiltered should be different...
+
+# filter out stations 991-995 (hydrographic stations).
+# gillnets2 = subset(gillnets1, !(StationsNr %in% 991:995)) 
+# sort(unique(gillnets1$StationsNr)) # I don't see any
+
+# remove restricted data (perhaps remove intern too - often something odd about them)
+df.net = subset(gillnets1, Behörighet != "Restriktion") # none
+
+#EFFORT SHOULD BE 1 according to email from Ronny (likely typos) (from Matilda)
+df.net[df.net$Fångstområde == "Karlskrona Ö skärgård" & df.net$År == 2020 &df.net$ StationsNr %in% c(25, 36), "Ansträngning"] = 1
+df.net[df.net$FISKE == "Inventeringsfiske Östergötlands län" & df.net$År == 2017, "Ansträngning"] = 1
+df.net[df.net$Fångstområde == "Ö Gotlands n kustvatten", "Ansträngning"] = 1
+df.net[df.net$Fångstområde == "Skarpösundet", "Ansträngning"] = 1
+
+# remove fishing where effort in hours
+df.net = subset(df.net, !(Fångstområde == 'Pukaviksbukten' & År == 2009)) # none
+df.net = subset(df.net, !(Fångstområde == 'Möllefjorden' & År == 2009))  # none 
+
+p<-filter(gillnets1, Fångstområde == 'Pukaviksbukten') 
+ggplot(p, aes(x = År, y = Ansträngning)) +
+  geom_point(size=2)+ 
+  theme_bw(base_size=15)
+
+# remove weird fishing with Ansträngning = 2: none
+df.net = subset(df.net, FISKE != "PiddesWin11Test-Kreg2024")
+
+p<-filter(gillnets1, Ansträngning == 2) 
+table(gillnets1$Ansträngning)
+
+#Move the station number from the information column to the station column: These were fished by outside groups and they put the net number in the information column. Check the CPUE to make sure nothing looks completely off.
+df.net$station = df.net$StationsNr
+
+df.net$station[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden'] =
+  df.net$Information[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden']
+
+df.net$station[df.net$FISKE == 'Inventeringsfiske(LNU)' & df.net$År == 2017 & df.net$Lokal == 'Blekinge län'] =
+  df.net$Information[df.net$FISKE == 'Inventeringsfiske(LNU)' & df.net$År == 2017 & df.net$Lokal == 'Blekinge län']
+
+df.net$station[df.net$FISKE %in% c('Listers huvud', 'Inventering Nordiska nät augusti', 'Tromtö', 'Utlängan-Mellanskär') & df.net$År == 2018 & df.net$Lokal == 'Blekinge län'] =
+  df.net$Information[df.net$FISKE %in% c('Listers huvud', 'Inventering Nordiska nät augusti', 'Tromtö', 'Utlängan-Mellanskär') & df.net$År == 2018 & df.net$Lokal == 'Blekinge län']
+
+df.net$station[df.net$FISKE == 'Gåsöfjärden inventering' & df.net$År == 2019 & df.net$Lokal == 'Blekinge län'] =
+  df.net$Information[df.net$FISKE == 'Gåsöfjärden inventering' & df.net$År == 2019 & df.net$Lokal == 'Blekinge län']
+
+df.net$station[df.net$FISKE == 'Fårösund inventering' & df.net$År == 2019 & df.net$Lokal == 'Gotlands län'] =
+  df.net$Information[df.net$FISKE == 'Fårösund inventering' & df.net$År == 2019 & df.net$Lokal == 'Gotlands län']
+
+df.net$station[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden'] =
+  df.net$Information[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden']
+
+df.net$station[df.net$FISKE == 'Inventeringsfiske Östergötlands län' & df.net$År == 2017 & df.net$Lokal == 'Östergötlands län'] =
+  df.net$Information[df.net$FISKE == 'Inventeringsfiske Östergötlands län' & df.net$År == 2017 & df.net$Lokal == 'Östergötlands län']
+
+
+# remove fishing using other gear type
+df.net = subset(df.net, Info_publik != "Fiske där man man fiskat med 2 olika olika redskap i syfte att identifiera eventuell förekomst av svartmunnad smörbult. Fiske utfört av LST Gävleborg." | is.na(Info_publik))
+
+#####
+
+# now it is my script. go through this and adjust/select
+
 # take only august data for now:
 gillnets2<-gillnets1 %>% 
   filter(month == 8)
-
-# keep only GODKAND "JA"? But why I don't see NAs?
-table(gillnets2$GODKAND)
-unique(gillnets2$GODKAND) # they should be in there, but without quote because it is not considered a level
-# when showing a dataset R uses <NA>, this is just the way it displays NA in a factor
-# however, if I use the following script, it will remove NEJ but also NAs (hence ingen fångst)
-#gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",]
-#unique(gillnets3$GODKAND) # not here
-#table(gillnets2$Art,gillnets2$GODKAND)
-#table(gillnets3$Art,gillnets3$GODKAND) # but here
-# so I trY
-gillnets3a<-subset(gillnets2, GODKAND=="JA "| is.na(GODKAND)) # | is or
-unique(gillnets3a$GODKAND) 
-table(gillnets3a$Art,gillnets3a$GODKAND) # ok!
 
 ## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
 
@@ -298,6 +377,16 @@ gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
 # merge gillnets_length_indexes table with CPUE of spp:
 gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
 
+# fix column names for variables that contain more variables: not done yet!
+head(gillnets_pool)
+colnames(gillnets_pool)
+#gillnets_pool$sk1[1]
+#skew1<-gillnets_pool$sk1$Skewness
+#gillnets_pool<-cbind(gillnets_pool,skew1)
+#gillnets_pool$skew1<-gillnets_pool$sk1[1]
+
+hist(gillnets_pool$skew1)
+
 # ready for analyses! 
 #OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines
 # also consider lag? In that case check function "lag" in dplyr
@@ -387,6 +476,8 @@ ggplot(gillnets_pool, aes(x=totCPUE_Mört, y=mean_length, col=year)) +
 hist(gillnets_pool$mean_length)
 hist(gillnets_pool$avg_year_temp)
 hist(gillnets_pool$totCPUE_Abborre)
+hist(gillnets_pool$skew1)
+
 
 # collinearity
 plot(gillnets_pool$avg_year_temp,gillnets_pool$totCPUE_Abborre)
@@ -598,96 +689,25 @@ rsquared(M8)
 summary(M8)
 plot(M8)
 
-# time series analyses: sk1$Skewness
+# time series analyses: I need to fix the name, see above when defyning the gillnet_pool dataset
 
-hist(gillnets_pool$sk1$Skewness)
+#hist(gillnets_pool$sk1$Skewness)
 
-# rename:
+# rename: dont work
 head(gillnets_pool)
-gillnets_pool <- rename(gillnets_pool, sk1 = 'sk1') # first name is the new one, second is the old one
-colnames(gillnets_pool)
-gillnets_pool<-as.data.frame(gillnets_pool)
+#gillnets_pool <- rename(gillnets_pool, sk1 = 'sk1') # first name is the new one, second is the old one
+#colnames(gillnets_pool)
+#gillnets_pool<-as.data.frame(gillnets_pool)
+#colnames(gillnets_pool)[6:9] <- c("skew1", "skew2","kur1", "kur2")
+# check attributes
+#attributes(gillnets_pool$skew1)$`scaled:scale`
 
-# inlcude correlation STR using all replicate (gillnets_pool)
-M0<-gls(sk1~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        method="REML",na.action=na.omit, data=gillnets_pool)
-vif(M0)
-M1<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,method="REML",na.action=na.omit, data=gillnets_pool)
-M2<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corCompSymm(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-M3<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corExp(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-M4<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-M5<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-M6<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corGaus(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-M7<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corSpher(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-AIC(M0,M1,M2,M3,M4,M5,M6,M7)
-# best M3 and M4
+#attributes(gillnets_pool$skew1)
+#un<-unclass(gillnets_pool$skew1)
+#x <- cbind(a = 1:3, pi = pi) # simple matrix with dimnames
+#attributes(x)
 
-# check variance str:
-M4<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=gillnets_pool)
-M8<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
-        method="REML",na.action=na.omit, data=gillnets_pool)
-M9<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ totCPUE_Abborre),
-        method="REML",na.action=na.omit, data=gillnets_pool)
-AIC(M4,M8,M9)
-# best M8
+#gillnets_pool$sk1<-gillnets_pool$skew1[1]
 
-# final
-M8<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
-        method="REML",na.action=na.omit, data=gillnets_pool)
-anova.lme(M8, type = "marginal", adjustSigma = F) 
-rsquared(M8)
-summary(M8)
-plot(M8)
-
-library(ggeffects)
-pred2 <- ggpredict(M8, "totCPUE_Abborre")
-plot(pred2)
-
-# adding year
-M8a<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört+year,
-         random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
-         method="REML",na.action=na.omit, data=gillnets_pool)
-vif(M8a)
-anova.lme(M8a, type = "marginal", adjustSigma = F) 
-rsquared(M8a)
-summary(M8a)
-
-# adding interaction temp*density
-M8b<-lme(L90~avg_year_temp*totCPUE_Abborre+totCPUE_Mört+year,
-         random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
-         method="REML",na.action=na.omit, data=gillnets_pool)
-anova.lme(M8b, type = "marginal", adjustSigma = F) 
-rsquared(M8b)
-summary(M8b)
-
-#pred <- ggpredict(M8b, c("avg_year_temp", "totCPUE_Abborre"))
-#plot(pred)
-
-# using only long time series: gillnets_pool_time1:
-M8<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
-        method="REML",na.action=na.omit, data=gillnets_pool_time1)
-anova.lme(M8, type = "marginal", adjustSigma = F) 
-rsquared(M8)
-summary(M8)
-plot(M8)
-
-# using all replicates except sites with less than 2 sampling:
-M8<-lme(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
-        random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
-        method="REML",na.action=na.omit, data=gillnets_pool_time2)
-anova.lme(M8, type = "marginal", adjustSigma = F) 
-rsquared(M8)
-summary(M8)
-plot(M8)
+## strip an object's attributes:
+#attributes(x) <- NULL

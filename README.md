@@ -13,7 +13,7 @@ Remove all ansträngning that are not 1. Maybe save same after Agnes send me new
 
 Update2: after talking to Peter, Matilda, Ronny, Agnes suggests to remove fishing where effort is expressed in hours, correct some typos, remove weird fishing with Ansträngning = 2 (see cleaning script) - check that all issues mentioned above are solved (e.g. do we still have Ansträngning equal to 35 or 10?)
 
-- it would be good to have temp at the time of fishing (check values as before I found 999, which are NAs), to account for potential artifact (i.e. different catchability with temp) by regressing residual variation after accounting for effects of avg year temp (and interactions)
+- it would be good to have temp at the time of fishing (check values as before I found 999, which are NAs), to account for potential artifact (i.e. different catchability with temp) by regressing residual variation after accounting for effects of avg year temp (and interactions).
 
 Done. Plus depth. But is it the depth of the net or the water column? I assume the second because I have a max value of 52 but doublecheck
 
@@ -71,6 +71,14 @@ Sometimes Ansträngning_enhet = ..*timmarna. Can I convert the corresponding val
 3) "Ok nd" under the variable "Art" is another version of "Okänd"?
 
 4) langdrupp_langd is often but not always rounded to 0.5 cm. I guess people have used different methods (precision) to measure the length of fish. Do you know whether the values have been rounded up to *.5 cm or if values were recorded as the closest *.5 value?
+
+####
+Temperature data
+###
+
+Agnes extracted satellite measures (from Copericus) of daily temperatures for all the gillnet locations from 1982 to 2023. 
+
+- compare these values to the measured temperatures from the gillnet data to see how well they correspond.
 
 ###
 Questions about detonation dataset:
