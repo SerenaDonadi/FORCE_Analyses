@@ -13,6 +13,8 @@ Remove all ansträngning that are not 1. Maybe save same after Agnes send me new
 
 Update2: after talking to Peter, Matilda, Ronny, Agnes suggests to remove fishing where effort is expressed in hours, correct some typos, remove weird fishing with Ansträngning = 2 (see cleaning script) - check that all issues mentioned above are solved (e.g. do we still have Ansträngning equal to 35 or 10?)
 
+Update3: in the new file, all Ansträngning are 1, Fisketid_enhet is dygn or natt, and Ansträngning_enhet doe not contain "timmarna", so all good. However, Fisketid is 12 instead of 1 in 2525 cases. I remove it
+
 - it would be good to have temp at the time of fishing (check values as before I found 999, which are NAs), to account for potential artifact (i.e. different catchability with temp) by regressing residual variation after accounting for effects of avg year temp (and interactions).
 
 Done. Plus depth. But is it the depth of the net or the water column? I assume the second because I have a max value of 52 but doublecheck

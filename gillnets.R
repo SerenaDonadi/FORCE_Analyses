@@ -60,7 +60,7 @@ temp_gillnet_year <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TR
 # avg day temp
 temp_gillnet_day <- read.csv2("temperature-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
 
-# something may be wrong with the second one: indeed
+# something may be wrong with the second one: indeed. waiting for Agnes to provide new data
 # make column with only year
 head(temp_gillnet_day$date)
 temp_gillnet_day$year<-as.numeric(LEFT(temp_gillnet_day$date,4))
@@ -84,101 +84,82 @@ head(gillnets1)
 # Subsets
 #####
 
-# filter out stations that are disturbed or not GODKAND
-gillnets1 = subset(gillnets1, Störning == "NEJ" | is.na(Störning)) # none
-gillnets1 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
+# filter out stations that are disturbed 
+unique(gillnets1$Störning) # all NEJ
+# gillnets1 = subset(gillnets1, Störning == "NEJ" | is.na(Störning)) # none
 
-# why I don't see NAs?
-#table(gillnets1$GODKAND)
-#unique(gillnets$GODKAND) # they should be in there, but without quote because it is not considered a level
+## filter out stations that are not GODKAND
+unique(gillnets1$GODKAND) # JA or NA
+# gillnets1 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
+
+# Note: why I don't see NAs with table(gillnets1$GODKAND)? 
+# unique(gillnets$GODKAND) # they should be in there, but without quote because it is not considered a level
 # when showing a dataset R uses <NA>, this is just the way it displays NA in a factor
 # however, if I use: gillnets3<-gillnets2[!gillnets2$GODKAND=="NEJ",] # it will remove NEJ but also NAs (hence ingen fångst), so I use:
 #gillnets2 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
-#unique(gillnets2$GODKAND) 
 #table(gillnets2$Art,gillnets2$GODKAND) # ok!
-
-#####
-# all this does not seem to affect the data! check with Agnes if the filtered and unfiltered should be different...
 
 # filter out stations 991-995 (hydrographic stations).
 # gillnets2 = subset(gillnets1, !(StationsNr %in% 991:995)) 
 # sort(unique(gillnets1$StationsNr)) # I don't see any
 
-# remove restricted data (perhaps remove intern too - often something odd about them)
-df.net = subset(gillnets1, Behörighet != "Restriktion") # none
+# remove restricted data 
+unique(gillnets1$Behörighet) # none is "Restriktion"
+table(gillnets1$Behörighet) 
+# intern may have something odd, check them: boh
+subset(gillnets1, Behörighet == "Intern")
 
-#EFFORT SHOULD BE 1 according to email from Ronny (likely typos) (from Matilda)
-df.net[df.net$Fångstområde == "Karlskrona Ö skärgård" & df.net$År == 2020 &df.net$ StationsNr %in% c(25, 36), "Ansträngning"] = 1
-df.net[df.net$FISKE == "Inventeringsfiske Östergötlands län" & df.net$År == 2017, "Ansträngning"] = 1
-df.net[df.net$Fångstområde == "Ö Gotlands n kustvatten", "Ansträngning"] = 1
-df.net[df.net$Fångstområde == "Skarpösundet", "Ansträngning"] = 1
-
-# remove fishing where effort in hours
-df.net = subset(df.net, !(Fångstområde == 'Pukaviksbukten' & År == 2009)) # none
-df.net = subset(df.net, !(Fångstområde == 'Möllefjorden' & År == 2009))  # none 
-
-p<-filter(gillnets1, Fångstområde == 'Pukaviksbukten') 
-ggplot(p, aes(x = År, y = Ansträngning)) +
-  geom_point(size=2)+ 
-  theme_bw(base_size=15)
-
-# remove weird fishing with Ansträngning = 2: none
-df.net = subset(df.net, FISKE != "PiddesWin11Test-Kreg2024")
-
-p<-filter(gillnets1, Ansträngning == 2) 
+# check samples that may not have Ansträngning = 1: all good
 table(gillnets1$Ansträngning)
 
-#Move the station number from the information column to the station column: These were fished by outside groups and they put the net number in the information column. Check the CPUE to make sure nothing looks completely off.
-df.net$station = df.net$StationsNr
+# check samples that may have effort expressed in hours:
+unique(gillnets1$Fisketid_enhet)
+unique(gillnets1$Ansträngning_enhet)
+# check samples that have effort different from 1: remove them
+unique(gillnets1$Fisketid)
+subset(gillnets1, Fisketid == 12)
+gillnets2<-subset(gillnets1, Fisketid != 12)
 
-df.net$station[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden'] =
-  df.net$Information[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden']
+# check where the station number is listed, as in some cases it may be listed in the information column
+unique(gillnets2$station)
+unique(gillnets2$StationsNr)
+unique(gillnets2$Information)
+# there are some inconsistencies, but I also see that there are some NAs. Either fix or don't use it (the latter for now)
 
-df.net$station[df.net$FISKE == 'Inventeringsfiske(LNU)' & df.net$År == 2017 & df.net$Lokal == 'Blekinge län'] =
-  df.net$Information[df.net$FISKE == 'Inventeringsfiske(LNU)' & df.net$År == 2017 & df.net$Lokal == 'Blekinge län']
+# check comments and remove possibly weird samples:
+unique(gillnets2$Info_publik)
 
-df.net$station[df.net$FISKE %in% c('Listers huvud', 'Inventering Nordiska nät augusti', 'Tromtö', 'Utlängan-Mellanskär') & df.net$År == 2018 & df.net$Lokal == 'Blekinge län'] =
-  df.net$Information[df.net$FISKE %in% c('Listers huvud', 'Inventering Nordiska nät augusti', 'Tromtö', 'Utlängan-Mellanskär') & df.net$År == 2018 & df.net$Lokal == 'Blekinge län']
+subset(gillnets2, Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
+ggplot(subset(gillnets2, location  == "Råneå"), aes(x = year, y = Antal)) +
+  geom_point(size=2)+ 
+  facet_wrap(~Info_publik)+
+  theme_bw(base_size=15)
+# Antal is quite low, but also comparable with year 2009 and 2012. Not sure if I should remove it. To be on the safe side I do it:
+# if I use this script it, it removes too many rows
+# gillnets3<-subset(gillnets2, Info_publik != "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
+# same with this:
+#gillnets3<-gillnets2 %>%
+#  filter(Info_publik != "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
+# if I use this script it is messing up with NAs:
+# gillnets3<-gillnets2[! gillnets2$Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ",]
+# This looks ok:
+litecatch <- which(with(gillnets2, Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst "))
+gillnets3 <- gillnets2[ -litecatch, ]
 
-df.net$station[df.net$FISKE == 'Gåsöfjärden inventering' & df.net$År == 2019 & df.net$Lokal == 'Blekinge län'] =
-  df.net$Information[df.net$FISKE == 'Gåsöfjärden inventering' & df.net$År == 2019 & df.net$Lokal == 'Blekinge län']
+unique(gillnets3$Störning) 
+table(gillnets3$Störning) 
 
-df.net$station[df.net$FISKE == 'Fårösund inventering' & df.net$År == 2019 & df.net$Lokal == 'Gotlands län'] =
-  df.net$Information[df.net$FISKE == 'Fårösund inventering' & df.net$År == 2019 & df.net$Lokal == 'Gotlands län']
+subset(gillnets3, Info_publik == "Många fiskar har angivits som skadad fångst, ospecificerat vad/vem som orsakat skadorna på fisken." )
+# looks ok, keep
 
-df.net$station[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden'] =
-  df.net$Information[df.net$FISKE == 'Inventering Repskärsfjärden' & df.net$År == 2019 & df.net$Lokal == 'Repskärsfjärden']
+subset(gillnets3, Info_publik == "En station 2009-08-14 är fiskad 2 nätter." & Fiskedatum == "14/08/2009")
+# remove:
+gillnets4<-gillnets3[!(gillnets3$Info_publik == 'En station 2009-08-14 är fiskad 2 nätter.' & gillnets3$Fiskedatum == '14/08/2009'),]
+# now this script seems to work
 
-df.net$station[df.net$FISKE == 'Inventeringsfiske Östergötlands län' & df.net$År == 2017 & df.net$Lokal == 'Östergötlands län'] =
-  df.net$Information[df.net$FISKE == 'Inventeringsfiske Östergötlands län' & df.net$År == 2017 & df.net$Lokal == 'Östergötlands län']
 
-
-# remove fishing using other gear type
-df.net = subset(df.net, Info_publik != "Fiske där man man fiskat med 2 olika olika redskap i syfte att identifiera eventuell förekomst av svartmunnad smörbult. Fiske utfört av LST Gävleborg." | is.na(Info_publik))
-
-#####
-
-# now it is my script. go through this and adjust/select
-
-# take only august data for now:
-gillnets2<-gillnets1 %>% 
-  filter(month == 8)
-
-## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
-
-# remove fish < 12 cm, which are poorly sampled by gillnets:
-gillnets3<-gillnets3a %>% 
-  filter(LANGDGRUPP_LANGD >= 12 | is.na(LANGDGRUPP_LANGD)) # to keep also values "ingen fångst"
-
-# keep only Störning  "NEJ"?
-unique(gillnets3$Störning) # there are no NAs
-table(gillnets3$Störning,gillnets3$month)
-gillnets4<-gillnets3 %>% 
-  filter(Störning  == "NEJ")
-
-# remove columns not needed:
-gillnets4<-gillnets4 %>%
-  select(-c(Info_publik,GODKAND ,STORNINGAR)) 
+# NB: Agnes script (see email about new data or notes in data and methods file) does not seem to affect the data! 
+# check with Agnes if the filtered and unfiltered dataset should be different...
 
 
 # keep only Ansträngning = 1?
@@ -187,32 +168,34 @@ unique(gillnets4$Ansträngning) # there are NAs. If I don't want to retain them:
 gillnets5<-gillnets4 %>% 
   filter(Ansträngning  == 1 ) 
 
-# check and remove outliers:
-summary(gillnets5)
+## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
 
-gillnets5 %>%
-  filter(Art  == "Abborre") %>%
-  filter(LANGDGRUPP_LANGD>70)
+# remove columns not needed:
+gillnets5<-gillnets5 %>%
+  select(-c(Info_publik,GODKAND ,STORNINGAR))
+
+# remove fish < 12 cm, which are poorly sampled by gillnets:
+gillnets6<-gillnets5 %>% 
+  filter(LANGDGRUPP_LANGD >= 12 | is.na(LANGDGRUPP_LANGD)) # to keep also values "ingen fångst"
+
+# check and remove outliers:
+summary(gillnets6)
+
+# no need with the new dataset
+#gillnets %>%
+#  filter(Art  == "Abborre") %>%
+#  filter(LANGDGRUPP_LANGD>70)
 # remove giant perch 
-gillnets6<-gillnets5[!(gillnets5$Art  == "Abborre" & gillnets5$LANGDGRUPP_LANGD > 70),]
+#gillnets6<-gillnets5[!(gillnets5$Art  == "Abborre" & gillnets5$LANGDGRUPP_LANGD > 70),]
 
 # substitute NA to values of temp at the time of fishing equal to 999 (a bit too warm)
+sort(unique(gillnets6$Temp_vittjning_vid_redskap))
 gillnets6$Temp_vittjning_vid_redskap[gillnets6$Temp_vittjning_vid_redskap==999] <- NA
-hist(gillnets5$Temp_vittjning_vid_redskap)
 hist(gillnets6$Temp_vittjning_vid_redskap)
 
-summary(gillnets4$Ansträngning)
-summary(gillnets5$Ansträngning)
-summary(gillnets6$Ansträngning) # why? I have here >100 records, with NAs for all variables. but 2 rows less than before
-table(gillnets5$Ansträngning)
-table(gillnets6$Ansträngning)
-
-gillnets6 %>%
-  filter(is.na(Ansträngning))
-
-#remove NA in response (but not in LANGDGRUPP_LANGD or LANGDGRUPP_ANTAL, otherwise I delete also inge fångst)
-gillnets7<-gillnets6 %>%
-  filter(!is.na(Ansträngning)) # no need I selected for now only Ansträngning=1. Correction: needed bc when creating dataset 6 it generates >100 records with NAs
+# take only august data for now:
+gillnets7<-gillnets6 %>% 
+  filter(month == 8)
 
 #####
 # Grouping
@@ -268,7 +251,12 @@ gillnets_indiv<- gillnets7 %>%
 head(gillnets_indiv)
 
 library(datawizard)
-##library(dplyr)
+
+# before running group_by I may need to detach package plyr, If I used it:
+detach("package:plyr", unload=TRUE)
+unloadNamespace("plyr")
+detach("package:ExcelFunctionsR", unload=TRUE)
+library(dplyr)
 
 # calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year:
 gillnets_length_indexes<- gillnets_indiv %>%
@@ -325,8 +313,8 @@ gillnets_CPUE<-left_join(gillnets_freq, gillnets_effort, by = c("location","year
 summary(gillnets_CPUE)
 hist(gillnets_CPUE$number_nets)
 # check:
-filter(gillnets_CPUE, number_nets == 182)
-# is it possible that 182 nets were deployed in 2018 in Blekinge län??
+filter(gillnets_CPUE, number_nets == 153)
+# is it possible that 153 nets were deployed in 2017 in Blekinge län??
 
 # third, calculate CPUE
 gillnets_CPUE$CPUE<-gillnets_CPUE$number_indiv/gillnets_CPUE$number_nets
@@ -362,7 +350,7 @@ gillnets_totCPUE_wide$avg_year_temp[gillnets_totCPUE_wide$avg_year_temp==0] <- N
 head(gillnets_totCPUE_wide)
 summary(gillnets_totCPUE_wide)
 
-# check how many location*year had zero abborre: ok, 4 cases
+# check how many location*year had zero abborre: ok, 4 cases. With the new dataset is 1
 gillnets_totCPUE_wide %>%
   filter(totCPUE_Abborre == 0)
 
