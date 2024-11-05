@@ -197,6 +197,17 @@ hist(gillnets6$Temp_vittjning_vid_redskap)
 gillnets7<-gillnets6 %>% 
   filter(month == 8)
 
+# check if there is anything weird here: ok
+#gillnets7 %>% 
+#  filter(Behörighet  == "Intern" ) 
+#unique(gillnets7$FISKE)
+#svartmunnad_dataset<-gillnets4 %>% 
+#  filter(FISKE  == "Svartmunnad Smörbult Inventering" ) 
+#unique(svartmunnad_dataset$Info_publik)
+#unique(svartmunnad_dataset$Information)
+
+
+
 #####
 # Grouping
 #####
@@ -274,8 +285,8 @@ gillnets_length_indexes<- gillnets_indiv %>%
 head(gillnets_length_indexes)
 
 # check if I can skip SE calculation
-s1<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1", iterations = 100)
-s11<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1")
+#s1<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1", iterations = 100)
+#s11<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1")
 
 # From R help(skeweness) in R: there are three different methods for estimating skewness, as discussed in Joanes and Gill (1988):
 # Type "1" is the "classical" method, which is g1 = (sum((x - mean(x))^3) / n) / (sum((x - mean(x))^2) / n)^1.5
@@ -376,14 +387,19 @@ colnames(gillnets_pool)
 hist(gillnets_pool$skew1)
 
 # ready for analyses! 
-#OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines
+# OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines
 # also consider lag? In that case check function "lag" in dplyr
 
 # SUMMARY of key datasets
 # gillnets_CPUE: include CPUE separated for size categories. Replicated at level of location, year, size categories (and spp) - useful for plotting
+# gillnets_CPUE_abbo: only for perch
 # gillnets_pool: include length indexes for Abborre and tot CPUE of Abborre and few other spp. Replicated at level of location, year - useful for stat. 
 # (gillnets_totCPUE: include tot CPUE. Replicated at level of location, year (and spp))
 
+
+# Abborre dataset
+gillnets_CPUE_abbo<-gillnets_CPUE %>%
+  filter(Art == "Abborre")
 
 #####
 # exploratory plots
