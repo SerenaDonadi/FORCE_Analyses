@@ -67,7 +67,7 @@ length_age %>%
 # what do gonad status levels correspond to? relevant for us? I don't think so but better to confirm
 
 #####
-# Subset
+# Subset and merge
 #####
 
 # exclude obs with missing age and missing length:
@@ -142,4 +142,66 @@ sdpl<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),sd)
 l<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
+
+# merge with gillnets data with temp and CPUE of spp
+# merge and keep all records in left dataset, and only matching record in right dataset
+length_age6<-left_join(length_age5, gillnets_pool, by = c("year","location")) 
+head(length_age6)
+
+# take only female
+length_age7<-length_age6 %>% 
+  filter(sex == "Hona")
+
+# remove unecessary columns:
+length_age7<-length_age7 %>%
+  select(-c(27:33)) 
+length_age7<-length_age7 %>%
+  select(-c(program,survey, gear.code, gear, gear_code,comments,approved,sampling_method ))
+
+summary(length_age7)
+
+length_age7_age2<-length_age7 %>% 
+  filter(age == 2)
+length_age7_age3<-length_age7 %>% 
+  filter(age == 3)
+length_age7_age4<-length_age7 %>% 
+  filter(age == 4)
+
+#####
+# exploration plots
+#####
+# length at age vs temp:
+ggplot(subset(length_age7, age %in% "2"), aes(x = avg_year_temp , y = total_length)) +
+  geom_point()+
+  #facet_wrap(~year)+
+  geom_smooth(method = "lm")+ 
+  labs(title="Age 2")+
+  theme_classic(base_size=13)
+
+# split by year. Do it for age 2 and 3 and 4
+ggplot(subset(length_age7_age3, year %in% c(2002:2020)), aes(x = avg_year_temp , y = total_length)) +
+  geom_point()+
+  facet_wrap(~year)+
+  #geom_smooth()+ 
+  labs(title="Age 3")+
+  theme_classic(base_size=13)
+
+# length at age vs densities of conspp
+ggplot(length_age7_age4, aes(x = totCPUE_Abborre , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "lm")+ 
+  labs(title="Age 4")+
+  theme_classic(base_size=13)
+
+# length at age vs densities of spp
+ggplot(length_age7_age2, aes(x = totCPUE_Mört , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "lm")+ 
+  labs(title="Age 2")+
+  theme_classic(base_size=13)
+
+# length at age vs  lat: but probably collinear with temp
+ggplot(length_age7, aes(x = avg_year_temp , y = lat)) +
+  geom_point()
+
 
