@@ -59,10 +59,12 @@ unique(length_age$sex)
 length_age %>% 
   filter(sex == "Båda kön")
 # what does it mean "båda kön"?? Comments: "Hermafrodit - underutvecklade gonader". Exclude it?
-# what do gonad status levels correspond to? relevant for us? I don't think so but better to confirm
 # many fish have been frozen, see comments. could that influence length measurements?
-# are differnt method for aging comparable?
+# are different method for aging comparable?
+# in the gillnets dataset there is no gender reported. How to go about it? maybe compare M vs F and see whether differences are significant
+
 # in "sampling method" I find "Stratifierat på honor i 2,5 cm-klasser", "Stratifierat cm-klasser enl. blankett 80"..relevant?
+# what do gonad status levels correspond to? relevant for us? I don't think so but better to confirm
 
 #####
 # Subset
@@ -75,20 +77,69 @@ length_age2<-length_age1[!is.na(length_age1$total_length),]
 # exclude obs not approved
 length_age3<-subset(length_age2, approved != "NEJ")
 
-table(length_age2$sampling_method)
-
-summary(length_age3)
-
-# check/exclude weird stuff based on "comments": TO DO
-"Längden i originalprotokoll 152, ändrad till 252 baserat på ålder och somatisk vikt (samt totalvikt på originalprotokollet)."
-"längd lite osäker" 
-"OBS! Ändra tot.längd till 241mm\n"  
-"Längden var 294, togs bort som orimlig. NM2020-12-03"  
-"Antingen felaktig vikt eller längd, NM 2018-11-12" 
-"Antingen felaktig vikt eller längd, NM 2018-11-20" 
-"Längd 287 borttagen, fiskens längd stämmer inte överens med åldersprovet."  
-"Sektion 1/längden eller vikten stämmer ej"                                                                                   
+# check/exclude weird stuff based on "comments": 
+#####
+# "Längden i originalprotokoll 152, ändrad till 252 baserat på ålder och somatisk vikt (samt totalvikt på originalprotokollet)." Ok
+#"längd lite osäker" OK
+#"OBS! Ändra tot.längd till 241mm\n"  OK
+# "Antingen felaktig vikt eller längd, NM 2018-11-12" REMOVE
+# "Antingen felaktig vikt eller längd, NM 2018-11-20" REMOVE
+# "Sektion 1/längden eller vikten stämmer ej"         REMOVE to be safe                                                                          
 
 length_age3 %>% 
   filter(comments == "Längden i originalprotokoll 152, ändrad till 252 baserat på ålder och somatisk vikt (samt totalvikt på originalprotokollet).")
+ggplot(length_age3, aes(x = somatic_weight , y = total_length, color = year)) +
+  geom_point()+
+  theme_minimal()
+ggplot(subset(length_age3, year %in% "2021"), aes(x = somatic_weight , y = total_length)) +
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "längd lite osäker")
+ggplot(subset(length_age3, year %in% "2007"), aes(x = age , y = total_length)) +
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "OBS! Ändra tot.längd till 241mm\n")
+ggplot(subset(length_age3, year %in% "2022"), aes(x = somatic_weight , y = total_length)) +
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "Antingen felaktig vikt eller längd, NM 2018-11-20")
+ggplot(subset(length_age3, year %in% "2018"), aes(x = somatic_weight , y = total_length)) +
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "Sektion 1/längden eller vikten stämmer ej")
+ggplot(subset(length_age3, year %in% "2004"), aes(x = age , y = total_length)) +
+  geom_point()+
+  theme_minimal()
+#####
+length_age4<-subset(length_age3, !(comments == "Antingen felaktig vikt eller längd, NM 2018-11-12" |
+                                     comments == "Antingen felaktig vikt eller längd, NM 2018-11-20" |
+                                     comments == "Sektion 1/längden eller vikten stämmer ej"))
+
+# select only august samples? I think so
+length_age5<-length_age4 %>% 
+  filter(month == 8)
+
+summary(length_age5)
+
+# check differences in F vs M:
+ggplot(length_age5, aes(x = age , y = total_length)) +
+  geom_point()+
+  facet_wrap(~sex)+
+  geom_smooth()+ 
+  theme_classic(base_size=13)
+
+# calculate mean length at age for F and M:
+avg<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),mean)
+sdpl<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),sd)
+l<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 
