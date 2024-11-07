@@ -34,8 +34,9 @@ library(readr)
 guess_encoding("perch-length-age.csv", n_max = 1000)
 # try both encoding = "" and fileEncoding = ""
 
-### 1) gillnets
+### 1) length age dataset
 length_age <- read.csv2("perch-length-age.csv",fileEncoding ="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+
 head(length_age)
 
 # make column with only month
@@ -166,6 +167,8 @@ length_age7_age3<-length_age7 %>%
   filter(age == 3)
 length_age7_age4<-length_age7 %>% 
   filter(age == 4)
+length_age7_age2to4<-length_age7 %>% 
+  filter(age < 5 & age >1)
 
 #####
 # exploration plots
@@ -204,4 +207,50 @@ ggplot(length_age7_age2, aes(x = totCPUE_Mört , y = total_length)) +
 ggplot(length_age7, aes(x = avg_year_temp , y = lat)) +
   geom_point()
 
+#####
+# how to use age-lenth info to assign age to the gillnets data?
+#####
 
+# check L-A in Askrikefjärden, split by year:
+ggplot(subset(length_age7, location %in% "Askrikefjärden"), aes(x = age , y = total_length)) +
+  geom_point()+
+  #facet_wrap(~year)+
+  geom_smooth(method = "gam")+ 
+  labs(title="Askrikefjärden ")+
+  theme_classic(base_size=13)
+
+length_age7_Askrikefjärden<-length_age7 %>% 
+  filter(location == "Askrikefjärden")
+avg<-tapply(length_age7_Askrikefjärden$total_length,list(length_age7_Askrikefjärden$year,length_age7_Askrikefjärden$age),mean)
+sdpl<-tapply(length_age7_Askrikefjärden$total_length,list(length_age7_Askrikefjärden$year,length_age7_Askrikefjärden$age),sd)
+l<-tapply(length_age7_Askrikefjärden$total_length,list(length_age7_Askrikefjärden$year,length_age7_Askrikefjärden$age),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length Askrikefjärden") 
+
+# check another site, with lower replication:
+unique(length_age7_age2to4$location)
+table(length_age7_age2to4$location)
+
+length_age7_age2to4_Vinö<-length_age7_age2to4 %>% 
+  filter(location == "Vinö")
+avg<-tapply(length_age7_age2to4_Vinö$total_length,list(length_age7_age2to4_Vinö$age,length_age7_age2to4_Vinö$year),mean)
+sdpl<-tapply(length_age7_age2to4_Vinö$total_length,list(length_age7_age2to4_Vinö$age,length_age7_age2to4_Vinö$year),sd)
+l<-tapply(length_age7_age2to4_Vinö$total_length,list(length_age7_age2to4_Vinö$age,length_age7_age2to4_Vinö$year),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length in Vinö") 
+
+length_age7_age2to4_Aspöja<-length_age7_age2to4 %>% 
+  filter(location == "Aspöja")
+avg<-tapply(length_age7_age2to4_Aspöja$total_length,list(length_age7_age2to4_Aspöja$age,length_age7_age2to4_Aspöja$year),mean)
+sdpl<-tapply(length_age7_age2to4_Aspöja$total_length,list(length_age7_age2to4_Aspöja$age,length_age7_age2to4_Aspöja$year),sd)
+l<-tapply(length_age7_age2to4_Aspöja$total_length,list(length_age7_age2to4_Aspöja$age,length_age7_age2to4_Aspöja$year),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length in Aspöja") 
+
+# check differences between sites, pooling all years
+
+avg<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),mean)
+sdpl<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),sd)
+l<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
