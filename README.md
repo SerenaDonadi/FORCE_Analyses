@@ -82,6 +82,8 @@ Agnes extracted satellite measures (from Copericus) of daily temperatures for al
 
 - compare these values to the measured temperatures from the gillnet data to see how well they correspond.
 
+Update: repoeated values in the file, something went wrong with the extraction. Waiting for new data
+
 ###
 Questions about detonation dataset:
 ###
