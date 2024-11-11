@@ -35,9 +35,8 @@ guess_encoding("YNGELDATA_20210202.csv", n_max = 1000)
 # try both encoding = "" and fileEncoding = ""
 
 ### 1) old detonation dataset (but received later!!!)
-deto1 <- read.csv2("YNGELDATA_20210202.csv",fileEncoding ="UTF-8",  header=TRUE, sep=";", dec=".") 
-head(deto1)
-summary(deto1$year)
+df0 <- read.csv2("YNGELDATA_20210202.csv",fileEncoding ="UTF-8",  header=TRUE, sep=";", dec=".") 
+
 
 ### 1) new detonation dataset (but received before!)
 deto2 <- read.csv2("detonation-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")
@@ -50,11 +49,11 @@ deto2$year<-as.numeric(RIGHT(deto2$Fiskedatum,4))
 summary(deto2$year)
 hist(deto2$year)
 
-#### cleaning up deto1 (old detonation dataset) ####
+#### cleaning up deto1 (old detonation dataset but received later) ####
 
 # remove Gävlebukten missing info
-summary(deto1[deto1$bay == "GB",])
-df = deto1[deto1$bay != "GB",]
+summary(df0[df0$bay == "GB",])
+df = df0[df0$bay != "GB",]
 
 # assume that inventories in Kalmar late 80s and 90s take place end of September (based on Karås reports)
 df$date = as.Date(df$date)
@@ -122,10 +121,10 @@ df2019 = df[df$year == 2019, ] # subset
 #df = rbind(df, df2019)
 
 # SD: wait, I am not sure, there are some values slightly different, e.g. 500 and 501, 10 and 12.
-# Björnöfjärden and other 3-4 locations are fine (see after ordering after lat)
+# Björnöfjärden and other 3-4 locations are fine (see after ordering by lat)
 # I'd rather take the mean of obs with the same lat and long, not knowing which row of the almost-equal cases is correct
 
-# I don't know a quick way to do it. If I use summarize I have to bring long all the variables to be able to merge the subset 
+# I don't know a quick way to do it. If I use summarize I have to bring along all the variables to be able to merge the subset 
 # with the rest of the data. Maybe wait to see what I need to do with deto2, which contains the most recent data: if I select
 # only some variables then I don't need to bring all columns with summarize 
 # does deto 2 contain the sample in deto 1?
@@ -147,3 +146,79 @@ deto2 %>%
 
 # chekc with U & A
 # look also at the read me file to clean the data
+
+#####
+# cleaning deto2
+
+# keep only approved obs
+table(deto2$GODKAND)
+unique(deto2$GODKAND) # ok, there is no NAs, but anyways:
+deto3 = subset(deto2, GODKAND == "JA " | is.na(GODKAND))  
+
+# keep only not disturbed occasions:
+table(deto3$Störning)
+unique(deto3$Störning)
+deto4 = subset(deto3, Störning == "NEJ" | is.na(Störning))  
+
+# exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
+deto4 %>%
+  filter(Lokal =="Simpevarp") # ca 740 obs
+deto4 %>%
+  filter(Lokal =="Biotestsjön, Forsmark") #ca 3300 obs
+deto5 = subset(deto4, !(Lokal == "Simpevarp"))
+deto6 = subset(deto5, !(Lokal == "Biotestsjön, Forsmark"))
+
+# exclude Gotland?
+
+# harmonize bottom/yta estimates
+head(deto6)
+table(deto6$Fångsttyp)
+unique(deto6$Fångsttyp)
+# they should always (when grams were 10gr) have looked at both bottom and surface (except for Forsmark and Simpevarp), 
+# If there is not bottom value is zeros but they did not record zeros.But this applies to the lst 15-20 years
+table(deto6$Ansträngning,deto6$year)
+table(deto6$Fångsttyp,deto6$year)
+
+
+deto6_Ansträngning1<- deto6 %>%
+  filter(Ansträngning == "1") 
+table(deto6_Ansträngning1$Lokal,deto6_Ansträngning1$year)
+table(deto6_Ansträngning1$Fångsttyp,deto6_Ansträngning1$year,deto6_Ansträngning1$Lokal)
+
+deto6_Ansträngning8<- deto6 %>%
+  filter(Ansträngning == "8") 
+table(deto6_Ansträngning8$Lokal,deto6_Ansträngning8$year)
+table(deto6_Ansträngning8$Fångsttyp,deto6_Ansträngning8$year,deto6_Ansträngning8$Lokal)
+
+deto6_Ansträngning20<- deto6 %>%
+  filter(Ansträngning == "20") 
+table(deto6_Ansträngning20$Lokal,deto6_Ansträngning20$year)
+table(deto6_Ansträngning20$Fångsttyp,deto6_Ansträngning20$year,deto6_Ansträngning20$Lokal)
+
+deto6_Ansträngning200<- deto6 %>%
+  filter(Ansträngning == "200") 
+table(deto6_Ansträngning200$Lokal,deto6_Ansträngning200$year)
+table(deto6_Ansträngning200$Fångsttyp,deto6_Ansträngning200$year,deto6_Ansträngning200$Lokal)
+
+
+
+
+# standardize by different gram of dynamite
+# consider only Årsyngel, but maybe all for stsp
+
+table(deto2a$Sortering)
+unique(deto2a$Sortering) # there are NA
+
+table(deto2a$Ansträngning)
+unique(deto2a$Ansträngning)
+
+
+# put spp on columns - do it later, after harmonizing,correcting and pooling the number per spp
+deto4_wide<-pivot_wider(deto4, names_from = Artbestämning, values_from = c(LANGDGRUPP_ANTAL, Sortering))
+
+#gillnets_totCPUE_wide[is.na(gillnets_totCPUE_wide)] <- 0 # wait, replace with 0 only for spp, not temp!
+#gillnets_totCPUE_wide$avg_year_temp[gillnets_totCPUE_wide$avg_year_temp==0] <- NA
+
+deto4_wide[is.na(deto4_wide), which(names(deto4_wide) == "..."):which(names(deto4_wide) == "....")] = 0 # to test. or look at old script
+
+
