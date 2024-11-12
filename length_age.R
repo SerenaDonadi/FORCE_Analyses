@@ -136,7 +136,8 @@ length_age5<-length_age4 %>%
 
 summary(length_age5)
 
-# check and mnaybe exclude how many fish were frozen!
+# check and mnaybe exclude how many fish were frozen! TO DO 
+# remobve also here Simpevarp and Biotest forsmark?
 
 # check differences in F vs M:
 #####
@@ -217,6 +218,71 @@ ggplot(length_age7_age2, aes(x = totCPUE_Mört , y = total_length)) +
 ggplot(length_age7, aes(x = avg_year_temp , y = lat)) +
   geom_point()
 
+# length at age vs year
+ggplot(length_age7_age2to4, aes(x = year , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "lm")+ 
+  facet_wrap(~age)+
+  labs(title="")+
+  theme_classic(base_size=13)
+
+
+
+# length at age vs locations and year
+ggplot(length_age7_age2, aes(x = year , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "gam")+ 
+  facet_wrap(~location)+
+  labs(title="age 2")+
+  theme_classic(base_size=13)
+
+# length at age vs locations and temp
+ggplot(length_age7_age2, aes(x = avg_year_temp , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "lm")+ 
+  facet_wrap(~location)+
+  labs(title="age 2")+
+  theme_classic(base_size=13)
+
+# temp vs locations and year
+ggplot(length_age7_age2, aes(x = year , y = avg_year_temp)) +
+  geom_point()+
+  geom_smooth(method = "lm")+ 
+  facet_wrap(~location)+
+  labs(title="avg year temp")+
+  theme_classic(base_size=13)
+
+table(length_age7_age2$year, length_age7_age2$location)
+
+# length at age vs locations and year, selected time series
+length_age7_age2_TS<-subset(length_age7_age2, location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
+                                                              "Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
+                                                              "Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
+                                                              "Torhamn, Karlskrona Ö skärgård"))
+ggplot(subset(length_age7_age2, location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
+                                                "Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
+                                                "Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
+                                                "Torhamn, Karlskrona Ö skärgård") &
+                year %in% c(2002:2022)), aes(x = year , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "gam")+ 
+  facet_wrap(~location)+
+  labs(title="age 2")+
+  theme_classic(base_size=13)
+
+# length at age vs locations and temp, selected time series
+ggplot(subset(length_age7_age2, location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
+                                                "Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
+                                                "Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
+                                                "Torhamn, Karlskrona Ö skärgård") &
+                year %in% c(2002:2022)), aes(x = avg_year_temp , y = total_length)) +
+  geom_point()+
+  geom_smooth(method = "gam")+ 
+  facet_wrap(~location)+
+  labs(title="age 2")+
+  theme_classic(base_size=13)
+
+
 #####
 # how to use age-lenth info to assign age to the gillnets data?
 #####
@@ -264,3 +330,5 @@ sdpl<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,leng
 l<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
+
+
