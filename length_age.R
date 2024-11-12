@@ -85,6 +85,7 @@ unique(length_age2$approved) # no NAs
 length_age3<-subset(length_age2, approved != "NEJ")
 
 # check/exclude weird stuff based on "comments": 
+unique(length_age3$comments)
 #####
 # "Längden i originalprotokoll 152, ändrad till 252 baserat på ålder och somatisk vikt (samt totalvikt på originalprotokollet)." Ok
 #"längd lite osäker" OK
@@ -125,6 +126,41 @@ length_age3 %>%
 ggplot(subset(length_age3, year %in% "2004"), aes(x = age , y = total_length)) +
   geom_point()+
   theme_minimal()
+
+# frozen (?) samples: some is unclear whether freezing occurred after length measures
+length_age3 %>% 
+  filter(comments == "fryst") #ca 538 obs. Asköfjärden 2005, Norrbyn 2004 and 2006
+ggplot(subset(length_age3, comments %in% "fryst"), aes(x = year , y = total_length, color = age)) +
+  facet_wrap(~location)+
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "Har varit fryst") #ca 100 ob. Asköfjärden 2009
+ggplot(subset(length_age3, comments %in% "Har varit fryst"), aes(x = year , y = total_length, color = age)) +
+  facet_wrap(~location)+
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "Alla har varit frysta.") #ca 200 ob. Asköfjärden 2010
+ggplot(subset(length_age3, comments %in% "Alla har varit frysta."), aes(x = year , y = total_length, color = age)) +
+  facet_wrap(~location)+
+  geom_point()+
+  theme_minimal()
+
+length_age3 %>% 
+  filter(comments == "Alla har varit frysta. Somatisk vikt ej rimlig, struken, KerSod 20101112.") #1 obs. Asköfjärden 2010
+
+length_age3 %>% 
+  filter(comments == "Fryst för isotopprov.") #ca 180 ob. Forsmark 2021
+ggplot(subset(length_age3, comments %in% "Fryst för isotopprov."), aes(x = year , y = total_length, color = age)) +
+  facet_wrap(~location)+
+  geom_point()+
+  theme_minimal()
+# many other "Fryst för isotopprov.bla bla bla"
+
+
 #####
 length_age4<-subset(length_age3, !(comments == "Antingen felaktig vikt eller längd, NM 2018-11-12" |
                                      comments == "Antingen felaktig vikt eller längd, NM 2018-11-20" |
