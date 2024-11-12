@@ -157,10 +157,8 @@ subset(gillnets3, Info_publik == "En station 2009-08-14 är fiskad 2 nätter." &
 gillnets4<-gillnets3[!(gillnets3$Info_publik == 'En station 2009-08-14 är fiskad 2 nätter.' & gillnets3$Fiskedatum == '14/08/2009'),]
 # now this script seems to work
 
-
 # NB: Agnes script (see email about new data or notes in data and methods file) does not seem to affect the data! 
 # check with Agnes if the filtered and unfiltered dataset should be different...
-
 
 # keep only Ansträngning = 1?
 table(gillnets4$Ansträngning)
@@ -207,7 +205,6 @@ gillnets7<-gillnets6 %>%
 #unique(svartmunnad_dataset$Information)
 
 
-
 #####
 # Grouping
 #####
@@ -225,7 +222,7 @@ table(gillnets7$LANGDGRUPP_LANGD) # most values are recorded as *.5
 # so I round each number - revise once I know how the categories were made
 #####
 # using round:
-#library(plyr)
+library(plyr)
 length_group1<-round_any(gillnets7$LANGDGRUPP_LANGD, 1, round)
 hist(length_group1)
 hist(gillnets7$LANGDGRUPP_LANGD) # some differences
@@ -394,8 +391,6 @@ hist(gillnets_pool$skew1)
 # gillnets_CPUE: include CPUE separated for size categories. Replicated at level of location, year, size categories (and spp) - useful for plotting
 # gillnets_CPUE_abbo: only for perch
 # gillnets_pool: include length indexes for Abborre and tot CPUE of Abborre and few other spp. Replicated at level of location, year - useful for stat. 
-# (gillnets_totCPUE: include tot CPUE. Replicated at level of location, year (and spp))
-
 
 # Abborre dataset
 gillnets_CPUE_abbo<-gillnets_CPUE %>%

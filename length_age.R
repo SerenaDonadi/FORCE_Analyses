@@ -5,7 +5,7 @@ setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
 # Libraries ---------------------------------------------------------------
 
-library(tidyverse)
+#library(tidyverse)
 library(ggplot2)
 library(dplyr)
 #library(tidyr)
@@ -59,13 +59,18 @@ hist(length_age$age)
 unique(length_age$sex) 
 length_age %>% 
   filter(sex == "Båda kön")
-# what does it mean "båda kön"?? Comments: "Hermafrodit - underutvecklade gonader". Exclude it?
-# many fish have been frozen, see comments. could that influence length measurements?
-# are different method for aging comparable?
-# in the gillnets dataset there is no gender reported. How to go about it? maybe compare M vs F and see whether differences are significant
 
+# many fish have been frozen, see comments. could that influence length measurements? Likely. Ref about different spp (though no abborre) are
+# found in M.Blass thesis on herring
+
+# are different method for aging comparable? boh. ask Martina Blass
+
+# what does it mean "båda kön"?? Comments: "Hermafrodit - underutvecklade gonader". Exclude it? consider only F
+# in the gillnets dataset there is no gender reported. How to go about it? maybe compare M vs F and see whether differences are significant
 # in "sampling method" I find "Stratifierat på honor i 2,5 cm-klasser", "Stratifierat cm-klasser enl. blankett 80"..relevant?
 # what do gonad status levels correspond to? relevant for us? I don't think so but better to confirm
+
+# gillnets dataset is meant to be used only for covariates and length distribution!
 
 #####
 # Subset and merge
@@ -76,6 +81,7 @@ length_age1<-length_age[!is.na(length_age$age),]
 length_age2<-length_age1[!is.na(length_age1$total_length),]
 
 # exclude obs not approved
+unique(length_age2$approved) # no NAs
 length_age3<-subset(length_age2, approved != "NEJ")
 
 # check/exclude weird stuff based on "comments": 
@@ -130,7 +136,10 @@ length_age5<-length_age4 %>%
 
 summary(length_age5)
 
+# check and mnaybe exclude how many fish were frozen!
+
 # check differences in F vs M:
+#####
 ggplot(length_age5, aes(x = age , y = total_length)) +
   geom_point()+
   facet_wrap(~sex)+
@@ -143,19 +152,20 @@ sdpl<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),sd)
 l<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
+#####
 
 # merge with gillnets data with temp and CPUE of spp
 # merge and keep all records in left dataset, and only matching record in right dataset
 length_age6<-left_join(length_age5, gillnets_pool, by = c("year","location")) 
-head(length_age6)
+head(length_age7)
 
 # take only female
 length_age7<-length_age6 %>% 
   filter(sex == "Hona")
 
 # remove unecessary columns:
-length_age7<-length_age7 %>%
-  select(-c(27:33)) 
+#length_age7<-length_age7 %>%
+#  select(-c(27:33)) 
 length_age7<-length_age7 %>%
   select(-c(program,survey, gear.code, gear, gear_code,comments,approved,sampling_method ))
 
