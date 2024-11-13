@@ -63,7 +63,7 @@ length_age %>%
 # many fish have been frozen, see comments. could that influence length measurements? Likely. Ref about different spp (though no abborre) are
 # found in M.Blass thesis on herring
 
-# are different method for aging comparable? boh. ask Martina Blass
+# are different method for aging comparable? boh. ask Martina Blass or Yvette
 
 # what does it mean "båda kön"?? Comments: "Hermafrodit - underutvecklade gonader". Exclude it? consider only F
 # in the gillnets dataset there is no gender reported. How to go about it? maybe compare M vs F and see whether differences are significant
@@ -73,7 +73,7 @@ length_age %>%
 # gillnets dataset is meant to be used only for covariates and length distribution!
 
 #####
-# Subset and merge
+# Subsets and merge
 #####
 
 # exclude obs with missing age and missing length:
@@ -126,8 +126,31 @@ length_age3 %>%
 ggplot(subset(length_age3, year %in% "2004"), aes(x = age , y = total_length)) +
   geom_point()+
   theme_minimal()
+#####
+length_age4<-subset(length_age3, !(comments == "Antingen felaktig vikt eller längd, NM 2018-11-12" |
+                                     comments == "Antingen felaktig vikt eller längd, NM 2018-11-20" |
+                                     comments == "Sektion 1/längden eller vikten stämmer ej"))
 
-# frozen (?) samples: some is unclear whether freezing occurred after length measures
+# exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
+length_age4 %>%
+  filter(location =="Simpevarp") # ca 7600 obs
+length_age4 %>%
+  filter(location =="Biotestsjön, Forsmark") #ca 2300 obs
+length_age5 = subset(length_age4, !(location == "Simpevarp"))
+length_age6 = subset(length_age5, !(location == "Biotestsjön, Forsmark"))
+
+# check aging methods: TO REVISE AFTER GETTING MORE INFO
+table(length_age6$aging_method) # 5 levels
+# YH: Gällock can be ok, unless the perch is old.Scales/fjäll, I would not normally trust. But as it is both scales 
+# and otoliths "Fjäll med stödstruktur otolit" it might be ok. If that is Sö-lab data, please ask Magnus Kokkin if 
+# he thinks that the age data from scales is ok.
+# Exclude samples were no method is reported:
+length_age7 = subset(length_age6, !(aging_method == ""))
+
+#####
+# check frozen (?) samples: TO REVISE AFTER GETTING MORE INFO
+#####
+# some is unclear whether freezing occurred after length measures
 length_age3 %>% 
   filter(comments == "fryst") #ca 538 obs. Asköfjärden 2005, Norrbyn 2004 and 2006
 ggplot(subset(length_age3, comments %in% "fryst"), aes(x = year , y = total_length, color = age)) +
@@ -160,20 +183,14 @@ ggplot(subset(length_age3, comments %in% "Fryst för isotopprov."), aes(x = year
   theme_minimal()
 # many other "Fryst för isotopprov.bla bla bla"
 
+# waiting for more info
 
 #####
-length_age4<-subset(length_age3, !(comments == "Antingen felaktig vikt eller längd, NM 2018-11-12" |
-                                     comments == "Antingen felaktig vikt eller längd, NM 2018-11-20" |
-                                     comments == "Sektion 1/längden eller vikten stämmer ej"))
-
 # select only august samples? I think so
-length_age5<-length_age4 %>% 
+length_age8<-length_age7 %>% 
   filter(month == 8)
 
-summary(length_age5)
-
-# check and mnaybe exclude how many fish were frozen! TO DO 
-# remobve also here Simpevarp and Biotest forsmark?
+summary(length_age8)
 
 # check differences in F vs M:
 #####
@@ -190,15 +207,15 @@ l<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 #####
+# take only female
+length_age9<-length_age8 %>% 
+  filter(sex == "Hona")
 
+#####
 # merge with gillnets data with temp and CPUE of spp
 # merge and keep all records in left dataset, and only matching record in right dataset
-length_age6<-left_join(length_age5, gillnets_pool, by = c("year","location")) 
-head(length_age7)
-
-# take only female
-length_age7<-length_age6 %>% 
-  filter(sex == "Hona")
+length_age10<-left_join(length_age9, gillnets_pool, by = c("year","location")) 
+head(length_age10)
 
 # remove unecessary columns:
 #length_age7<-length_age7 %>%
@@ -206,7 +223,7 @@ length_age7<-length_age6 %>%
 length_age7<-length_age7 %>%
   select(-c(program,survey, gear.code, gear, gear_code,comments,approved,sampling_method ))
 
-summary(length_age7)
+summary(length_age10)
 
 length_age7_age2<-length_age7 %>% 
   filter(age == 2)
@@ -262,8 +279,6 @@ ggplot(length_age7_age2to4, aes(x = year , y = total_length)) +
   labs(title="")+
   theme_classic(base_size=13)
 
-
-
 # length at age vs locations and year
 ggplot(length_age7_age2, aes(x = year , y = total_length)) +
   geom_point()+
@@ -318,10 +333,7 @@ ggplot(subset(length_age7_age2, location %in% c("Asköfjärden","Askrikefjärden
   labs(title="age 2")+
   theme_classic(base_size=13)
 
-
-#####
-# how to use age-lenth info to assign age to the gillnets data?
-#####
+# how to use age-lenth info to assign age to the gillnets data? We won't!
 
 # check L-A in Askrikefjärden, split by year:
 ggplot(subset(length_age7, location %in% "Askrikefjärden"), aes(x = age , y = total_length)) +
