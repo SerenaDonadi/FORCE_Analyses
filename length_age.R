@@ -60,9 +60,6 @@ unique(length_age$sex)
 length_age %>% 
   filter(sex == "Båda kön")
 
-# many fish have been frozen, see comments. could that influence length measurements? Likely. Ref about different spp (though no abborre) are
-# found in M.Blass thesis on herring
-
 # are different method for aging comparable? boh. ask Martina Blass or Yvette
 
 # what does it mean "båda kön"?? Comments: "Hermafrodit - underutvecklade gonader". Exclude it? consider only F
@@ -70,6 +67,7 @@ length_age %>%
 # in "sampling method" I find "Stratifierat på honor i 2,5 cm-klasser", "Stratifierat cm-klasser enl. blankett 80"..relevant?
 # what do gonad status levels correspond to? relevant for us? I don't think so but better to confirm
 
+# how to use age-lenth info to assign age to the gillnets data?
 # gillnets dataset is meant to be used only for covariates and length distribution!
 
 #####
@@ -139,16 +137,15 @@ length_age4 %>%
 length_age5 = subset(length_age4, !(location == "Simpevarp"))
 length_age6 = subset(length_age5, !(location == "Biotestsjön, Forsmark"))
 
-# check aging methods: TO REVISE AFTER GETTING MORE INFO
+# check aging methods: 
 table(length_age6$aging_method) # 5 levels
-# YH: Gällock can be ok, unless the perch is old.Scales/fjäll, I would not normally trust. But as it is both scales 
-# and otoliths "Fjäll med stödstruktur otolit" it might be ok. If that is Sö-lab data, please ask Magnus Kokkin if 
-# he thinks that the age data from scales is ok.
-# Exclude samples were no method is reported:
+# OBS: Gällock can be ok, unless the perch is old.
+# Magnus Kokkin says that Fjäll/Gällock med stödstruktur otolit is ok
+# YH suggests to exclude samples were no method is reported:
 length_age7 = subset(length_age6, !(aging_method == ""))
 
 #####
-# check frozen (?) samples: TO REVISE AFTER GETTING MORE INFO
+# check frozen samples: revise after Noora answers
 #####
 # some is unclear whether freezing occurred after length measures
 length_age3 %>% 
@@ -183,7 +180,18 @@ ggplot(subset(length_age3, comments %in% "Fryst för isotopprov."), aes(x = year
   theme_minimal()
 # many other "Fryst för isotopprov.bla bla bla"
 
-# waiting for more info
+# studies point to a length decline of 1-2% after freezing for percids. 
+# https://www.tandfonline.com/doi/abs/10.1577/1548-8659(1974)103%3C136%3AEOFAFO%3E2.0.CO%3B2
+# https://www.sciencedirect.com/science/article/pii/S0165783609001763
+# https://onlinelibrary.wiley.com/doi/full/10.1111/j.1439-0426.2012.01958.x.
+# If so, that is small enough to ignore - but this of course depends on how big this is in relation to any size 
+# differences/changes/effects we may find.if we suspect that freezing is inconsistently reported it may make more 
+# sense to not apply any correction factor. however, Since there seems to be some patterns in which locations froze 
+# their fish (or in who reports freezing…) it may also be good to compare these patterns to our results 
+# -> maybe good to keep info on frozen fish
+
+# check with Noora about the methodology (were the fish frozen before or after the length measurements) and the 
+# accuracy in recording freezing by field staff
 
 #####
 # select only august samples? I think so
@@ -191,6 +199,10 @@ length_age8<-length_age7 %>%
   filter(month == 8)
 
 summary(length_age8)
+
+# take only female
+length_age9<-length_age8 %>% 
+  filter(sex == "Hona")
 
 # check differences in F vs M:
 #####
@@ -207,11 +219,6 @@ l<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 #####
-# take only female
-length_age9<-length_age8 %>% 
-  filter(sex == "Hona")
-
-#####
 # merge with gillnets data with temp and CPUE of spp
 # merge and keep all records in left dataset, and only matching record in right dataset
 length_age10<-left_join(length_age9, gillnets_pool, by = c("year","location")) 
@@ -220,18 +227,18 @@ head(length_age10)
 # remove unecessary columns:
 #length_age7<-length_age7 %>%
 #  select(-c(27:33)) 
-length_age7<-length_age7 %>%
-  select(-c(program,survey, gear.code, gear, gear_code,comments,approved,sampling_method ))
+#length_age7<-length_age7 %>%
+#  select(-c(program,survey, gear.code, gear, gear_code,comments,approved,sampling_method ))
 
 summary(length_age10)
 
-length_age7_age2<-length_age7 %>% 
+length_age10_age2<-length_age10 %>% 
   filter(age == 2)
-length_age7_age3<-length_age7 %>% 
+length_age10_age3<-length_age10 %>% 
   filter(age == 3)
-length_age7_age4<-length_age7 %>% 
+length_age10_age4<-length_age10 %>% 
   filter(age == 4)
-length_age7_age2to4<-length_age7 %>% 
+length_age10_age2to4<-length_age10 %>% 
   filter(age < 5 & age >1)
 
 #####
@@ -373,9 +380,9 @@ barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.
 
 # check differences between sites, pooling all years
 
-avg<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),mean)
-sdpl<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),sd)
-l<-tapply(length_age7_age2to4$total_length,list(length_age7_age2to4$year,length_age7_age2to4$age),length)
+avg<-tapply(length_age10_age2to4$total_length,list(length_age10_age2to4$lat,length_age10_age2to4$age),mean)
+sdpl<-tapply(length_age10_age2to4$total_length,list(length_age10_age2to4$lat,length_age10_age2to4$age),sd)
+l<-tapply(length_age10_age2to4$total_length,list(length_age10_age2to4$lat,length_age10_age2to4$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 
