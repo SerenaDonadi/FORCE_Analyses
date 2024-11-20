@@ -60,7 +60,7 @@ temp_gillnet_year <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TR
 # avg day temp
 temp_gillnet_day <- read.csv2("temperature-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
 
-# something may be wrong with the second one: indeed. waiting for Agnes to provide new data
+# something may be wrong with the second one: indeed, see plot below. waiting for Agnes to provide new data
 # make column with only year
 head(temp_gillnet_day$date)
 temp_gillnet_day$year<-as.numeric(LEFT(temp_gillnet_day$date,4))
@@ -71,6 +71,27 @@ hist(temp_gillnet_day$year)
 temp_gillnet_day$month<-as.numeric(LEFT(RIGHT(temp_gillnet_day$date,5),2))
 summary(temp_gillnet_day$month)
 hist(temp_gillnet_day$month)
+
+unique(temp_gillnet_day$location)
+unique(temp_gillnet_day$year)
+
+## OBS in same cases temp doesn´t vary between January and April. It could depend on that there is ice, or a problem with data extraction
+# this is mainly found in the 80s. but also later, see Råneå example. check what parameters to extract and which years we consider
+ggplot(subset(temp_gillnet_day, location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
+                                                "Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
+                                                "Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
+                                                "Torhamn, Karlskrona Ö skärgård") &
+                year %in% c(1982)), aes(x = date , y = temp)) +
+  geom_point()+
+  facet_wrap(~location)+
+  labs(title="daily temp ")+
+  theme_classic(base_size=13)
+
+ggplot(subset(temp_gillnet_day, location %in% c("Råneå")), aes(x = date , y = temp)) +
+  geom_point()+
+  facet_wrap(~location)+
+  labs(title="daily temp ")+
+  theme_classic(base_size=13)
 
 # merge and keep all records in left dataset, and only matching record in right dataset
 gillnets1<-left_join(gillnets, temp_gillnet_year, by = c("year","location")) # 

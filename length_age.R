@@ -241,6 +241,9 @@ length_age10_age4<-length_age10 %>%
 length_age10_age2to4<-length_age10 %>% 
   filter(age < 5 & age >1)
 
+unique(sort(length_age10$year))
+
+
 #####
 # exploration plots
 #####
