@@ -82,7 +82,8 @@ Agnes extracted satellite measures (from Copericus) of daily temperatures for al
 
 - compare these values to the measured temperatures from the gillnet data to see how well they correspond.
 
-Update: repoeated values in the file, something went wrong with the extraction. Waiting for new data
+Update: repoeated values in the file, something went wrong with the extraction. Waiting for new data. We'll meet with Agnes and check. 
+Ask also Ingrid Bergman about temp from loggers for all sites and years of the analyses
 
 ###
 Questions about detonation dataset:
@@ -90,11 +91,18 @@ Questions about detonation dataset:
 
 - how to standardize by different gram of dynamite (hence area?)?
 Only Gotland was sampled with 1g. Exclude it or recalculate it based on Göran and Ulf conversiuon factors. Wait for new data that are alsready scaled by the effort (where the most recent data should be added, plus Blekinge data, and Gotland maybe)
+Update: I talked to Göran S. who said to use conversion factors from the table receive from Ulf listed under the sheet "Konvertering ny".About conversion of ansträngning that are not in the tabel, use:
+1->0.94
+12 and 13 -> 12.5
+20->25
+200: check. not possible. maybe typos
+Since the methods changed so much over the year and differnt areas, no worries if the conversion factor are not exactly corresponding to the ansträngning, the errors/variation in the dataset are many and larger than this.
 
 - bottom and yta: did they register zeros at the bottom? How to treat them, pool or not? Agnes has estimates of fish sinking at the bottom for three spp
 
 they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp
 If there is not bottom value is zeros but they did not record zeros. this happened for the last 15-20 years, before that however they only counted fish at the surface, and then there was a mixed method period. Göran calculate estimates to make data comparable for floating and sinking, Agnes will send me the info
+Update: see file "detonation_old_scripts_for_conversion"
 
 - exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
 
