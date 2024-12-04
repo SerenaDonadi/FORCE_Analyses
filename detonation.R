@@ -61,7 +61,8 @@ deto4 = subset(deto3, Störning == "NEJ" | is.na(Störning))
 # exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
 deto4 %>%
   filter(Lokal =="Simpevarp") # ca 740 obs
-"Biotestsjön, Forsmark") #ca 3300 obs
+deto4 %>%
+  filter(Lokal =="Biotestsjön, Forsmark") #ca 3300 obs
 deto5 = subset(deto4, !(Lokal == "Simpevarp"))
 deto6 = subset(deto5, !(Lokal == "Biotestsjön, Forsmark"))
 
@@ -79,52 +80,148 @@ table(deto7$Fångsttyp)
 deto8 = subset(deto7, !(Fångsttyp == "Provfiskad"))
 head(deto8)
 
-# when LANGDGRUPP_LANGD is NA, I can replace the NA found under LANGDGRUPP_ANTAL with Antal, which is the tot number of a species 
-# and cohort and collected at the surface or bottom. But check if there is any case where they only measured the length for a subsample
-# and where they hence wrote under Antal both the measured and the unmeasured samples. Indeed they did so, and there is no extra
-# row where LANGDGRUPP_LANGD is NA
+# Antal is the tot number (all size classes) of indiv for a certain spp, cohort and yta/bottom
+# LANGDGRUPP_LANGD is the number of indiv for a certain spp, cohort and yta/bottom for a specific size classes
+# there are cases where LANGDGRUPP_LANGD is NA and no size classes were taken. 
+# there are cases where only a subsample of the indiv were measured, and the tot is listed under Antal (LANGDGRUPP_LANGD = NA is not 
+# repreated for the indiv not measured)
 
 unique(deto8$Antal) # non ci sono NA
 # quindi potrei usare Antal per calcolare le CPUE, corrette per bottom/yta e per la dinamite.
-# poi uso le info sul subsample, quando c'e, per calcolare how many per size class (i.e. trasponendo la percentuale di una certa classe sui totali contati a livello di Antal)
+# poi uso le info sul subsample, quando c'e, per calcolare how many per size class (i.e. trasponendo la percentuale di una certa classe 
+# sui totali contati a livello di Antal)
 
 # try: split up the dataset to calculate tot corrected CPUE, while keeping separate the info on size classes:
+
+#####: calculate CPUE by correcting for missing bottom data and different grams of dynamite
 # delete info on size classes
 detoCPUE<-deto8 %>%
-  select(-c(FANG_ID,LANGDGRUPP_LANGD ,LANGDGRUPP_ANTAL ,GODKAND,STORNINGAR, Ansträngning_enhet,Störning)) 
+  select(-c(LANGDGRUPP_LANGD ,LANGDGRUPP_ANTAL ,GODKAND,STORNINGAR, Ansträngning_enhet,Störning)) 
 # remove duplicates
 duplicated(detoCPUE)
 detoCPUE1 = detoCPUE[!duplicated(detoCPUE),]
 head(detoCPUE1)
+# or: same number of rows removed
+# detoCPUE2 = distinct(detoCPUE)
+which(duplicated(detoCPUE1)) # i should not have duplicates, even if I remove FANG_ID in the "select" above ..boh
+
+# change names of levels that would give me problems once converted into variable names:
+unique(detoCPUE1$Fångsttyp)
+detoCPUE1$Sortering [detoCPUE1$Sortering =="Juvenil/Adult"] <- "juvad"
+detoCPUE1$Sortering [detoCPUE1$Sortering =="Årsyngel"] <- "noll"
+detoCPUE1$Artbestämning [detoCPUE1$Artbestämning =="Gädda"] <- "pike"
+detoCPUE1$Artbestämning [detoCPUE1$Artbestämning =="Storspigg"] <- "stsp"
+detoCPUE1$Artbestämning [detoCPUE1$Artbestämning =="Mört"] <- "roach"
+detoCPUE1$Artbestämning [detoCPUE1$Artbestämning =="Abborre"] <- "perch"
+detoCPUE1$Fångsttyp [detoCPUE1$Fångsttyp =="Insamling botten"] <- "bott"
+detoCPUE1$Fångsttyp [detoCPUE1$Fångsttyp =="Insamling yta"] <- "surf"
 
 # transpose in wide format:
-detoCPUE1_wide<-pivot_wider(detoCPUE1, names_from = c(Artbestämning, Sortering, Fångsttyp), values_from = c(Antal), values_fn = list)
+detoCPUE1_wide<-pivot_wider(detoCPUE1, names_from = c(Artbestämning, Sortering, Fångsttyp), values_from = Antal, values_fill = 0)
 head(detoCPUE1_wide) 
-
 # this is the same, so go with the above
 #####
 # warning msg, trying with concatenate first:
-library(crayon)
-detach("package:ggplot2", unload=TRUE)
-detoCPUE1$sp_cohort_FS<-detoCPUE1$Artbestämning %+% "_" %+% detoCPUE1$Sortering %+% "_" %+% detoCPUE1$Fångsttyp
+#library(crayon)
+#detach("package:ggplot2", unload=TRUE)
+#detoCPUE1$sp_cohort_FS<-detoCPUE1$Artbestämning %+% "_" %+% detoCPUE1$Sortering %+% "_" %+% detoCPUE1$Fångsttyp
 # remove redondant columns:
-detoCPUE2<-detoCPUE1 %>%
-  select(-c(Artbestämning ,Sortering, Fångsttyp))
+#detoCPUE2<-detoCPUE1 %>%
+#  select(-c(Artbestämning ,Sortering, Fångsttyp))
 # transpose in wide format:
-detoCPUE2_wide<-pivot_wider(detoCPUE2, names_from = c(sp_cohort_FS), values_from = c(Antal))
+#detoCPUE2_wide<-pivot_wider(detoCPUE2, names_from = c(sp_cohort_FS), values_from = c(Antal))
 #####
+# I had to keep FANG_ID, that uniquely identifies the obs, for pivot_wider to work well (otherwise it would give me a warning and a series of lists)
+# however now I have to summarize the dataframe, so to have all CPUEs from a sampling occasion in the same row:
+detoCPUE1_wide2<-detoCPUE1_wide %>% 
+  group_by(Fiskedatum, Lokal, Lat_grader,Long_grader, Ansträngning, year) %>%
+  summarise(pike_juvad_bott=sum(pike_juvad_bott ,na.rm=TRUE),
+            stsp_juvad_surf =sum(stsp_juvad_surf  ,na.rm=TRUE),
+            stsp_noll_surf =sum(stsp_noll_surf  ,na.rm=TRUE),
+            stsp_juvad_bott =sum(stsp_juvad_bott  ,na.rm=TRUE),
+            stsp_noll_bott=sum(stsp_noll_bott ,na.rm=TRUE),
+            roach_juvad_surf  =sum(roach_juvad_surf   ,na.rm=TRUE),
+            roach_juvad_bott  =sum(roach_juvad_bott   ,na.rm=TRUE),
+            perch_juvad_bott  =sum(perch_juvad_bott   ,na.rm=TRUE),
+            pike_juvad_surf =sum(pike_juvad_surf  ,na.rm=TRUE),
+            pike_noll_bott  =sum(pike_noll_bott   ,na.rm=TRUE),
+            roach_noll_surf  =sum(roach_noll_surf   ,na.rm=TRUE),
+            perch_noll_surf  =sum(perch_noll_surf   ,na.rm=TRUE),
+            perch_noll_bott =sum(perch_noll_bott  ,na.rm=TRUE),
+            roach_noll_bott   =sum(roach_noll_bott    ,na.rm=TRUE),
+            pike_noll_surf   =sum(pike_noll_surf    ,na.rm=TRUE),
+            perch_juvad_surf   =sum(perch_juvad_surf    ,na.rm=TRUE),
+            roach_NA_surf    =sum(roach_NA_surf     ,na.rm=TRUE),
+            stsp_NA_surf    =sum(stsp_NA_surf     ,na.rm=TRUE),
+            perch_NA_bott    =sum(perch_NA_bott     ,na.rm=TRUE)
+  ) 
 
-# OBS: # I would also need to change the nme of the column varibles, they give problems
-# do it before that the next step, it may solve the problem, bc now it is creating lists
+head(detoCPUE1_wide2)
 
-# replace NULL values with zeros
-# check that there is no NA in other variables except the spp variables:
-unique(detoCPUE1_wide$year)
-detoCPUE1_wide[is.null(detoCPUE1_wide)] 
-detoCPUE1_wide[is.null(detoCPUE1_wide)] <- 0
-# no, it doesn't work, 
-is.null(detoCPUE1_wide)
-head(detoCPUE1_wide)
+
+# check if obs for which Sortering is NA refer to juv or ad, if length was measured
+#####
+deto8 %>%
+  filter(is.na(Sortering)) # 70 obs, most are stsp. add them to either juvad or noll
+deto8 %>%
+  filter(is.na(Sortering) & Artbestämning == "Mört") # length not measured. what to do?
+deto8 %>%
+  filter(is.na(Sortering) & Artbestämning == "Abborre") # length measured. all obs in Uppsala län in 2020
+
+ggplot(subset(deto8, Artbestämning %in% "Abborre"), aes(x=LANGDGRUPP_LANGD, y=LANGDGRUPP_ANTAL)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~Sortering)+
+  theme_bw(base_size=15)
+# hard to say. Let's check if other data exist in that location and year
+ggplot(subset(deto8, Lokal %in% "Uppsala län" & year %in% 2020 & Artbestämning %in% "Abborre"), aes(x=LANGDGRUPP_LANGD, y=LANGDGRUPP_ANTAL)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~Sortering)+
+  theme_bw(base_size=15)
+# no juvad register that year in that place. the range of values is well between the range for årsyngel, so let't put them in the noll group
+
+ggplot(subset(deto8, Lokal %in% "Stockholms län" & Artbestämning %in% "Mört"), aes(x=LANGDGRUPP_LANGD, y=LANGDGRUPP_ANTAL)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~Sortering)+
+  theme_bw(base_size=15)
+# no juvad register in that place in any year. put them with the årsyngel
+
+#####
+# incorporate obs for which Sortering is NA to the other variables
+detoCPUE1_wide2$stsp_juvad_surf2<-detoCPUE1_wide2$stsp_juvad_surf + detoCPUE1_wide2$stsp_NA_surf
+detoCPUE1_wide2$perch_noll_bott2<-detoCPUE1_wide2$perch_noll_bott + detoCPUE1_wide2$perch_NA_bott
+detoCPUE1_wide2$roach_noll_surf2<-detoCPUE1_wide2$roach_noll_surf + detoCPUE1_wide2$roach_NA_surf
+
+# check:
+summary(detoCPUE1_wide2$stsp_juvad_surf2)
+summary(detoCPUE1_wide2$stsp_juvad_surf)
+summary(detoCPUE1_wide2$perch_noll_bott2)
+summary(detoCPUE1_wide2$perch_noll_bott)
+summary(detoCPUE1_wide2$roach_noll_surf2)
+summary(detoCPUE1_wide2$roach_noll_surf)
+
+# delete "redondant" columns to avoid using them by mistake:
+detoCPUE1_wide3<-detoCPUE1_wide2 %>%
+  select(-c(stsp_juvad_surf ,max95_retained_catch ,min95_total_catch ,max95_total_catch)) 
+
+
+# add for each spp the tot number yta + bottom:
+detoCPUE1_wide2$pike_juvad_tot<-detoCPUE1_wide2$pike_juvad_bott+detoCPUE1_wide2$pike_juvad_surf
+detoCPUE1_wide2$perch_juvad_tot<-detoCPUE1_wide2$perch_juvad_bott+detoCPUE1_wide2$perch_juvad_surf
+detoCPUE1_wide2$roach_juvad_tot<-detoCPUE1_wide2$roach_juvad_bott+detoCPUE1_wide2$roach_juvad_surf
+detoCPUE1_wide2$stsp_juvad_tot<-detoCPUE1_wide2$stsp_juvad_bott+detoCPUE1_wide2$stsp_juvad_surf
+
+detoCPUE1_wide2$pike_noll_tot<-detoCPUE1_wide2$pike_noll_bott+detoCPUE1_wide2$pike_noll_surf
+detoCPUE1_wide2$perch_noll_tot<-detoCPUE1_wide2$perch_noll_bott+detoCPUE1_wide2$perch_noll_surf
+detoCPUE1_wide2$roach_noll_tot<-detoCPUE1_wide2$roach_noll_bott+detoCPUE1_wide2$roach_noll_surf
+detoCPUE1_wide2$stsp_noll_tot<-detoCPUE1_wide2$stsp_noll_bott+detoCPUE1_wide2$stsp_noll_surf
+
+detoCPUE1_wide2$perch_NA_tot<-detoCPUE1_wide2$perch_NA_bott+detoCPUE1_wide2$perch_NA_surf
+detoCPUE1_wide2$roach_NA_tot<-detoCPUE1_wide2$roach_NA_bott+detoCPUE1_wide2$roach_NA_surf
+detoCPUE1_wide2$stsp_NA_tot<-detoCPUE1_wide2$stsp_NA_bott+detoCPUE1_wide2$stsp_NA_surf
+
+
+
+# OBS: remember to add stsp_NA_surf when calculating stsp CPUE by summing juav and noll
 
 # now I need to understand where they did not measure at the surface (falso zeros) or when they did but did not find any (true zeros):
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Ansträngning)
