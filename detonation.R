@@ -186,44 +186,37 @@ ggplot(subset(deto8, Lokal %in% "Stockholms län" & Artbestämning %in% "Mört")
 # no juvad register in that place in any year. put them with the årsyngel
 
 #####
-# incorporate obs for which Sortering is NA to the other variables
-detoCPUE1_wide2$stsp_juvad_surf2<-detoCPUE1_wide2$stsp_juvad_surf + detoCPUE1_wide2$stsp_NA_surf
+# incorporate obs for which Sortering is NA to the other variables, and calculate the sum of juvad and noll for stsp at the surface and bottom:
 detoCPUE1_wide2$perch_noll_bott2<-detoCPUE1_wide2$perch_noll_bott + detoCPUE1_wide2$perch_NA_bott
 detoCPUE1_wide2$roach_noll_surf2<-detoCPUE1_wide2$roach_noll_surf + detoCPUE1_wide2$roach_NA_surf
+detoCPUE1_wide2$stsp_all_surf<-detoCPUE1_wide2$stsp_juvad_surf + detoCPUE1_wide2$stsp_NA_surf + detoCPUE1_wide2$stsp_noll_surf
+detoCPUE1_wide2$stsp_all_bott<-detoCPUE1_wide2$stsp_juvad_bott + detoCPUE1_wide2$stsp_noll_bott
 
 # check:
-summary(detoCPUE1_wide2$stsp_juvad_surf2)
-summary(detoCPUE1_wide2$stsp_juvad_surf)
-summary(detoCPUE1_wide2$perch_noll_bott2)
-summary(detoCPUE1_wide2$perch_noll_bott)
 summary(detoCPUE1_wide2$roach_noll_surf2)
 summary(detoCPUE1_wide2$roach_noll_surf)
+summary(detoCPUE1_wide2$perch_noll_bott2)
+summary(detoCPUE1_wide2$perch_noll_bott)
 
-# delete "redondant" columns to avoid using them by mistake:
+# delete columns to avoid using them by mistake:
 detoCPUE1_wide3<-detoCPUE1_wide2 %>%
-  select(-c(stsp_juvad_surf ,max95_retained_catch ,min95_total_catch ,max95_total_catch)) 
-
+  select(-c(perch_NA_bott ,perch_noll_bott ,roach_NA_surf, roach_noll_surf, stsp_juvad_surf,stsp_NA_surf,stsp_noll_surf,stsp_juvad_bott,stsp_noll_bott)) 
 
 # add for each spp the tot number yta + bottom:
-detoCPUE1_wide2$pike_juvad_tot<-detoCPUE1_wide2$pike_juvad_bott+detoCPUE1_wide2$pike_juvad_surf
-detoCPUE1_wide2$perch_juvad_tot<-detoCPUE1_wide2$perch_juvad_bott+detoCPUE1_wide2$perch_juvad_surf
-detoCPUE1_wide2$roach_juvad_tot<-detoCPUE1_wide2$roach_juvad_bott+detoCPUE1_wide2$roach_juvad_surf
-detoCPUE1_wide2$stsp_juvad_tot<-detoCPUE1_wide2$stsp_juvad_bott+detoCPUE1_wide2$stsp_juvad_surf
+detoCPUE1_wide3$pike_juvad_tot<-detoCPUE1_wide3$pike_juvad_bott+detoCPUE1_wide3$pike_juvad_surf
+detoCPUE1_wide3$perch_juvad_tot<-detoCPUE1_wide3$perch_juvad_bott+detoCPUE1_wide3$perch_juvad_surf
+detoCPUE1_wide3$roach_juvad_tot<-detoCPUE1_wide3$roach_juvad_bott+detoCPUE1_wide3$roach_juvad_surf
 
-detoCPUE1_wide2$pike_noll_tot<-detoCPUE1_wide2$pike_noll_bott+detoCPUE1_wide2$pike_noll_surf
-detoCPUE1_wide2$perch_noll_tot<-detoCPUE1_wide2$perch_noll_bott+detoCPUE1_wide2$perch_noll_surf
-detoCPUE1_wide2$roach_noll_tot<-detoCPUE1_wide2$roach_noll_bott+detoCPUE1_wide2$roach_noll_surf
-detoCPUE1_wide2$stsp_noll_tot<-detoCPUE1_wide2$stsp_noll_bott+detoCPUE1_wide2$stsp_noll_surf
+detoCPUE1_wide3$pike_noll_tot<-detoCPUE1_wide3$pike_noll_bott+detoCPUE1_wide3$pike_noll_surf
+detoCPUE1_wide3$perch_noll_tot<-detoCPUE1_wide3$perch_noll_bott2+detoCPUE1_wide3$perch_noll_surf
+detoCPUE1_wide3$roach_noll_tot<-detoCPUE1_wide3$roach_noll_bott+detoCPUE1_wide3$roach_noll_surf2
 
-detoCPUE1_wide2$perch_NA_tot<-detoCPUE1_wide2$perch_NA_bott+detoCPUE1_wide2$perch_NA_surf
-detoCPUE1_wide2$roach_NA_tot<-detoCPUE1_wide2$roach_NA_bott+detoCPUE1_wide2$roach_NA_surf
-detoCPUE1_wide2$stsp_NA_tot<-detoCPUE1_wide2$stsp_NA_bott+detoCPUE1_wide2$stsp_NA_surf
+detoCPUE1_wide3$stsp_all_tot<-detoCPUE1_wide3$stsp_all_bott+detoCPUE1_wide3$stsp_all_surf
 
 
-
-# OBS: remember to add stsp_NA_surf when calculating stsp CPUE by summing juav and noll
 
 # now I need to understand where they did not measure at the surface (falso zeros) or when they did but did not find any (true zeros):
+head(detoCPUE1_wide3)
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Ansträngning)
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
 
