@@ -213,37 +213,70 @@ detoCPUE1_wide3$roach_noll_tot<-detoCPUE1_wide3$roach_noll_bott+detoCPUE1_wide3$
 
 detoCPUE1_wide3$stsp_all_tot<-detoCPUE1_wide3$stsp_all_bott+detoCPUE1_wide3$stsp_all_surf
 
-
-
 # now I need to understand where they did not measure at the bottom (false zeros), where they did but did not record it, and when they did 
 # but did not find any (true zeros) - this latter not likely, given that the previous correction factors are 0.2-0.7, but it could be if I 
 # have very low numbers
 
 # they should always (when grams were 10gr) have looked at both bottom and surface (except for Forsmark and Simpevarp), 
-# If there is not bottom value is zeros but they did not record zeros.But this applies to the lst 15-20 years
+# If there is not bottom value is zeros but they did not (always) record zeros.But this applies to the lst 15-20 years
+# the zeros are added automaticcaly when switching to the wide format. What I have to do is just don't
+# correct for bottom/surface, but apply conversion for dynamite (it may be 1 though)
+detoCPUE1%>%
+  filter(Ansträngning  == 10 & Fångsttyp == "bott" & Antal == 0)
 
-head(detoCPUE1_wide3)
-table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Ansträngning)
+# how to select for sampling occasions where they counted only at the surface or both:
+# start by subsetting the data by location and plot for different years Antal at the bottom vs surface. double check with the table
+table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
+ggplot(subset(detoCPUE1, Lokal %in% "Västerbottens län"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15) # both always
+ggplot(subset(detoCPUE1, Lokal %in% "Stockholms län"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15) # 2001-2003 only surface (Ansträngning =1, to correct). 2004-2020 both
+ggplot(subset(detoCPUE1, Lokal %in% "Gävleborgs län"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15) #both only in 2005 and 2010-2014
+ggplot(subset(detoCPUE1, Lokal %in% "Gävlebukten"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15) #both always
+ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15) # discrepancy with the table about 2008
+detoCPUE1%>%
+  filter(Lokal  == "Västernorrlands län" & year == 2008) # probably a matter of scale in the figure
+ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län" & year %in% "2008"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  theme_bw(base_size=15) # take home msg: trust the table. Only surf only in 2010. 2008-2009, 2011, 2014 both
+# OBS: If Ansträngning = 10 do not correct nor use for calculation of the correction factor
+table(detoCPUE1$Ansträngning,detoCPUE1$year,detoCPUE1$Lokal)
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
 
+# Summary:
+# Västerbottens län: both always
+# Stockholms län: 2001-2003 only surface (Ansträngning =1, to correct). 2004-2020 both
 
 
-# harmonize bottom/yta estimates
-head(deto6)
-table(deto6$Fångsttyp)
-unique(deto6$Fångsttyp)
+# TO DO: write for which after checking for Ansträngning
+# Gävleborgs län: both in 2005 and 2010-2014. 1979, 1983,2002-200......
+# Gävlebukten: both always
+# Västernorrlands län: Only surf only in 2010. 2008-2009, 2011, 2014 both
+# Uppsala län: 2002-2003 only surf. 2004-2014, 2017, 2019-2020 both
+# Södermanlands län: 2004-2005, 2007-2008 only surface. 2006, 2012, 2014 both
+# Östergötlands län: 2003 only surf. 2012, 2014, 2020 both
+# Norrbottens län: both always
+# Kalmar län: 2003, 2006 only surface.2005, 2007-2010, 2014 both
+# ICES 29:4967 Åbo: both always
+# Blekinge län: both always
+# Forsmark: seems all only surf. But it's recent years.If Ansträngning = 10 do not correct nor use for calculation of the correction factor
+# OBS: check for the others too!!!
 
-table(deto6$Ansträngning,deto6$year)
-table(deto6$Fångsttyp,deto6$year)
-table(deto6$Ansträngning,deto6$year,deto6$Fångsttyp)
-
-
-deto6_Ansträngning1<- deto6 %>%
-  filter(Ansträngning == "1") 
-table(deto6_Ansträngning1$Lokal,deto6_Ansträngning1$year)
-table(deto6_Ansträngning1$Fångsttyp,deto6_Ansträngning1$year,deto6_Ansträngning1$Lokal)
-
-
+# Use "both" (with Ansträngning different from 10) for calculation of correction factors
+# correct #only surf" (with Ansträngning different from 10)
 
 # standardize by different gram of dynamite
 
