@@ -45,8 +45,8 @@ deto2$year<-as.numeric(RIGHT(deto2$Fiskedatum,4))
 summary(deto2$year)
 hist(deto2$year)
 
-#####
-# cleaning deto2: check read me file, email and "detonation_old_script_for_conversion"
+#### cleaning ####
+# check read me file, email and "detonation_old_script_for_conversion"
 
 # keep only approved obs
 table(deto2$GODKAND)
@@ -232,16 +232,16 @@ check<-subset(detoCPUE1_wide3, Lokal %in% "Kalmar län" & year %in% c(2003:2006)
 # check if I have repeated data in 2019: all good
 check = detoCPUE1_wide3[detoCPUE1_wide3$year == 2019, ]
 
-# calculate correction factors:
-#####
+
+#### calculate conversion factors: ####
 # now I need to understand where they did not measure at the bottom (false zeros), where they did but did not record it, and when they did 
-# but did not find any (true zeros) - this latter not likely, given that the previous correction factors are 0.2-0.7, but it could be if I 
+# but did not find any (true zeros) - this latter not likely, given that the previous conversion factors are 0.2-0.7, but it could be if I 
 # have very low numbers
 
 # they should always (when grams were 10gr) have looked at both bottom and surface (except for Forsmark and Simpevarp), 
 # If there is not bottom value is zeros but they did not (always) record zeros.But this applies to the lst 15-20 years
 # the zeros are added automaticcaly when switching to the wide format. What I have to do is just don't
-# correct for bottom/surface, but apply conversion for dynamite (it may be 1 though)
+# correct for bottom/surface, but apply correction for dynamite (it may be 1 though)
 detoCPUE1%>%
   filter(Ansträngning  == 10 & Fångsttyp == "bott" & Antal == 0)
 
@@ -252,41 +252,15 @@ table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
 table(detoCPUE1$Ansträngning,detoCPUE1$year,detoCPUE1$Lokal)
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Ansträngning,detoCPUE1$Lokal)
 
-ggplot(subset(detoCPUE1, Lokal %in% "Västerbottens län"), aes(x=Fångsttyp, y=Antal)) +
-  geom_bar(stat="identity")+
-  facet_wrap(~year)+
-  theme_bw(base_size=15) # both always
-ggplot(subset(detoCPUE1, Lokal %in% "Stockholms län"), aes(x=Fångsttyp, y=Antal)) +
-  geom_bar(stat="identity")+
-  facet_wrap(~year)+
-  theme_bw(base_size=15) # 2001-2003 only surface (Ansträngning =1, to correct). 2004-2020 both
-ggplot(subset(detoCPUE1, Lokal %in% "Gävleborgs län"), aes(x=Fångsttyp, y=Antal)) +
-  geom_bar(stat="identity")+
-  facet_wrap(~year)+
-  theme_bw(base_size=15) #both only in 2005 and 2010-2014
-ggplot(subset(detoCPUE1, Lokal %in% "Gävlebukten"), aes(x=Fångsttyp, y=Antal)) +
-  geom_bar(stat="identity")+
-  facet_wrap(~year)+
-  theme_bw(base_size=15) #both always
-ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län"), aes(x=Fångsttyp, y=Antal)) +
-  geom_bar(stat="identity")+
-  facet_wrap(~year)+
-  theme_bw(base_size=15) # discrepancy with the table about 2008
-detoCPUE1%>%
-  filter(Lokal  == "Västernorrlands län" & year == 2008) # probably a matter of scale in the figure
-ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län" & year %in% "2008"), aes(x=Fångsttyp, y=Antal)) +
-  geom_bar(stat="identity")+
-  theme_bw(base_size=15) # take home msg: trust the table. Only surf only in 2010. 2008-2009, 2011, 2014 both
 ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län" & year %in% "2014"), aes(x=Fångsttyp, y=Antal)) +
   geom_bar(stat="identity")+
   facet_wrap(~Ansträngning)+
   theme_bw(base_size=15)
-# OBS: If Ansträngning = 10 and it happened in the last 15-20 years do not correct nor use for calculation of the correction factor
-table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
+# OBS: If Ansträngning = 10 and it happened in the last 15-20 years do not correct nor use for calculation of the conversion factor
 
 # Summary:
-## Blekinge län: both always.use for calculation of the correction factor (and do not correct)
-## Forsmark: only surf. But it's recent years and Ansträngning = 10. do not correct nor use for calculation of the correction factor
+## Blekinge län: both always.use for calculation of the conversion factor (and do not convert)
+## Forsmark: only surf. But it's recent years and Ansträngning = 10. do not convert nor use for calculation of the conversion factor
 ## Gävleborgs län: exclude <=2004, and 2005 but only when Ansträngning was 1, and 2006-2009
 #     1979 1983 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
 #bott    0    0    0    0    0    0   15    0    0    0    0   80   76   39   57  100    0    0    0    0    0    0
@@ -298,14 +272,13 @@ table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
 ## Östergötlands län: exclude 2003 (only surf). 2012, 2014, 2020 both for all type of Ansträngning
 ## Södermanlands län: exclude 2004-2005, 2007-2008 (only surface). exclude 2006 with Ansträngning=1. Inlcude 2006 with Ansträngning=8, 2012, 2014 both
 ## Stockholms län: exclude 2001-2003 (only surface).In 2004-2020 both for all type of Ansträngning
-## Uppsala län: exclude 2002-2003 (only surf), and [2008-2009, 2011-2013] with Ansträngning=10 (also, do not correct these as they
+## Uppsala län: exclude 2002-2003 (only surf), and [2008-2009, 2011-2013] with Ansträngning=10 (also, do not convert these as they
 # counted at the bottom but did not register it probably!). 
 ## Västerbottens län: both always  for all type of Ansträngning
 ## Västernorrlands län: exclude 2010 (Only surf). 2008-2009, 2011, 2014 both for all type of Ansträngning
 
 # select subset in the wide-layout dataset by excluding sampling occasions where only surf were counted
-# then correct these that were excluded, except for those with Ansträngning = 10 of the last 15-20 years
-# check groups of location, year, Fångsttyp and Ansträngning (sometimes different methods in the same year):
+# then convert these that were excluded, except for those with Ansträngning = 10 of the last 15-20 years
 detoCPUE1_wide3 %>%
   filter(Lokal  == "Västernorrlands län" & year == 2008)
 
@@ -324,9 +297,58 @@ sub12<-subset(sub11, !(Lokal %in% "Västernorrlands län" & year %in% 2010))
 # check: Ok
 sub6 %>%
   filter(Lokal  == "Södermanlands län" & year == 2007 ) 
+# sub12 is the subset where both surf and bott were counted
 
+# make sure all fish abundances are numeric - not working, maybe because I have NA?
+head(sub12)
+for( i in which(names(sub12) == "pike_juvad_bott"):which(names(sub12) == "stsp_all_tot")){
+  sub12[,i] = as.numeric(sub12[,i])} 
+
+# for 0+ abborre
+ratio_abbo = sub12$perch_noll_surf/
+  sub12$perch_noll_tot
+sum(!is.nan(ratio_abbo) & !is.infinite(ratio_abbo)) # 2089 non defined or infinite values out of 5664
+FS_abbo = round(mean(ratio_abbo[!is.nan(ratio_abbo) & !is.infinite(ratio_abbo)], na.rm = T), digits = 2) 
+# 0.45 vs 0.42 in Agnes old data (0.39 in file)
+
+# for 0+ gadda
+ratio_gadd = sub12$pike_noll_surf/
+  sub12$pike_noll_tot
+sum(!is.nan(ratio_gadd) & !is.infinite(ratio_gadd)) # 1391 non defined or infinite values out of 5664
+FS_gadd = round(mean(ratio_gadd[!is.nan(ratio_gadd) & !is.infinite(ratio_gadd)], na.rm = T), digits = 2)  
+# 0.68 vs 0.64 in Agnes old data (0.64 in file)
+
+# for 0+ roach
+ratio_roach = sub12$roach_noll_surf2/
+  sub12$roach_noll_tot
+sum(!is.nan(ratio_roach) & !is.infinite(ratio_roach)) # 1074 non defined or infinite values out of 5664
+FS_roach = round(mean(ratio_roach[!is.nan(ratio_roach) & !is.infinite(ratio_roach)], na.rm = T), digits = 2)  
+# 0.84
+
+# for ALL (both juv and noll) spigg
+ratio_stsp = sub12$stsp_all_surf/
+  sub12$stsp_all_bott
+sum(!is.nan(ratio_stsp) & !is.infinite(ratio_stsp))# 2105 non defined or infinite values out of 5664
+FS_stsp = round(mean(ratio_stsp[!is.nan(ratio_stsp) & !is.infinite(ratio_stsp)], na.rm = T), digits = 2) 
+# 1.56 vs 0.17 in Agnes old data (0.19 in file) 
+### OOOBBBBSSS. Likely they did not count stsp at the bottom in many occasions. Find out otherwise I'll have wrong estimates
+
+unique(detoCPUE1$Lokal)
+# kalmar: corrected
+# Västerbottens län: both surf and bott
+# Stockholms län: stsp not counted at the bott in 2001, 2003, but I did exclude it in sub 12. BUT in 2016-2018 no stsp???
+# Gävleborgs län: no stsp at the bott before 2010 except 2005 - check that all these are excluded from sub12
+# Uppsala län ... 
+# ... 
+
+ggplot(subset(detoCPUE1, Lokal %in% "Uppsala län" & Artbestämning %in% "perch"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15)
 
 
 
 # standardize by different gram of dynamite
+
+# check read me file, email and "detonation_old_script_for_conversion"
 
