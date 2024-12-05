@@ -213,6 +213,27 @@ detoCPUE1_wide3$roach_noll_tot<-detoCPUE1_wide3$roach_noll_bott+detoCPUE1_wide3$
 
 detoCPUE1_wide3$stsp_all_tot<-detoCPUE1_wide3$stsp_all_bott+detoCPUE1_wide3$stsp_all_surf
 
+# from Agnes file: check if stsp have been counted in the bottom in Kalmar: not before 2007, that is 2003 and 2006. 
+# Weird that in 2005 no stsp was observed either at the bottom or at the surface. To be on the safe side I would also put NA
+# for stsp in 2005 at the bottom but also at the surface - check with Agnes
+detoCPUE1 %>%
+  filter(Lokal == "Kalmar län" & Fångsttyp == "bott")
+ggplot(subset(detoCPUE1, Lokal %in% "Kalmar län" & Artbestämning %in% "stsp"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15)
+# set, in the wide-layout format, stickleback at the bottom and tot in Kalmar län before 2007, and stsp at the surf in Kalmar län in 2005, to NA
+detoCPUE1_wide3[detoCPUE1_wide3$Lokal=="Kalmar län" & detoCPUE1_wide3$year < 2007,]
+detoCPUE1_wide3[detoCPUE1_wide3$Lokal=="Kalmar län" & detoCPUE1_wide3$year < 2007, which(names(detoCPUE1_wide3) == "stsp_all_bott") ] = NA
+detoCPUE1_wide3[detoCPUE1_wide3$Lokal=="Kalmar län" & detoCPUE1_wide3$year < 2007, which(names(detoCPUE1_wide3) == "stsp_all_tot") ] = NA
+detoCPUE1_wide3[detoCPUE1_wide3$Lokal=="Kalmar län" & detoCPUE1_wide3$year == 2005, which(names(detoCPUE1_wide3) == "stsp_all_surf") ] = NA
+check<-subset(detoCPUE1_wide3, Lokal %in% "Kalmar län" & year %in% c(2003:2006))
+
+# check if I have repeated data in 2019: all good
+check = detoCPUE1_wide3[detoCPUE1_wide3$year == 2019, ]
+
+# calculate correction factors:
+#####
 # now I need to understand where they did not measure at the bottom (false zeros), where they did but did not record it, and when they did 
 # but did not find any (true zeros) - this latter not likely, given that the previous correction factors are 0.2-0.7, but it could be if I 
 # have very low numbers
@@ -226,7 +247,11 @@ detoCPUE1%>%
 
 # how to select for sampling occasions where they counted only at the surface or both:
 # start by subsetting the data by location and plot for different years Antal at the bottom vs surface. double check with the table
+# check groups of location, year, Fångsttyp. and when both surf and bott were counted, check Ansträngning (sometimes different methods in the same year):
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
+table(detoCPUE1$Ansträngning,detoCPUE1$year,detoCPUE1$Lokal)
+table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Ansträngning,detoCPUE1$Lokal)
+
 ggplot(subset(detoCPUE1, Lokal %in% "Västerbottens län"), aes(x=Fångsttyp, y=Antal)) +
   geom_bar(stat="identity")+
   facet_wrap(~year)+
@@ -252,31 +277,56 @@ detoCPUE1%>%
 ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län" & year %in% "2008"), aes(x=Fångsttyp, y=Antal)) +
   geom_bar(stat="identity")+
   theme_bw(base_size=15) # take home msg: trust the table. Only surf only in 2010. 2008-2009, 2011, 2014 both
-# OBS: If Ansträngning = 10 do not correct nor use for calculation of the correction factor
-table(detoCPUE1$Ansträngning,detoCPUE1$year,detoCPUE1$Lokal)
+ggplot(subset(detoCPUE1, Lokal %in% "Västernorrlands län" & year %in% "2014"), aes(x=Fångsttyp, y=Antal)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~Ansträngning)+
+  theme_bw(base_size=15)
+# OBS: If Ansträngning = 10 and it happened in the last 15-20 years do not correct nor use for calculation of the correction factor
 table(detoCPUE1$Fångsttyp,detoCPUE1$year,detoCPUE1$Lokal)
 
 # Summary:
-# Västerbottens län: both always
-# Stockholms län: 2001-2003 only surface (Ansträngning =1, to correct). 2004-2020 both
+## Blekinge län: both always.use for calculation of the correction factor (and do not correct)
+## Forsmark: only surf. But it's recent years and Ansträngning = 10. do not correct nor use for calculation of the correction factor
+## Gävleborgs län: exclude <=2004, and 2005 but only when Ansträngning was 1, and 2006-2009
+#     1979 1983 2001 2002 2003 2004 2005 2006 2007 2008 2009 2010 2011 2012 2013 2014 2015 2016 2017 2018 2019 2020
+#bott    0    0    0    0    0    0   15    0    0    0    0   80   76   39   57  100    0    0    0    0    0    0
+#surf    8    6    0   74   35   39  114   64   46   38   95   78   96  108  114  111    0    0    0    0    0    0
+## Gävlebukten: both always, one value of Ansträngning
+## ICES 29:4967 Åbo: both always, one value of Ansträngning
+## Kalmar län: exclude 2003 and 2006. The others have both for all type of Ansträngning (2005, 2007-2010, 2014)
+## Norrbottens län: both always for all type of Ansträngning
+## Östergötlands län: exclude 2003 (only surf). 2012, 2014, 2020 both for all type of Ansträngning
+## Södermanlands län: exclude 2004-2005, 2007-2008 (only surface). exclude 2006 with Ansträngning=1. Inlcude 2006 with Ansträngning=8, 2012, 2014 both
+## Stockholms län: exclude 2001-2003 (only surface).In 2004-2020 both for all type of Ansträngning
+## Uppsala län: exclude 2002-2003 (only surf), and [2008-2009, 2011-2013] with Ansträngning=10 (also, do not correct these as they
+# counted at the bottom but did not register it probably!). 
+## Västerbottens län: both always  for all type of Ansträngning
+## Västernorrlands län: exclude 2010 (Only surf). 2008-2009, 2011, 2014 both for all type of Ansträngning
+
+# select subset in the wide-layout dataset by excluding sampling occasions where only surf were counted
+# then correct these that were excluded, except for those with Ansträngning = 10 of the last 15-20 years
+# check groups of location, year, Fångsttyp and Ansträngning (sometimes different methods in the same year):
+detoCPUE1_wide3 %>%
+  filter(Lokal  == "Västernorrlands län" & year == 2008)
+
+sub1<-subset(detoCPUE1_wide3, !(Lokal == "Forsmark"))
+sub2<-subset(sub1, !(Lokal == "Gävleborgs län" & year < 2005))
+sub3<-subset(sub2, !(Lokal == "Gävleborgs län" & year == 2005 & Ansträngning == 1))
+sub4<-subset(sub3, !(Lokal %in% "Gävleborgs län" & year %in% 2006:2009))
+sub5<-subset(sub4, !(Lokal %in% "Kalmar län" & year %in% c(2003, 2006)))
+sub6<-subset(sub5, !(Lokal %in% "Östergötlands län" & year %in% 2003))
+sub7<-subset(sub6, !(Lokal %in% "Södermanlands län" & year %in% c(2004:2005, 2007:2008)))
+sub8<-subset(sub7, !(Lokal %in% "Södermanlands län" & year %in% 2006 & Ansträngning %in% 1))
+sub9<-subset(sub8, !(Lokal %in% "Stockholms län" & year %in% c(2001:2003)))
+sub10<-subset(sub9, !(Lokal %in% "Uppsala län" & year %in% c(2002:2003)))
+sub11<-subset(sub10, !(Lokal %in% "Uppsala län" & year %in% c(2008:2009, 2011:2013) & Ansträngning %in% 10))
+sub12<-subset(sub11, !(Lokal %in% "Västernorrlands län" & year %in% 2010))
+# check: Ok
+sub6 %>%
+  filter(Lokal  == "Södermanlands län" & year == 2007 ) 
 
 
-# TO DO: write for which after checking for Ansträngning
-# Gävleborgs län: both in 2005 and 2010-2014. 1979, 1983,2002-200......
-# Gävlebukten: both always
-# Västernorrlands län: Only surf only in 2010. 2008-2009, 2011, 2014 both
-# Uppsala län: 2002-2003 only surf. 2004-2014, 2017, 2019-2020 both
-# Södermanlands län: 2004-2005, 2007-2008 only surface. 2006, 2012, 2014 both
-# Östergötlands län: 2003 only surf. 2012, 2014, 2020 both
-# Norrbottens län: both always
-# Kalmar län: 2003, 2006 only surface.2005, 2007-2010, 2014 both
-# ICES 29:4967 Åbo: both always
-# Blekinge län: both always
-# Forsmark: seems all only surf. But it's recent years.If Ansträngning = 10 do not correct nor use for calculation of the correction factor
-# OBS: check for the others too!!!
 
-# Use "both" (with Ansträngning different from 10) for calculation of correction factors
-# correct #only surf" (with Ansträngning different from 10)
 
 # standardize by different gram of dynamite
 
