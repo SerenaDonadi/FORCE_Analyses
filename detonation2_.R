@@ -299,7 +299,7 @@ sub6 %>%
   filter(Lokal  == "Södermanlands län" & year == 2007 ) 
 # sub12 is the subset where both surf and bott were counted
 
-# make sure all fish abundances are numeric - not working, maybe because I have NA?
+# make sure all fish abundances are numeric - not working, 
 head(sub12)
 for( i in which(names(sub12) == "pike_juvad_bott"):which(names(sub12) == "stsp_all_tot")){
   sub12[,i] = as.numeric(sub12[,i])} 
@@ -340,8 +340,12 @@ unique(detoCPUE1$Lokal)
 # Gävleborgs län: no stsp at the bott before 2010 except 2005 - check that all these are excluded from sub12
 # Uppsala län ... 
 # ... 
+## after talking to Agnes: try to understand which obs included stsp counts in both surface and bottom
+## she will send me etsimates of stsp from her model, for the detonation dataset amnd fot the gillnets dataset, we can compare the two
+# OBS: Agnes stsp estimates will only cover 2001 onwards!
 
-ggplot(subset(detoCPUE1, Lokal %in% "Uppsala län" & Artbestämning %in% "perch"), aes(x=Fångsttyp, y=Antal)) +
+
+ggplot(subset(detoCPUE1, Lokal %in% "Stockholms län" & Artbestämning %in% "stsp"), aes(x=Fångsttyp, y=Antal)) +
   geom_bar(stat="identity")+
   facet_wrap(~year)+
   theme_bw(base_size=15)
@@ -351,4 +355,6 @@ ggplot(subset(detoCPUE1, Lokal %in% "Uppsala län" & Artbestämning %in% "perch"
 # standardize by different gram of dynamite
 
 # check read me file, email and "detonation_old_script_for_conversion"
+
+# check how many samples for each size classes and location and year
 

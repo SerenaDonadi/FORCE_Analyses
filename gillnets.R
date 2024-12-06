@@ -50,6 +50,9 @@ gillnets$month<-as.numeric(LEFT(RIGHT(gillnets$Fiskedatum,7),2))
 summary(gillnets$month)
 hist(gillnets$month)
 
+gillnets$date<-as.Date(gillnets$Fiskedatum, format ="%d/%m/%Y")
+unique(gillnets$date)
+
 # rename columns before merging
 gillnets <- rename(gillnets, location = 'Lokal')
 
@@ -60,7 +63,6 @@ temp_gillnet_year <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TR
 # avg day temp
 temp_gillnet_day <- read.csv2("temperature-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
 
-# something may be wrong with the second one: indeed, see plot below. waiting for Agnes to provide new data
 # make column with only year
 head(temp_gillnet_day$date)
 temp_gillnet_day$year<-as.numeric(LEFT(temp_gillnet_day$date,4))
@@ -72,16 +74,18 @@ temp_gillnet_day$month<-as.numeric(LEFT(RIGHT(temp_gillnet_day$date,5),2))
 summary(temp_gillnet_day$month)
 hist(temp_gillnet_day$month)
 
-unique(temp_gillnet_day$location)
-unique(temp_gillnet_day$year)
+# set the format for date:
+temp_gillnet_day$date<-as.Date(temp_gillnet_day$date)
+unique(gillnets$date)
+
 
 ## OBS in same cases temp doesn´t vary between January and April. It could depend on that there is ice, or a problem with data extraction
 # this is mainly found in the 80s. but also later, see Råneå example. check what parameters to extract and which years we consider
 ggplot(subset(temp_gillnet_day, location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
                                                 "Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
                                                 "Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
-                                                "Torhamn, Karlskrona Ö skärgård") &
-                year %in% c(1982)), aes(x = date , y = temp)) +
+                                                "Torhamn, Karlskrona Ö skärgård")), 
+              aes(x = date , y = temp)) +
   geom_point()+
   facet_wrap(~location)+
   labs(title="daily temp ")+
@@ -100,17 +104,35 @@ gillnets1<-left_join(gillnets, temp_gillnet_year, by = c("year","location")) #
 gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
 head(gillnets1)
 
+# merge and keep all records in left dataset, and only matching record in right dataset
+gillnets1a<-left_join(gillnets1, temp_gillnet_day, by = c("date","location")) # 
+
+# rename temp to be more specific: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
+gillnets1a <- rename(gillnets1a, day_temp = 'temp')
+head(gillnets1)
+
+#####
+# check how well the temp measured in the field correlate con satellite temp: do it in a separate section, check there is some weird stuff
+ggplot(subset(subset(temp_day_gillnets1, Temp_vittjning_vid_redskap != 999) , location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
+                                                #"Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
+                                                #"Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
+                                                "Torhamn, Karlskrona Ö skärgård")),
+                 aes(x = Temp_vittjning_vid_redskap , y = temp)) +
+  geom_point()+
+  facet_wrap(~location)+
+  labs(title="")+
+  theme_classic(base_size=13)
 
 #####
 # Subsets
 #####
 
 # filter out stations that are disturbed 
-unique(gillnets1$Störning) # all NEJ
+unique(gillnets1a$Störning) # all NEJ
 # gillnets1 = subset(gillnets1, Störning == "NEJ" | is.na(Störning)) # none
 
 ## filter out stations that are not GODKAND
-unique(gillnets1$GODKAND) # JA or NA
+unique(gillnets1a$GODKAND) # JA or NA
 # gillnets1 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
 
 # Note: why I don't see NAs with table(gillnets1$GODKAND)? 
@@ -125,21 +147,21 @@ unique(gillnets1$GODKAND) # JA or NA
 # sort(unique(gillnets1$StationsNr)) # I don't see any
 
 # remove restricted data 
-unique(gillnets1$Behörighet) # none is "Restriktion"
-table(gillnets1$Behörighet) 
+unique(gillnets1a$Behörighet) # none is "Restriktion"
+table(gillnets1a$Behörighet) 
 # intern may have something odd, check them: boh
-subset(gillnets1, Behörighet == "Intern")
+subset(gillnets1a, Behörighet == "Intern")
 
 # check samples that may not have Ansträngning = 1: all good
-table(gillnets1$Ansträngning)
+table(gillnets1a$Ansträngning)
 
 # check samples that may have effort expressed in hours:
-unique(gillnets1$Fisketid_enhet)
-unique(gillnets1$Ansträngning_enhet)
+unique(gillnets1a$Fisketid_enhet)
+unique(gillnets1a$Ansträngning_enhet)
 # check samples that have effort different from 1: remove them
-unique(gillnets1$Fisketid)
-subset(gillnets1, Fisketid == 12)
-gillnets2<-subset(gillnets1, Fisketid != 12)
+unique(gillnets1a$Fisketid)
+subset(gillnets1a, Fisketid == 12)
+gillnets2<-subset(gillnets1a, Fisketid != 12)
 
 # check where the station number is listed, as in some cases it may be listed in the information column
 unique(gillnets2$station)
