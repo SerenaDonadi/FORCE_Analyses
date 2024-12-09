@@ -213,12 +213,16 @@ detoCPUE1_wide3$roach_noll_tot<-detoCPUE1_wide3$roach_noll_bott+detoCPUE1_wide3$
 
 detoCPUE1_wide3$stsp_all_tot<-detoCPUE1_wide3$stsp_all_bott+detoCPUE1_wide3$stsp_all_surf
 
-# from Agnes file: check if stsp have been counted in the bottom in Kalmar: not before 2007, that is 2003 and 2006. 
-# Weird that in 2005 no stsp was observed either at the bottom or at the surface. To be on the safe side I would also put NA
+# check if I have repeated data in 2019: all good
+check = detoCPUE1_wide3[detoCPUE1_wide3$year == 2019, ]
+
+# following a note from Agnes file: check if stsp have been counted in the bottom in Kalmar: not before 2007, that is 2003 and 2006. 
+# Also, weird that in 2005 no stsp was observed either at the bottom or at the surface. To be on the safe side I would also put NA
 # for stsp in 2005 at the bottom but also at the surface - check with Agnes
 detoCPUE1 %>%
   filter(Lokal == "Kalmar län" & Fångsttyp == "bott")
-ggplot(subset(detoCPUE1, Lokal %in% "Kalmar län" & Artbestämning %in% "stsp"), aes(x=Fångsttyp, y=Antal)) +
+detoCPUE1$Ansträngning<-as.factor(detoCPUE1$Ansträngning)
+ggplot(subset(detoCPUE1, Lokal %in% "Kalmar län" & Artbestämning %in% "stsp"), aes(x=Fångsttyp, y=Antal, fill=Ansträngning)) +
   geom_bar(stat="identity")+
   facet_wrap(~year)+
   theme_bw(base_size=15)
@@ -229,8 +233,27 @@ detoCPUE1_wide3[detoCPUE1_wide3$Lokal=="Kalmar län" & detoCPUE1_wide3$year < 20
 detoCPUE1_wide3[detoCPUE1_wide3$Lokal=="Kalmar län" & detoCPUE1_wide3$year == 2005, which(names(detoCPUE1_wide3) == "stsp_all_surf") ] = NA
 check<-subset(detoCPUE1_wide3, Lokal %in% "Kalmar län" & year %in% c(2003:2006))
 
-# check if I have repeated data in 2019: all good
-check = detoCPUE1_wide3[detoCPUE1_wide3$year == 2019, ]
+# do this exercise for all locations, as stsp may have not been counted at the bottom in many occasions, and not at all in others!
+# for missing obs both at the bottom and surface, check if perch has been counted and see if all the years match.
+# Kalmar län: corrected
+# Västerbottens län: both surf and bott. But in 2011, more at the surf than bottom. In fact, when splitting by date, in some days stsp were not counted,
+# but it is ansträngning 10, so maybe they did? for all occasiond in 2011 more stsp at the surf than bottom, boh..
+# Stockholms län: stsp not counted at the bott in 2001, 2003, but I did exclude it in sub 12. BUT in 2016-2018 no stsp???
+# Gävleborgs län: no stsp at the bott before 2010 except 2005 - check that all these are excluded from sub12
+# Uppsala län ... I give up. It's hard to know when/where stsp have been counted properly, so I won't use these stsp data
+unique(detoCPUE1$Lokal)
+
+ggplot(subset(detoCPUE1, Lokal %in% "Stockholms län" & Artbestämning %in% "stsp"), aes(x=Fångsttyp, y=Antal, fill=Ansträngning)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~year)+
+  theme_bw(base_size=15)
+ggplot(subset(detoCPUE1, Lokal %in% "Västerbottens län" & Artbestämning %in% "stsp" & year %in% 2011),
+       aes(x=Fångsttyp, y=Antal, fill=Ansträngning)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~Fiskedatum)+
+  theme_bw(base_size=15)
+detoCPUE1 %>%
+  filter(Lokal == "Västerbottens län" & Artbestämning %in% "stsp" & year == 2011)
 
 
 #### calculate conversion factors: ####
@@ -240,7 +263,7 @@ check = detoCPUE1_wide3[detoCPUE1_wide3$year == 2019, ]
 
 # they should always (when grams were 10gr) have looked at both bottom and surface (except for Forsmark and Simpevarp), 
 # If there is not bottom value is zeros but they did not (always) record zeros.But this applies to the lst 15-20 years
-# the zeros are added automaticcaly when switching to the wide format. What I have to do is just don't
+# the zeros are added automatically when switching to the wide format. What I have to do is just don't
 # correct for bottom/surface, but apply correction for dynamite (it may be 1 though)
 detoCPUE1%>%
   filter(Ansträngning  == 10 & Fångsttyp == "bott" & Antal == 0)
@@ -331,30 +354,204 @@ ratio_stsp = sub12$stsp_all_surf/
 sum(!is.nan(ratio_stsp) & !is.infinite(ratio_stsp))# 2105 non defined or infinite values out of 5664
 FS_stsp = round(mean(ratio_stsp[!is.nan(ratio_stsp) & !is.infinite(ratio_stsp)], na.rm = T), digits = 2) 
 # 1.56 vs 0.17 in Agnes old data (0.19 in file) 
-### OOOBBBBSSS. Likely they did not count stsp at the bottom in many occasions. Find out otherwise I'll have wrong estimates
+# OBS: Likely they did not count stsp at the bottom in many occasions. Don't use stsp data from detonation, see comments above
 
-unique(detoCPUE1$Lokal)
-# kalmar: corrected
-# Västerbottens län: both surf and bott
-# Stockholms län: stsp not counted at the bott in 2001, 2003, but I did exclude it in sub 12. BUT in 2016-2018 no stsp???
-# Gävleborgs län: no stsp at the bott before 2010 except 2005 - check that all these are excluded from sub12
-# Uppsala län ... 
-# ... 
-## after talking to Agnes: try to understand which obs included stsp counts in both surface and bottom
-## she will send me etsimates of stsp from her model, for the detonation dataset amnd fot the gillnets dataset, we can compare the two
-# OBS: Agnes stsp estimates will only cover 2001 onwards!
+#### apply correction factors and conversion factors ####
+# convert observations (only for pike, perch and roach) that were excluded above, except for those with Ansträngning = 10 of the
+# last 15-20 years, were according to Ulf's words they should have counted both yta and bottom but If there is not bottom value, it
+# is zeros but they did not record zeros
 
+# abborre
+detoCPUE1_wide3$perch_noll_tot_corrected = detoCPUE1_wide3$perch_noll_tot # copy variable
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year < 2005] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year < 2005]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year == 2005 & 
+                                           detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year == 2005 & 
+                                   detoCPUE1_wide3$Ansträngning == 1]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year == c(2006:2009)] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year == c(2006:2009)]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Kalmar län" &
+                                           detoCPUE1_wide3$year == c(2003,2006)] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Kalmar län" &
+                                   detoCPUE1_wide3$year == c(2003,2006)]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Östergötlands län" &
+                                           detoCPUE1_wide3$year == 2003] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Östergötlands län" &
+                                   detoCPUE1_wide3$year == 2003]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                           detoCPUE1_wide3$year == c(2004:2005, 2007:2008)] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                   detoCPUE1_wide3$year == c(2004:2005, 2007:2008)]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                           detoCPUE1_wide3$year == 2006 & 
+                                           detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                   detoCPUE1_wide3$year == 2006 & 
+                                   detoCPUE1_wide3$Ansträngning == 1]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Stockholms län" &
+                                           detoCPUE1_wide3$year == c(2001:2003)] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Stockholms län" &
+                                   detoCPUE1_wide3$year == c(2001:2003)]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Uppsala län" &
+                                           detoCPUE1_wide3$year == c(2002:2003)] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Uppsala län" &
+                                   detoCPUE1_wide3$year == c(2002:2003)]/FS_abbo
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Västernorrlands län" &
+                                           detoCPUE1_wide3$year ==2010] = 
+  detoCPUE1_wide3$perch_noll_tot[detoCPUE1_wide3$Lokal == "Västernorrlands län" &
+                                   detoCPUE1_wide3$year == 2010]/FS_abbo
 
-ggplot(subset(detoCPUE1, Lokal %in% "Stockholms län" & Artbestämning %in% "stsp"), aes(x=Fångsttyp, y=Antal)) +
+ggplot(subset(detoCPUE1, Lokal %in% "Kalmar län"), aes(x=Fångsttyp, y=Antal, fill=Ansträngning)) +
   geom_bar(stat="identity")+
   facet_wrap(~year)+
   theme_bw(base_size=15)
+check<-subset(detoCPUE1_wide3, Lokal == "Gävleborgs län" & year== c(2006:2009))
 
+# gädda
+detoCPUE1_wide3$pike_noll_tot_corrected = detoCPUE1_wide3$pike_noll_tot # copy variable
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year < 2005] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year < 2005]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year == 2005 & 
+                                           detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year == 2005 & 
+                                   detoCPUE1_wide3$Ansträngning == 1]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year == c(2006:2009)] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year == c(2006:2009)]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Kalmar län" &
+                                           detoCPUE1_wide3$year == c(2003,2006)] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Kalmar län" &
+                                   detoCPUE1_wide3$year == c(2003,2006)]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Östergötlands län" &
+                                           detoCPUE1_wide3$year == 2003] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Östergötlands län" &
+                                   detoCPUE1_wide3$year == 2003]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                           detoCPUE1_wide3$year == c(2004:2005, 2007:2008)] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                   detoCPUE1_wide3$year == c(2004:2005, 2007:2008)]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                           detoCPUE1_wide3$year == 2006 & 
+                                           detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                   detoCPUE1_wide3$year == 2006 & 
+                                   detoCPUE1_wide3$Ansträngning == 1]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Stockholms län" &
+                                           detoCPUE1_wide3$year == c(2001:2003)] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Stockholms län" &
+                                   detoCPUE1_wide3$year == c(2001:2003)]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Uppsala län" &
+                                           detoCPUE1_wide3$year == c(2002:2003)] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Uppsala län" &
+                                   detoCPUE1_wide3$year == c(2002:2003)]/FS_abbo
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Västernorrlands län" &
+                                           detoCPUE1_wide3$year ==2010] = 
+  detoCPUE1_wide3$pike_noll_tot[detoCPUE1_wide3$Lokal == "Västernorrlands län" &
+                                   detoCPUE1_wide3$year == 2010]/FS_abbo
 
+# roach
+detoCPUE1_wide3$roach_noll_tot_corrected = detoCPUE1_wide3$roach_noll_tot # copy variable
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year < 2005] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year < 2005]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year == 2005 & 
+                                           detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year == 2005 & 
+                                   detoCPUE1_wide3$Ansträngning == 1]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                           detoCPUE1_wide3$year == c(2006:2009)] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Gävleborgs län" &
+                                   detoCPUE1_wide3$year == c(2006:2009)]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Kalmar län" &
+                                           detoCPUE1_wide3$year == c(2003,2006)] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Kalmar län" &
+                                   detoCPUE1_wide3$year == c(2003,2006)]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Östergötlands län" &
+                                           detoCPUE1_wide3$year == 2003] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Östergötlands län" &
+                                   detoCPUE1_wide3$year == 2003]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                           detoCPUE1_wide3$year == c(2004:2005, 2007:2008)] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                   detoCPUE1_wide3$year == c(2004:2005, 2007:2008)]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                           detoCPUE1_wide3$year == 2006 & 
+                                           detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Södermanlands län" &
+                                   detoCPUE1_wide3$year == 2006 & 
+                                   detoCPUE1_wide3$Ansträngning == 1]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Stockholms län" &
+                                           detoCPUE1_wide3$year == c(2001:2003)] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Stockholms län" &
+                                   detoCPUE1_wide3$year == c(2001:2003)]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Uppsala län" &
+                                           detoCPUE1_wide3$year == c(2002:2003)] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Uppsala län" &
+                                   detoCPUE1_wide3$year == c(2002:2003)]/FS_abbo
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Lokal == "Västernorrlands län" &
+                                           detoCPUE1_wide3$year ==2010] = 
+  detoCPUE1_wide3$roach_noll_tot[detoCPUE1_wide3$Lokal == "Västernorrlands län" &
+                                   detoCPUE1_wide3$year == 2010]/FS_abbo
 
 # standardize by different gram of dynamite
+unique(detoCPUE1_wide3$Ansträngning)
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 1]*2.75
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 1]*2.75
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 1] = 
+  detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 1]*2.75
 
-# check read me file, email and "detonation_old_script_for_conversion"
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 20] = 
+  detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 20]*0.72
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 20] = 
+  detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 20]*0.72
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 20] = 
+  detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 20]*0.72
 
-# check how many samples for each size classes and location and year
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 8] = 
+  detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 8]*1.1
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 8] = 
+  detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 8]*1.1
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 8] = 
+  detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 8]*1.1
+
+detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 12] = 
+  detoCPUE1_wide3$perch_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 12]*0.91
+detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 12] = 
+  detoCPUE1_wide3$pike_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 12]*0.91
+detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 12] = 
+  detoCPUE1_wide3$roach_noll_tot_corrected[detoCPUE1_wide3$Ansträngning == 12]*0.91
+
+check<-subset(detoCPUE1_wide3, Ansträngning == 1)
+
+# delete columns not needed:
+head(detoCPUE1_wide3)
+detoCPUE1_wide4<-detoCPUE1_wide3 %>%
+  select(c(Fiskedatum,Lokal,Lat_grader,Long_grader,Ansträngning,year,perch_noll_tot_corrected,pike_noll_tot_corrected,roach_noll_tot_corrected)) 
+
+#####
+
+# to ask: "they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp"
+# double check! which Formsakr, the biotest or outside??? because now I have not corrected the values of Forsmark - while I excluded biotest values
+
+### when I recuperate the info on length classes:
+# if I find: 0.1 means 0+, 99.9 means adults.
+# check how many samples for each size classes and location and year to see whether it is sensitive to translate the % per size 
+# classes for all indiv whose length was not measured. Maybe set a minimum number needed.
 

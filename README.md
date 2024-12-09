@@ -79,11 +79,11 @@ Temperature data
 ###
 
 Agnes extracted satellite measures (from Copericus) of daily temperatures for all the gillnet locations from 1982 to 2023. 
+we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
 
 - compare these values to the measured temperatures from the gillnet data to see how well they correspond.
 
-Update: repoeated values in the file, something went wrong with the extraction. Waiting for new data. We'll meet with Agnes and check. 
-Ask also Ingrid Bergman about temp from loggers for all sites and years of the analyses
+Ask also Ingrid Bergman about temp from loggers for all sites and years of the analyses, to compare. Done, waiting for a reply
 
 ###
 Questions about detonation dataset:
@@ -91,26 +91,29 @@ Questions about detonation dataset:
 
 - how to standardize by different gram of dynamite (hence area?)?
 Only Gotland was sampled with 1g. Exclude it or recalculate it based on Göran and Ulf conversiuon factors. Wait for new data that are alsready scaled by the effort (where the most recent data should be added, plus Blekinge data, and Gotland maybe)
-Update: I talked to Göran S. who said to use conversion factors from the table receive from Ulf listed under the sheet "Konvertering ny".About conversion of ansträngning that are not in the tabel, use:
+Update: I talked to Göran S. who said to use conversion factors from the table receive from Ulf listed under the sheet "Konvertering ny".About conversion of ansträngning that are not in the table, use:
 1->0.94
 12 and 13 -> 12.5
 20->25
 200: check. not possible. maybe typos
-Since the methods changed so much over the year and differnt areas, no worries if the conversion factor are not exactly corresponding to the ansträngning, the errors/variation in the dataset are many and larger than this.
+Since the methods changed so much over the year and different areas, no worries if the conversion factor are not exactly corresponding to the ansträngning, the errors/variation in the dataset are many and larger than this.
 
 - bottom and yta: did they register zeros at the bottom? How to treat them, pool or not? Agnes has estimates of fish sinking at the bottom for three spp
 
-they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp
+they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp (double check! which Formsakr, the biotest or outside??? because now I have not corrected the values of Forsmark - while I excluded biotest values)
 If there is not bottom value is zeros but they did not record zeros. this happened for the last 15-20 years, before that however they only counted fish at the surface, and then there was a mixed method period. Göran calculate estimates to make data comparable for floating and sinking, Agnes will send me the info
 Update: see file "detonation_old_scripts_for_conversion"
+
+Update: after selecting obs were both floating and sinking were counted, I recalculated the conversion factors. These match well the ones previously calculated from Agnes with old data for perch and pike, but not for stsp. It seems as they were often not counted, even if perch and pike were counted. What to do: try to understand which obs included stsp counts in both surface and bottom, and use that data to calculate conversion factor (and understand which data need conversion). Agnes will send me etsimates of stsp from her model, for the detonation dataset amnd fot the gillnets dataset, we can compare the two. If they don't match well, I probably can not trust stsp data from detonation dataset. (OBS: Agnes stsp estimates will only cover 2001 onwards!)
+Update: I give up. Even within the same location and year, how/if stsp were counted seem to avry with the date (day). It's hard to know when/where stsp have been counted properly, so I won't use these stsp data.
 
 - exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
 
 - pool bottom and yta estimates? yes - but see above
 
-- Consider only Godkänt yes and störning nej as for the gillnets? yes - wait for cleaned dataset
+- Consider only Godkänt yes and störning nej as for the gillnets? yes 
 
-- How to filter out adults? Under Sortering values are NA, Årsyngel, and Juv/adult. Maybe consider only Årsyngel?
+- How to filter out adults? Under Sortering values are NA, Årsyngel, and Juv/adult. Maybe consider only Årsyngel? I checked for all NA if size were measured, and could pool them into one of the cohort
 
 0.1 means 0+, 99.9 means adults. The other values are actual measurements. We have size limits for spp to decide adults vs juv, but we need to adjust/correct ourselves
   
