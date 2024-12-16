@@ -290,6 +290,28 @@ head(gillnets7)
 gillnets7 %>%
   filter(Art=="_ingen fångst")
 
+# extract only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
+#####
+gillnets7_to_Ingrid<-gillnets7 %>%
+  select(c(År,Fiskedatum ,location,Fångstområde , StationsNr, Lat_grader,Long_grader, Temp_vittjning_vid_redskap)) 
+# remove duplicates
+duplicated(gillnets7_to_Ingrid)
+gillnets7_to_Ingrid2 = gillnets7_to_Ingrid[!duplicated(gillnets7_to_Ingrid),]
+head(gillnets7_to_Ingrid2)
+library(openxlsx)
+write.xlsx(gillnets7_to_Ingrid2, file="C:/Users/sedi0002/Google Drive/FORCE/Output/gillnets7_to_Ingrid2.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+# rename columns 
+gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, year = 'År')
+gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, catch_date = 'Fiskedatum')
+gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, long = 'Long_grader')
+gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, lat = 'Lat_grader')
+
+
+
+#####
+
 ### create a dataset where 1 row corresponds to 1 individual
 # this is for the calculation of length distribution indexes
 # OBS: I have to remove NAs from LANGDGRUPP_ANTAL. But to calculate CPUE (and effort) consider dataset with NAs (gillnets7)
@@ -313,7 +335,8 @@ library(dplyr)
 gillnets_length_indexes<- gillnets_indiv %>%
   filter(Art=="Abborre") %>%
   group_by(location, year) %>%
-  summarise(mean_length=mean(length_group ,na.rm=TRUE),
+  summarise(field_temp= mean(Temp_vittjning_vid_redskap,na.rm=TRUE),
+            mean_length=mean(length_group ,na.rm=TRUE),
             median_length=median(length_group ,na.rm=TRUE),
             L90=quantile(length_group ,0.90,na.rm=TRUE),
             sk1=skewness(length_group ,remove_na = TRUE, type = "1", iterations = 100),
@@ -412,6 +435,7 @@ gillnets_totCPUE_wide %>%
 gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
   select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,totCPUE_Mört,totCPUE_Gädda,totCPUE_Storspigg,
            totCPUE_Rötsimpa, totCPUE_Bergsimpa)) 
+
 
 # merge gillnets_length_indexes table with CPUE of spp:
 gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 

@@ -322,7 +322,7 @@ sub6 %>%
   filter(Lokal  == "Södermanlands län" & year == 2007 ) 
 # sub12 is the subset where both surf and bott were counted
 
-# make sure all fish abundances are numeric - not working, 
+# make sure all fish abundances are numeric - not working
 head(sub12)
 for( i in which(names(sub12) == "pike_juvad_bott"):which(names(sub12) == "stsp_all_tot")){
   sub12[,i] = as.numeric(sub12[,i])} 
@@ -545,6 +545,16 @@ head(detoCPUE1_wide3)
 detoCPUE1_wide4<-detoCPUE1_wide3 %>%
   select(c(Fiskedatum,Lokal,Lat_grader,Long_grader,Ansträngning,year,perch_noll_tot_corrected,pike_noll_tot_corrected,roach_noll_tot_corrected)) 
 
+# and exclude year before 2001:
+detoCPUE1_wide4<-detoCPUE1_wide4 %>%
+  filter(year >2000) 
+
+# export for Ingrid to match with temp log data:
+library(openxlsx)
+write.xlsx(detoCPUE1_wide4, file="C:/Users/sedi0002/Google Drive/FORCE/Output/detoCPUE1_wide4.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+
 #####
 
 # to ask: "they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp"
@@ -555,3 +565,4 @@ detoCPUE1_wide4<-detoCPUE1_wide3 %>%
 # check how many samples for each size classes and location and year to see whether it is sensitive to translate the % per size 
 # classes for all indiv whose length was not measured. Maybe set a minimum number needed.
 
+# select only august samples??

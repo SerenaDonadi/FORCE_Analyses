@@ -204,6 +204,42 @@ summary(length_age8)
 length_age9<-length_age8 %>% 
   filter(sex == "Hona")
 
+# take only samples >2000
+table(length_age9$year)
+length_age10<-length_age9 %>% 
+  filter(year > 2000)
+
+# set the format for date:
+length_age10$catch_date<-as.Date(length_age10$catch_date, "%d/%m/%y")
+
+
+# extract only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
+#####
+length_age10_to_Ingrid<-length_age10 %>%
+  select(c(year,catch_date ,location,long, lat,sub.location)) 
+# remove duplicates
+duplicated(length_age10_to_Ingrid)
+length_age10_to_Ingrid2 = length_age10_to_Ingrid[!duplicated(length_age10_to_Ingrid),]
+head(length_age10_to_Ingrid2)
+library(openxlsx)
+write.xlsx(length_age10_to_Ingrid2, file="C:/Users/sedi0002/Google Drive/FORCE/Output/length_age10_to_Ingrid2.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+
+# check overlap with gillnet:
+overlap_check<-inner_join(length_age10_to_Ingrid2, gillnets7_to_Ingrid2, by = c("year","catch_date", "location", "lat", "long"))
+
+head(length_age10_to_Ingrid2)
+head(gillnets7_to_Ingrid2)
+# boh...is null...
+
+
+#####
+# merge now as soon as I get the data from Ingrid, before next steps
+
+# questions: I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it?
+
+
 # check differences in F vs M:
 #####
 ggplot(length_age5, aes(x = age , y = total_length)) +
@@ -218,10 +254,11 @@ sdpl<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),sd)
 l<-tapply(length_age5$total_length,list(length_age5$sex,length_age5$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
+
 #####
 # merge with gillnets data with temp and CPUE of spp
 # merge and keep all records in left dataset, and only matching record in right dataset
-length_age10<-left_join(length_age9, gillnets_pool, by = c("year","location")) 
+length_age11<-left_join(length_age10, gillnets_pool, by = c("year","location")) 
 head(length_age10)
 
 # remove unecessary columns:

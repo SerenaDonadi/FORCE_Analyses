@@ -79,9 +79,10 @@ Temperature data
 ###
 
 Agnes extracted satellite measures (from Copericus) of daily temperatures for all the gillnet locations from 1982 to 2023. 
-we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
+we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time.
+OBS: when there is ice the temp remain constant
 
-- compare these values to the measured temperatures from the gillnet data to see how well they correspond.
+- compare these values to the measured temperatures from the gillnet data to see how well they correspond. Not well. explore
 
 Ask also Ingrid Bergman about temp from loggers for all sites and years of the analyses, to compare. Done, waiting for a reply
 
@@ -116,4 +117,9 @@ Update: I give up. Even within the same location and year, how/if stsp were coun
 - How to filter out adults? Under Sortering values are NA, Årsyngel, and Juv/adult. Maybe consider only Årsyngel? I checked for all NA if size were measured, and could pool them into one of the cohort
 
 0.1 means 0+, 99.9 means adults. The other values are actual measurements. We have size limits for spp to decide adults vs juv, but we need to adjust/correct ourselves
+
+##### 
+Length-age dataset
+#####
+I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it?
   
