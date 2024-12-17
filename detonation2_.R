@@ -46,7 +46,6 @@ summary(deto2$year)
 hist(deto2$year)
 
 #### cleaning ####
-# check read me file, email and "detonation_old_script_for_conversion"
 
 # keep only approved obs
 table(deto2$GODKAND)
@@ -93,7 +92,7 @@ unique(deto8$Antal) # non ci sono NA
 
 # try: split up the dataset to calculate tot corrected CPUE, while keeping separate the info on size classes:
 
-#####: calculate CPUE by correcting for missing bottom data and different grams of dynamite
+##### calculate CPUE by correcting for missing bottom data and different grams of dynamite #####
 # delete info on size classes
 detoCPUE<-deto8 %>%
   select(-c(LANGDGRUPP_LANGD ,LANGDGRUPP_ANTAL ,GODKAND,STORNINGAR, Ansträngning_enhet,Störning)) 
@@ -555,14 +554,146 @@ write.xlsx(detoCPUE1_wide4, file="C:/Users/sedi0002/Google Drive/FORCE/Output/de
            sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
 
-#####
+##### recuperate the info on length classes ####
 
-# to ask: "they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp"
+# if I find: 0.1 means 0+, 99.9 means adults. None
+# check and append info on how many samples for each size classes and location and site and year.
+# Maybe set a minimum number needed for "accurate" length distribution indexes, or use it to weight the response (the indexes) in the model
+
+# PS: to ask: "they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp"
 # double check! which Formsakr, the biotest or outside??? because now I have not corrected the values of Forsmark - while I excluded biotest values
 
-### when I recuperate the info on length classes:
-# if I find: 0.1 means 0+, 99.9 means adults.
-# check how many samples for each size classes and location and year to see whether it is sensitive to translate the % per size 
-# classes for all indiv whose length was not measured. Maybe set a minimum number needed.
+summary(deto8)
+# deto8 contains all size classes, also NA, and all cohort, and all years.
 
-# select only august samples??
+# remove missing obs for length:
+deto9<-deto8[!is.na(deto8$LANGDGRUPP_LANGD),]
+# remove adults:
+deto10 = subset(deto9, Sortering == "Årsyngel")
+
+table(deto10$LANGDGRUPP_LANGD,deto10$Artbestämning)
+
+# exclude year before 2001: no need, there is none
+# make column with only month
+head(deto10$Fiskedatum)
+deto10$month<-as.numeric(LEFT(RIGHT(deto10$Fiskedatum,7),2))
+summary(deto10$month)
+hist(deto10$month)
+
+# count how many fish were measured per site (lat*long) and year and month:
+deto11<-deto10 %>% 
+  group_by(year, month, Lokal, Lat_grader,Long_grader, Artbestämning) %>%
+  mutate(n_length_site=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE))
+# n_length_site often equal to Antal, especially when few fish were found. But when many were caught, only a subsample was measured
+table(deto11$n_length_site) 
+# often values <10, maybe better to pool sites
+
+# count how many fish were measured per location (pooling sites) and year and month:
+deto12<-deto11 %>% 
+  group_by(year, month, Lokal, Artbestämning) %>%
+  mutate(n_length_lokal=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE))
+table(deto12$n_length_lokal) 
+plot(deto12$n_length_lokal,deto12$n_length_site)
+
+### create a dataset where 1 row corresponds to 1 individual
+# this is for the calculation of length distribution indexes
+
+# repeat rows as many times as LANGDGRUPP_ANTAL:
+deto12_indiv<- deto12 %>%
+  uncount(LANGDGRUPP_ANTAL)
+
+head(deto12_indiv)
+unique(deto12_indiv$Lokal)
+unique(deto9$Lokal) # most locations lost when I deleted NAs in length measurements
+
+library(datawizard)
+# before running group_by I may need to detach package plyr, If I used it:
+detach("package:plyr", unload=TRUE)
+unloadNamespace("plyr")
+detach("package:ExcelFunctionsR", unload=TRUE)
+library(dplyr)
+
+# calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year and month (I am pooling sites now):
+deto12_indexes_lokal<- deto12 %>%
+  filter(Artbestämning =="Abborre") %>%
+  group_by(Lokal, year, month) %>%
+  summarise(n_length_lokal= mean(n_length_lokal,na.rm=TRUE),
+            mean_length=mean(LANGDGRUPP_LANGD ,na.rm=TRUE),
+            median_length=median(LANGDGRUPP_LANGD ,na.rm=TRUE),
+            L90=quantile(LANGDGRUPP_LANGD ,0.90,na.rm=TRUE),
+            sk1=skewness(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "1", iterations = 100),
+            sk2=skewness(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "2", iterations = 100),
+            ku1=kurtosis(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "1", iterations = 100),
+            ku2=skewness(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "2", iterations = 100)
+  ) 
+# only 17 replicates. 14 if I omit obs (location*year * month) with less than 10 fish measured
+
+# calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each site and year and month (NOT pooling sites):
+deto12_indexes_site<- deto12 %>%
+  filter(Artbestämning =="Abborre") %>%
+  group_by(Lokal, year, month, Lat_grader, Long_grader) %>%
+  summarise(n_length_site= mean(n_length_site,na.rm=TRUE),
+            mean_length=mean(LANGDGRUPP_LANGD ,na.rm=TRUE),
+            median_length=median(LANGDGRUPP_LANGD ,na.rm=TRUE),
+            L90=quantile(LANGDGRUPP_LANGD ,0.90,na.rm=TRUE),
+            sk1=skewness(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "1", iterations = 100),
+            sk2=skewness(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "2", iterations = 100),
+            ku1=kurtosis(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "1", iterations = 100),
+            ku2=skewness(LANGDGRUPP_LANGD ,remove_na = TRUE, type = "2", iterations = 100)
+  ) 
+# 298 replicates when not pooling sites within location. But many have less than 10 fish measured
+
+# check if I can skip SE calculation
+#s1<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1", iterations = 100)
+#s11<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1")
+
+# From R help(skeweness) in R: there are three different methods for estimating skewness, as discussed in Joanes and Gill (1988):
+# Type "1" is the "classical" method, which is g1 = (sum((x - mean(x))^3) / n) / (sum((x - mean(x))^2) / n)^1.5
+# Type "2" first calculates the type-1 skewness, then adjusts the result: G1 = g1 * sqrt(n * (n - 1)) / (n - 2). This is what SAS and SPSS usually return.
+# Type "3" first calculates the type-1 skewness, then adjusts the result: b1 = g1 * ((1 - 1 / n))^1.5. This is what Minitab usually returns.apparently there are severalk ways to calculate skeweness based on the type of distribution of my data. check:
+# same for kurtosis. I calculate type 1 and 2. They are very similar for skewness, but larger differences for kurtosis
+
+##### merge length datasets with CPUE datasets
+
+# I need to group CPUE dataset by year and month (poolind Fiskedatum), and one version with NOT pooled sites, and one with pooled:
+# make column with only month
+head(detoCPUE1_wide4$Fiskedatum)
+detoCPUE1_wide4$month<-as.numeric(LEFT(RIGHT(detoCPUE1_wide4$Fiskedatum,7),2))
+summary(detoCPUE1_wide4$month)
+hist(detoCPUE1_wide4$month)
+
+head(detoCPUE1_wide4)
+
+detoCPUE1_wide4_site<- detoCPUE1_wide4 %>%
+  group_by(Lokal, year, month, Lat_grader, Long_grader) %>%
+  summarise(perch_noll_m2= mean(perch_noll_tot_corrected,na.rm=TRUE),
+            pike_noll_m2= mean(pike_noll_tot_corrected,na.rm=TRUE),
+            roach_noll_m2= mean(roach_noll_tot_corrected,na.rm=TRUE))
+
+detoCPUE1_wide4_lokal<- detoCPUE1_wide4 %>%
+  group_by(Lokal, year, month) %>%
+  summarise(perch_noll_m2= mean(perch_noll_tot_corrected,na.rm=TRUE),
+            pike_noll_m2= mean(pike_noll_tot_corrected,na.rm=TRUE),
+            roach_noll_m2= mean(roach_noll_tot_corrected,na.rm=TRUE))
+
+
+my_site<-left_join(deto12_indexes_site, detoCPUE1_wide4_site, by = c("Lokal","year","month","Lat_grader","Long_grader")) # 
+my_lokal<-left_join(deto12_indexes_lokal, detoCPUE1_wide4_lokal, by = c("Lokal","year","month")) # 
+
+# ready. waiting for stsp estimates and temp loggers data
+
+# select only august samples?? 
+
+
+
+
+
+
+
+
+
+
+
+
+
+

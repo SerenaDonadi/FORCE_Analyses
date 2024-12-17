@@ -227,7 +227,7 @@ write.xlsx(length_age10_to_Ingrid2, file="C:/Users/sedi0002/Google Drive/FORCE/O
 
 
 # check overlap with gillnet:
-overlap_check<-inner_join(length_age10_to_Ingrid2, gillnets7_to_Ingrid2, by = c("year","catch_date", "location", "lat", "long"))
+overlap_check<-inner_join(length_age10_to_Ingrid2, gillnets7_to_Ingrid2, by = c("year", "location"), relationship = "many-to-many")
 
 head(length_age10_to_Ingrid2)
 head(gillnets7_to_Ingrid2)
