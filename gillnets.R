@@ -39,28 +39,23 @@ guess_encoding("gillnet-data-unfiltered-NEW.csv", n_max = 1000)
 gillnets <- read.csv2("gillnet-data-unfiltered-NEW.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
 head(gillnets)
 
-# make column with only year
-head(gillnets$Fiskedatum)
-gillnets$year<-as.numeric(RIGHT(gillnets$Fiskedatum,4))
-summary(gillnets$year)
-hist(gillnets$year)
-
 # make column with only month
+head(gillnets$Fiskedatum)
 gillnets$month<-as.numeric(LEFT(RIGHT(gillnets$Fiskedatum,7),2))
 summary(gillnets$month)
 hist(gillnets$month)
 
 gillnets$date<-as.Date(gillnets$Fiskedatum, format ="%d/%m/%Y")
-unique(gillnets$date)
 
 # rename columns before merging
 gillnets <- rename(gillnets, location = 'Lokal')
+gillnets <- rename(gillnets, year = 'År')
 
 ### 2) temp
 
-# avg year temp
+# avg year temp from satellite
 temp_gillnet_year <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".") # year avg temp
-# avg day temp
+# avg day temp from satellite
 temp_gillnet_day <- read.csv2("temperature-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
 
 # make column with only year
@@ -76,8 +71,6 @@ hist(temp_gillnet_day$month)
 
 # set the format for date:
 temp_gillnet_day$date<-as.Date(temp_gillnet_day$date)
-unique(gillnets$date)
-
 
 ## OBS in same cases temp doesn´t vary between January and April. It could depend on that there is ice, or a problem with data extraction
 # this is mainly found in the 80s. but also later, see Råneå example. check what parameters to extract and which years we consider
@@ -97,6 +90,13 @@ ggplot(subset(temp_gillnet_day, location %in% c("Råneå")), aes(x = date , y = 
   labs(title="daily temp ")+
   theme_classic(base_size=13)
 
+# should I merge based on location or Fångstområde? location
+sort(unique(temp_gillnet_day$location)) #62
+sort(unique(temp_gillnet_year$location)) #62
+sort(unique(gillnets$Fångstområde)) #111
+sort(unique(gillnets$location))  # 60
+
+
 # merge and keep all records in left dataset, and only matching record in right dataset
 gillnets1<-left_join(gillnets, temp_gillnet_year, by = c("year","location")) # 
 
@@ -105,23 +105,26 @@ gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
 head(gillnets1)
 
 # merge and keep all records in left dataset, and only matching record in right dataset
-gillnets1a<-left_join(gillnets1, temp_gillnet_day, by = c("date","location")) # 
+gillnets1a<-left_join(gillnets1, temp_gillnet_day, by = c("date","month","year","location")) # 
 
 # rename temp to be more specific: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
 gillnets1a <- rename(gillnets1a, day_temp = 'temp')
-head(gillnets1)
+head(gillnets1a)
 
-#####
+##### check correlations between temp values ####
 # check how well the temp measured in the field correlate con satellite temp: do it in a separate section, check there is some weird stuff
-ggplot(subset(subset(temp_day_gillnets1, Temp_vittjning_vid_redskap != 999) , location %in% c("Asköfjärden","Askrikefjärden","Finbo, Åland",
-                                                #"Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
+ggplot(subset(subset(gillnets1a, Temp_vittjning_vid_redskap != 999) , location %in% c("Asköfjärden","Askrikefjärden","Finbo", 
+                                                #"Åland","Forsmark","Gaviksfjärden","Holmön","Kinnbäcksfjärden","Kumlinge, Åland","Kvädöfjärden",
                                                 #"Lagnö","Långvindsfjärden","Norrbyn","Råneå","Simpevarp",
                                                 "Torhamn, Karlskrona Ö skärgård")),
-                 aes(x = Temp_vittjning_vid_redskap , y = temp)) +
+                 aes(x = Temp_vittjning_vid_redskap , y = day_temp, fill= month)) +
   geom_point()+
   facet_wrap(~location)+
+  geom_smooth(method = "lm")+
   labs(title="")+
   theme_classic(base_size=13)
+
+# do it later, after cleaning and grouping the dataset
 
 #####
 # Subsets
