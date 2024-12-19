@@ -311,8 +311,6 @@ gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, catch_date = 'Fiskedatum')
 gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, long = 'Long_grader')
 gillnets7_to_Ingrid2 <- rename(gillnets7_to_Ingrid2, lat = 'Lat_grader')
 
-
-
 #####
 
 ### create a dataset where 1 row corresponds to 1 individual

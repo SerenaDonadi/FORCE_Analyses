@@ -118,8 +118,10 @@ Update: I give up. Even within the same location and year, how/if stsp were coun
 
 0.1 means 0+, 99.9 means adults. The other values are actual measurements. We have size limits for spp to decide adults vs juv, but we need to adjust/correct ourselves
 
+UPDATE: Agnes sent me a new version of the dataset, including comments and sub-location. Rerun all the scripts (I started and got to the point where I am checking the comments) and once I have a clean dataset, give an updated list of locations, sublocations and years to Ingrid.
+
 ##### 
 Length-age dataset
 #####
-I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it?
+I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
   
