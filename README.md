@@ -124,4 +124,4 @@ UPDATE: Agnes sent me a new version of the dataset, including comments and sub-l
 Length-age dataset
 #####
 I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
-  
+
