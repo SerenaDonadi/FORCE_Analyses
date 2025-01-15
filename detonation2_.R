@@ -12,7 +12,7 @@ library(tidyr)
 library(gplots)
 library(lattice)
 library(nlme)
-# library(MASS) # potenital name clash problem for function select in dplyr
+# library(MASS) # potential name clash problem for function select in dplyr
 library(piecewiseSEM)
 library(lme4)
 library(car)
@@ -215,7 +215,7 @@ detoCPUE1_wide3$stsp_all_tot<-detoCPUE1_wide3$stsp_all_bott+detoCPUE1_wide3$stsp
 # check if I have repeated data in 2019: all good
 check = detoCPUE1_wide3[detoCPUE1_wide3$year == 2019, ]
 
-# following a note from Agnes file: check if stsp have been counted in the bottom in Kalmar: not before 2007, that is 2003 and 2006. 
+# following a note from Agnes file: check if stsp have been counted at the bottom in Kalmar: not before 2007, that is 2003 and 2006. 
 # Also, weird that in 2005 no stsp was observed either at the bottom or at the surface. To be on the safe side I would also put NA
 # for stsp in 2005 at the bottom but also at the surface - check with Agnes
 detoCPUE1 %>%
