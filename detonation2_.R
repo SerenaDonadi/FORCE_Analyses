@@ -74,6 +74,7 @@ deto7<-deto6 %>%
 
 # more messy than I thought. what's antal vs LANGDGRUPP_ANTAL? doesn't seem to match what previously said, at least when it comes to
 # the obs "provfiskad". I will remove it until I know. 
+# OBS: get back the provfiskad! See read me file. TO DO
 
 table(deto7$Fångsttyp)
 deto8 = subset(deto7, !(Fångsttyp == "Provfiskad"))
@@ -237,7 +238,7 @@ check<-subset(detoCPUE1_wide3, Lokal %in% "Kalmar län" & year %in% c(2003:2006)
 # Kalmar län: corrected
 # Västerbottens län: both surf and bott. But in 2011, more at the surf than bottom. In fact, when splitting by date, in some days stsp were not counted,
 # but it is ansträngning 10, so maybe they did? for all occasiond in 2011 more stsp at the surf than bottom, boh..
-# Stockholms län: stsp not counted at the bott in 2001, 2003, but I did exclude it in sub 12. BUT in 2016-2018 no stsp???
+# Stockholms län: stsp not counted at the bott in 2001, 2003, but I did exclude it in subset sub12. BUT in 2016-2018 no stsp???
 # Gävleborgs län: no stsp at the bott before 2010 except 2005 - check that all these are excluded from sub12
 # Uppsala län ... I give up. It's hard to know when/where stsp have been counted properly, so I won't use these stsp data
 unique(detoCPUE1$Lokal)
@@ -573,6 +574,8 @@ deto10 = subset(deto9, Sortering == "Årsyngel")
 
 table(deto10$LANGDGRUPP_LANGD,deto10$Artbestämning)
 
+table(deto8$year)
+
 # exclude year before 2001: no need, there is none
 # make column with only month
 head(deto10$Fiskedatum)
@@ -680,6 +683,9 @@ detoCPUE1_wide4_lokal<- detoCPUE1_wide4 %>%
 my_site<-left_join(deto12_indexes_site, detoCPUE1_wide4_site, by = c("Lokal","year","month","Lat_grader","Long_grader")) # 
 my_lokal<-left_join(deto12_indexes_lokal, detoCPUE1_wide4_lokal, by = c("Lokal","year","month")) # 
 
+sum(my_site$n_length_site)
+sum(my_lokal$n_length_lokal)
+hist(my_site$n_length_site)
 # ready. waiting for stsp estimates and temp loggers data
 
 # select only august samples?? 

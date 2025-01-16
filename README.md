@@ -104,8 +104,13 @@ Since the methods changed so much over the year and different areas, no worries 
 they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp (double check! which Formsakr, the biotest or outside??? because now I have not corrected the values of Forsmark - while I excluded biotest values)
 If there is not bottom value is zeros but they did not record zeros. this happened for the last 15-20 years, before that however they only counted fish at the surface, and then there was a mixed method period. Göran calculate estimates to make data comparable for floating and sinking, Agnes will send me the info -> see file "detonation_old_scripts_for_conversion"
 
+OBS: "provfiskad" is listed under the wrong variable, because the changed on the way where/how they input the data in the protocol. Agnes will send me a new version of the dataset with this extra column, so that I can include the provfiskad obs as well and figure out id fish were counted at the bottom or yta
+
 Update: after selecting obs were both floating and sinking were counted, I recalculated the conversion factors. These match well the ones previously calculated from Agnes with old data for perch and pike, but not for stsp. It seems as they were often not counted, even if perch and pike were counted. What to do: try to understand which obs included stsp counts in both surface and bottom, and use that data to calculate conversion factor (and understand which data need conversion). Agnes will send me etsimates of stsp from her model, for the detonation dataset amnd fot the gillnets dataset, we can compare the two. If they don't match well, I probably can not trust stsp data from detonation dataset. (OBS: Agnes stsp estimates will only cover 2001 onwards!)
 Update: I give up. Even within the same location and year, how/if stsp were counted seem to avry with the date (day). It's hard to know when/where stsp have been counted properly, so I won't use these stsp data.
+
+Update: Ulf says to trust the data on stsp in Stockholm län, but maybe not the ones in Västerbotten län. Sometimes there were no stsp bc of very enclosed bays
+
 
 - exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
 
@@ -117,10 +122,16 @@ Update: I give up. Even within the same location and year, how/if stsp were coun
 
 0.1 means 0+, 99.9 means adults. The other values are actual measurements. We have size limits for spp to decide adults vs juv, but we need to adjust/correct ourselves
 
-UPDATE: Agnes sent me a new version of the dataset, including comments and sub-location. Rerun all the scripts (I started and got to the point where I am checking the comments) and once I have a clean dataset, give an updated list of locations, sublocations and years to Ingrid.
+UPDATE: Agnes sent me a new version of the dataset, including comments and sub-location. Rerun all the scripts (I started and got to the point where I am checking the comments) and once I have a clean dataset, give an updated list of locations, sublocations and years to Ingrid (to whom I told now to wait for the detonation dataset)
+
+- about the final datasets with lengths: use the site level replication (instead of lokal). Now it is 298 obs, it will increase after I get the provfiskad data), and use the number of fish measured as weight for the response variable
+
+- Ulf has some extra data about perch length before 2014 (while in KUL length values are availablöe only from 2104). I should get this data from him and merge them, but check for duplicates
+
+
 
 ##### 
 Length-age dataset
 #####
 I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
-
+No, keep them, they are outside the basin

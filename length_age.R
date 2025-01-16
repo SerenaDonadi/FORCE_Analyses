@@ -212,6 +212,13 @@ length_age10<-length_age9 %>%
 # set the format for date:
 length_age10$catch_date<-as.Date(length_age10$catch_date, "%d/%m/%y")
 
+head(length_age10)
+table(length_age10$location,length_age10$sub.location)
+Forsmark<-length_age10 %>%
+  filter(location =="Forsmark")
+table(Forsmark$sub.location)
+Forsmark %>%
+  filter(sub.location =="Väst Biotestsjön")
 
 # extract only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
 #####
