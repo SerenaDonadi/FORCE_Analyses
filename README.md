@@ -1,8 +1,17 @@
 R scripts of analyses for FORCE project - Serena Donadi
 
 ###
-Questions about gillnets dataset:
+Gillnets dataset:
 ###
+
+To do:
+- compare satellite temp values extracted from Agnes to the measured temperatures from the gillnet data to see how well they correspond. Also to temp log values. Use mayne Max approach to calculate more accurate estimates of temp. Matilda (Ultuna) working on a project with Anna G and Magnus H, might use Max method, check with her
+
+- Check climwin R package to find the best temp data as covariate
+
+- Include also Löja (bleak) as a potential covariate (food for perch)
+
+Questions:
 
 - how to calculate CPUE? in a previous project where I used data from KUL, Peter told me that I should divide the abundance per station (and spp) by the product of ansträngning (number of nets) and fisketid (number of days). Also, about fisketid: dygn and natt are not much different, as they don't report the exact start and end time, so no need to keep them separated. However, I don't have fisketid in the current dataset. We thought to start by considering only Ansträngning = 1, but if this is the number of nets rather than the effort, we still need the number of days (or nights, no difference). Check also what to do with Ansträngning_enhet = ..*timmarna.
 
@@ -58,9 +67,7 @@ What? should I exclude or include the other values?
 Agnes will add a new variable.
 
 
-###
 Questions to Peter:
-###
 
 1) to calculate CPUE of species: if I recall correctly, when we discussed the data for the anadromous trout study (analyses still up and running), you told me that to obtain CPUE I had to divide the abundance of each species per station by the product of ansträngning (number of nets) and fisketid (number of days). However, in the dataset that I received, the value of ansträngning is often the same as the value of fisketid, so we assumed that fisketid was contained in ansträngning (often the value is 1, i.e. one day or night and 1 net). An exception is found for some values of Ansträngning that are equal to 35 or 10, where fisketid is 1 and Ansträngning_enhet is nätt*natt. How should I interpret these? 
 
@@ -84,7 +91,12 @@ OBS: when there is ice the temp remain constant
 
 - compare these values to the measured temperatures from the gillnet data to see how well they correspond. Not well. explore
 
-Ask also Ingrid Bergman about temp from loggers for all sites and years of the analyses, to compare. Done, waiting for a reply
+- Ask also Ingrid Bergman about temp from loggers for all sites and years of the analyses, to compare. Done, waiting for a reply
+
+- compare satellite temp values extracted from Agnes to the measured temperatures from the gillnet data to see how well they correspond. Also to temp log values. Use mayne Max approach to calculate more accurate estimates of temp. Matilda (Ultuna) working on a project with Anna G and Magnus H, might use Max method, check with her
+
+- Check climwin R package to find the best temp data as covariate
+
 
 ###
 Questions about detonation dataset:
@@ -104,12 +116,13 @@ Since the methods changed so much over the year and different areas, no worries 
 they should always (when grams were 10gr) look at both bottom and surface except for Forsmark and Simpevarp (double check! which Formsakr, the biotest or outside??? because now I have not corrected the values of Forsmark - while I excluded biotest values)
 If there is not bottom value is zeros but they did not record zeros. this happened for the last 15-20 years, before that however they only counted fish at the surface, and then there was a mixed method period. Göran calculate estimates to make data comparable for floating and sinking, Agnes will send me the info -> see file "detonation_old_scripts_for_conversion"
 
-OBS: "provfiskad" is listed under the wrong variable, because the changed on the way where/how they input the data in the protocol. Agnes will send me a new version of the dataset with this extra column, so that I can include the provfiskad obs as well and figure out id fish were counted at the bottom or yta
-
 Update: after selecting obs were both floating and sinking were counted, I recalculated the conversion factors. These match well the ones previously calculated from Agnes with old data for perch and pike, but not for stsp. It seems as they were often not counted, even if perch and pike were counted. What to do: try to understand which obs included stsp counts in both surface and bottom, and use that data to calculate conversion factor (and understand which data need conversion). Agnes will send me etsimates of stsp from her model, for the detonation dataset amnd fot the gillnets dataset, we can compare the two. If they don't match well, I probably can not trust stsp data from detonation dataset. (OBS: Agnes stsp estimates will only cover 2001 onwards!)
 Update: I give up. Even within the same location and year, how/if stsp were counted seem to avry with the date (day). It's hard to know when/where stsp have been counted properly, so I won't use these stsp data.
 
-Update: Ulf says to trust the data on stsp in Stockholm län, but maybe not the ones in Västerbotten län. Sometimes there were no stsp bc of very enclosed bays
+Update: About stsp unreliable count at the bottom and surface. Cross-check with the older file from Agnes where there is a column saying if they were counted at the surface or bottom or both, and see if you can make sense of the high variability. >Ulf says that is some cases (Västrebottom län, where the way of recording changed by day) the field guy was not reliable, but in other cases, such as Stockholm län in 2016-2018, the zeros are ok, as they sampled in very enclosed bays. It may be sensible however to use Agnes correction factor for stsp, but I still need to know where to apply it 
+
+OBS: "provfiskad" is listed under the wrong variable, because the changed on the way where/how they input the data in the protocol. Agnes will send me a new version of the dataset with this extra column, so that I can include the provfiskad obs as well and figure out id fish were counted at the bottom or yta. Also, in the new file, which is now in Teams (16/01/2025, named the same as the old one), there is one or more column indicating spatial units, potentially useful
+
 
 
 - exclude Simpevarp and Biotest Forsmark (but not "Forsmark"), as here water is almost 10 degrees warmer
@@ -133,5 +146,8 @@ UPDATE: Agnes sent me a new version of the dataset, including comments and sub-l
 ##### 
 Length-age dataset
 #####
-I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
+- I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
 No, keep them, they are outside the basin
+
+
+

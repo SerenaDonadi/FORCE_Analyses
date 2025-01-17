@@ -2,6 +2,7 @@ rm(list=ls())
 setwd("G:/My Drive/FORCE/Data")
 setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
+###OBS check ppt and read me file for extra note, added on january 16 after möte with U&A
 
 # Libraries ---------------------------------------------------------------
 
