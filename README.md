@@ -5,7 +5,7 @@ Gillnets dataset:
 ###
 
 To do:
-- compare satellite temp values extracted from Agnes to the measured temperatures from the gillnet data to see how well they correspond. Also to temp log values. Use mayne Max approach to calculate more accurate estimates of temp. Matilda (Ultuna) working on a project with Anna G and Magnus H, might use Max method, check with her
+- compare satellite temp values extracted from Agnes to the measured temperatures from the gillnet data to see how well they correspond. Also to temp log values. Use mabne Max approach to calculate more accurate estimates of temp. Matilda (Ultuna) working on a project with Anna G and Magnus H, might use Max method, check with her
 
 - Check climwin R package to find the best temp data as covariate
 

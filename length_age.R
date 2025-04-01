@@ -145,7 +145,7 @@ table(length_age6$aging_method) # 5 levels
 length_age7 = subset(length_age6, !(aging_method == ""))
 
 #####
-# check frozen samples: revise after Noora answers
+# check frozen samples: revise after Noora answers - skip
 #####
 # some is unclear whether freezing occurred after length measures
 length_age3 %>% 
@@ -244,8 +244,6 @@ head(gillnets7_to_Ingrid2)
 #####
 # merge now as soon as I get the data from Ingrid, before next steps
 
-# questions: I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it?
-
 
 # check differences in F vs M:
 #####
@@ -266,7 +264,7 @@ barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.
 # merge with gillnets data with temp and CPUE of spp
 # merge and keep all records in left dataset, and only matching record in right dataset
 length_age11<-left_join(length_age10, gillnets_pool, by = c("year","location")) 
-head(length_age10)
+head(length_age11)
 
 # remove unecessary columns:
 #length_age7<-length_age7 %>%
@@ -433,4 +431,4 @@ l<-tapply(length_age10_age2to4$total_length,list(length_age10_age2to4$lat,length
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 
-
+#####
