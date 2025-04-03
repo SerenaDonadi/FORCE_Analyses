@@ -262,6 +262,20 @@ barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.
 
 #####
 # merge with gillnets data with temp and CPUE of spp
+# are there any locations in the length dataset that are not in the gillnets dataset? Mönsterås - 1 location will have no CPUE and population data 
+#####
+unique(length_age10$location) # 28
+unique(gillnets_pool$location) # 51
+length_age10 %>%
+  filter(!(location %in% gillnets_pool$location)) %>%
+  select(location) %>%
+  unique()
+# is there a location called Mönsterås in the original dataset? or maybe under Fångstområde? NO
+sort(unique(gillnets1a$Fångstområde ))
+sort(unique(gillnets1a$location))
+gillnets1a %>%
+  filter(location %in% c("Mönsterås")) 
+#####
 # merge and keep all records in left dataset, and only matching record in right dataset
 length_age11<-left_join(length_age10, gillnets_pool, by = c("year","location")) 
 head(length_age11)
@@ -290,7 +304,7 @@ unique(sort(length_age10$year))
 # exploration plots
 #####
 # length at age vs temp:
-ggplot(subset(length_age7, age %in% "2"), aes(x = avg_year_temp , y = total_length)) +
+ggplot(subset(length_age11, age %in% "2"), aes(x = avg_year_temp , y = total_length)) +
   geom_point()+
   #facet_wrap(~year)+
   geom_smooth(method = "lm")+ 
@@ -432,3 +446,35 @@ ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 
 #####
+# exploring differences in age distribution between year and sites - WAIt
+#####
+# the aging was done only on some individuals for each length category, meaning that the age is likely biased by the length 
+# categories they found and how many samples they used for age determination for each length category, which may not reflect 
+# the actual age distribution of the populations. 
+
+# years and sites pooled
+ggplot(length_age11, aes(x=age)) +
+  geom_bar()
+
+# years pooled
+ggplot(length_age11, aes(x=age)) +
+  geom_bar()+
+  facet_wrap(~location)+
+  labs(title="")+
+  theme_classic(base_size=13)
+
+# sites pooled
+ggplot(length_age11, aes(x=age)) +
+  geom_bar()+
+  facet_wrap(~year)+
+  labs(title="")+
+  theme_classic(base_size=13)
+
+#
+avg<-tapply(length_age11$age,list(length_age11$year,length_age11$location),mean)
+sdpl<-tapply(length_age11$age,list(length_age11$year,length_age11$location),sd)
+l<-tapply(length_age11$age,list(length_age11$year,length_age11$location),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "") 
+
+

@@ -96,6 +96,11 @@ sort(unique(temp_gillnet_year$location)) #62
 sort(unique(gillnets$Fångstområde)) #111
 sort(unique(gillnets$location))  # 60
 
+# what locations are in the temp dataset but not in the gillnets dataset? Björnöfjärden and Älgöfjärden
+temp_gillnet_day %>%
+  filter(!(location %in% gillnets$location)) %>%
+  select(location) %>%
+  unique()
 
 # merge and keep all records in left dataset, and only matching record in right dataset
 gillnets1<-left_join(gillnets, temp_gillnet_year, by = c("year","location")) # 
@@ -110,6 +115,25 @@ gillnets1a<-left_join(gillnets1, temp_gillnet_day, by = c("date","month","year",
 # rename temp to be more specific: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
 gillnets1a <- rename(gillnets1a, day_temp = 'temp')
 head(gillnets1a)
+
+# any missing values for any location in the gillnets dataset?
+# not for day temp, but yes for year temp: they are the data from 2021-2023
+gillnets1a %>%
+  filter(is.na(day_temp)) %>%
+  select(location) %>%
+  unique()
+summary(gillnets1a$day_temp)
+
+gillnets1a %>%
+  filter(is.na(avg_year_temp)) %>%
+  select(location) %>%
+  unique()
+gillnets1a %>%
+  filter(is.na(avg_year_temp)) %>%
+  select(year) %>%
+  unique()
+summary(gillnets1a$avg_year_temp)
+
 
 ##### check correlations between temp values ####
 # check how well the temp measured in the field correlate con satellite temp: do it in a separate section, check there is some weird stuff
