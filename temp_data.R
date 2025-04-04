@@ -74,25 +74,23 @@
 # sums_degree_April3yearbefore_July
 # sums_degree_April4yearbefore_July
 
-# n_days_withavg/week?_temp_over_10C_till_July
-# n_days_withavg/week?_temp_over_10C_till_catch_date?
-# n_days_withavg/week?_temp_over_10C_April1yearbefore_July
-# n_days_withavg/week?_temp_over_10C_April2yearbefore_July
-# n_days_withavg/week?_temp_over_10C_April3yearbefore_July
-# n_days_withavg/week?_temp_over_10C_April4yearbefore_July
+# n_days_withavg_temp_over_10C_till_July
+# n_days_withavg_temp_over_10C_till_catch_date?
+# n_days_withavg_temp_over_10C_April1yearbefore_July
+# n_days_withavg_temp_over_10C_April2yearbefore_July
+# n_days_withavg_temp_over_10C_April3yearbefore_July
+# n_days_withavg_temp_over_10C_April4yearbefore_July
 
 # timing of growing season (expressed as ordinal number):
-# first_day_withavg/week?_temp_over_10C 
-# first_day_withavg/week?_temp_over_10C_lag1year
-# first_day_withavg/week?_temp_over_10C_lag2year
-# first_day_withavg/week?_temp_over_10C_lag3year
-# first_day_withavg/week?_temp_over_10C_lag4year
-# last_day_withavg/week?_temp_over_10C_lag1year # or alternatively the number of days when temperature fell below 10 ◦C after the first observation. 
-# last_day_withavg/week?_temp_over_10C_lag2year
-# last_day_withavg/week?_temp_over_10C_lag3year
-# last_day_withavg/week?_temp_over_10C_lag4year
-
-
+# first_day_withavg_temp_over_10C 
+# first_day_withavg_temp_over_10C_lag1year
+# first_day_withavg_temp_over_10C_lag2year
+# first_day_withavg_temp_over_10C_lag3year
+# first_day_withavg_temp_over_10C_lag4year
+# last_day_withavg_temp_over_10C_lag1year # or alternatively the number of days when temperature fell below 10 ◦C after the first observation. 
+# last_day_withavg_temp_over_10C_lag2year
+# last_day_withavg_temp_over_10C_lag3year
+# last_day_withavg_temp_over_10C_lag4year
 
 
 #PS: some of these variables can also be calculated for satellite data!
@@ -129,25 +127,86 @@ length_age10 %>%
 
 #read all files with temp log data and add a column with the corresponding location in the length_age dataset
 # and fix lay out if needed
+unique(length_age10$location) # 
+# Askrikefjärden:nope
+# Asköfjärden: nope
+# Aspöja: 1 logger. Use it also för  Kärrfjärden?                      
+# Blekinge län: 1 out of 5 sites close to Torhamn, Karlskrona Ö skärgård. Use that logger?
+# Bulleröfjärden: there are loggers, but nothing received from them. Check if any could work                
+# Finbo, Åland: yes, 1 logger receeived out of three. check if others are needed           
+# Forsmark: I’d consider FM glåbodarna and FM ön, check       
+# Gaviksfjärden: yes, 1 logger  
+# Holmön: 1 logger received out of two. Don't know which. Both seem on land          
+# Kinnbäcksfjärden: yes, 1 logger
+# Kumlinge, Åland: yes, 1 logger
+# Kvädöfjärden (ccordinates from gillnets seem to be wrong): received 5 or 6 (kvädö eköfjärden?)loggers. Use all??
+# Kärrfjärden: use the logger from Aspöja?
+# Lagnö: 1 logger close, "Stockholms skg,	Ljusterö Smedsholmen ". Others received (from Ljusterö, south) but maybe skip?
+# Långvindsfjärden: yes 1 logger
+# Muskö: yes 1 logger
+# Mönsterås: nope      
+# Norrbyn: yes 1 logger
+# Risöfjärden: nope
+# Råneå: yes 1 logger  
+# Seskaröfjärden: nope
+# Stockholms skärgårds m kustvatten: which one? Gålö maybe better for Bulleröfjärden
+# Torhamn, Karlskrona Ö skärgård: YES  1 LOGGER 
+# Torsås kustvatten: NOPE     
+# Valjeviken: nope   
+# Vinö: nope              
+# Västerbottens län: nope         
+# Östra Gotlands m kustvatten: nope
 
-library(readr)
 setwd("G:/My Drive/FORCE/Data/temp logger data")
-# to calculate the probability of a file of being encoded in several encodings
-guess_encoding("finbo brändö.csv", n_max = 1000)
-aspoja <- read.csv2("aspöja birkösundet.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
-aland <- read.csv2("finbo brändö.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
 
-aland <- read.csv2("FM ArtSub Borgarna.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Aland_fin <- read.csv2("finbo brändö.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(Aland_fin)
+Aland_fin$location <- "Finbo, Åland"
+# rename column År: maybe no need if I use climwin, check later
+# Aland_fin <- rename(Aland_fin, year = 'År')
+Aland_kum <- read.csv2("kumlinge.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(Aland_kum)
+Aland_kum$location <- "Kumlinge, Åland"
 
-aland <- read.csv2("FM glåbodarna.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Aspoja <- read.csv2("aspöja birkösundet.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(Aspoja)
+Aspoja$location <- "Aspöja"
 
-aland <- read.csv2("FM ön.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Forsmark1 <- read.csv2("FM ArtSub Borgarna.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".")
+head(Forsmark1) # not sure where this is
+Forsmark1$location <- "Forsmark"
 
-aland <- read.csv2("FM trollgrund inner.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Forsmark2 <- read.csv2("FM glåbodarna.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(Forsmark2)
+Forsmark2$location <- "Forsmark"
 
-aland <- read.csv2("FM trollgrund ytter.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Forsmark3 <- read.csv2("FM ön.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(Forsmark3)
+Forsmark3$location <- "Forsmark"
+
+# maybe skipe these? far away from nets
+#Forsmark4 <- read.csv2("FM trollgrund inner.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+#Forsmark5 <- read.csv2("FM trollgrund ytter.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+
+# which one to consider? Gålö better for Bulleröfjärden?
+Stockholm1 <- read.csv2("gålö askviken",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Stockholm2 <- read.csv2("gålö bilsta.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Stockholm3 <- read.csv2("ljusterö smedsholmen.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Stockholm4 <- read.csv2("LjusteröBlötviken2001.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
 
 
+Gavik <- read.csv2("gavik.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Holmon <- read.csv2("holmön.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kvado1 <- read.csv2("JMT1 trollholmen manuell.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kvado2 <- read.csv2("JMT3 hamnö manuell.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kvado3 <- read.csv2("JMT8 häxvassen manuell.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kvado4 <- read.csv2("JMT9 skogsholmen manuell.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kvado5 <- read.csv2("JMT10 arnö TT.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kinnback <- read.csv2("kinnbäcksfj.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Kvado6 <- read.csv2("kvädö eköfjärden.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+Långvi <- read.csv2("långvindsfj.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+
+# before going on, check where the temop logg are located vs gillnets. maybe no need to import all these
 head(aland)
 
 

@@ -231,7 +231,13 @@ head(length_age10_to_Ingrid2)
 library(openxlsx)
 write.xlsx(length_age10_to_Ingrid2, file="C:/Users/sedi0002/Google Drive/FORCE/Output/length_age10_to_Ingrid2.xlsx",
            sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
-
+# if I want only the coordinates:
+length_age10_coordinates<-length_age10 %>%
+  select(c(location,long, lat,sub.location))
+# remove duplicates
+length_age10_coordinates2 = length_age10_coordinates[!duplicated(length_age10_coordinates),]
+write.xlsx(length_age10_coordinates2, file="G:/My Drive/FORCE/Output/length_age10_coordinates2.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
 # check overlap with gillnet:
 overlap_check<-inner_join(length_age10_to_Ingrid2, gillnets7_to_Ingrid2, by = c("year", "location"), relationship = "many-to-many")
@@ -239,7 +245,6 @@ overlap_check<-inner_join(length_age10_to_Ingrid2, gillnets7_to_Ingrid2, by = c(
 head(length_age10_to_Ingrid2)
 head(gillnets7_to_Ingrid2)
 # boh...is null...
-
 
 #####
 # merge now as soon as I get the data from Ingrid, before next steps

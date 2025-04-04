@@ -411,6 +411,8 @@ gillnets_CPUE<-left_join(gillnets_freq, gillnets_effort, by = c("location","year
 
 summary(gillnets_CPUE)
 hist(gillnets_CPUE$number_nets)
+summary(gillnets_CPUE$number_nets)
+
 # check:
 filter(gillnets_CPUE, number_nets == 153)
 # is it possible that 153 nets were deployed in 2017 in Blekinge län??
@@ -420,6 +422,8 @@ gillnets_CPUE$CPUE<-gillnets_CPUE$number_indiv/gillnets_CPUE$number_nets
 hist(gillnets_CPUE$CPUE)
 
 head(gillnets_CPUE)
+
+# if I want to use CPUE per size category as explanatory, I should go to wide format
 
 
 ### calculate tot CPUE (pooled across size categories). Bring along number indiv and number of nets and avg temp
@@ -501,11 +505,44 @@ ggplot(gillnets_CPUE, aes(x=length_group, y=CPUE)) +
 gillnets_CPUE_abbo<-gillnets_CPUE %>%
   filter(Art == "Abborre")
 
-# barplots of Abbo for all years but different locations
+ggplot(gillnets_CPUE_abbo, aes(x=length_group, y=CPUE, col=location)) +
+  geom_point()+
+  facet_wrap(~location)+
+  theme_bw(base_size=15)+
+  theme(legend.position="none")
+
+# barplots of Abbo for all years but different locations: NO! DON'T USE BAR IF i HAVE MULTIPLE VALUES PER GROUP (HERE YEAR) AS IT WILL SUM THEM UP
 ggplot(gillnets_CPUE_abbo, aes(x=length_group, y=CPUE, col=location)) +
   geom_bar(stat="identity")+
   facet_wrap(~location)+
   theme_bw(base_size=15)+
+  theme(legend.position="none")
+
+# if I want to see the means:
+avg<-tapply(gillnets_CPUE_abbo$CPUE,list(gillnets_CPUE_abbo$length_group,gillnets_CPUE_abbo$location),mean)
+sdpl<-tapply(gillnets_CPUE_abbo$CPUE,list(gillnets_CPUE_abbo$length_group,gillnets_CPUE_abbo$location),sd)
+l<-tapply(gillnets_CPUE_abbo$CPUE,list(gillnets_CPUE_abbo$length_group,gillnets_CPUE_abbo$location),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,ylim=c(0,7),main = "CPUE Abborre") 
+
+# less crowded fig:
+# Calculate means and standard deviations
+summary_gillnets_CPUE_abbo <- gillnets_CPUE_abbo %>%
+  group_by(location, length_group) %>%
+  summarise(
+    mean_value = mean(CPUE),
+    sd_value = sd(CPUE)
+  )
+
+# Create the bar chart
+ggplot(summary_gillnets_CPUE_abbo, aes(x = length_group, y = mean_value, col = location)) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.7) +
+  geom_errorbar(aes(ymin = mean_value - sd_value, ymax = mean_value + sd_value), 
+                width = 0.2, position = position_dodge(0.7)) +
+  facet_wrap(~location)+
+    labs(title = "Bar Chart with Means and Standard Deviations",
+       x = "length_group",
+       y = "CPUE Abborre") +
   theme(legend.position="none")
 
 # barplots of Abbo for different years in one specific location
@@ -515,6 +552,11 @@ ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length
   theme_bw(base_size=15)+
   theme(legend.position="none")
 
+ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length_group, y=CPUE)) +
+  geom_point()+
+  facet_wrap(~year)+
+  theme_bw(base_size=15)+
+  theme(legend.position="none")
 #####
 # stats on length indexes
 #####
