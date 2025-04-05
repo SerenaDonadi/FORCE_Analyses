@@ -220,8 +220,9 @@ table(Forsmark$sub.location)
 Forsmark %>%
   filter(sub.location =="Väst Biotestsjön")
 
-# extract only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
+# extract datasets for Ingrid and for Agnes
 #####
+# extrcat only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
 length_age10_to_Ingrid<-length_age10 %>%
   select(c(year,catch_date ,location,long, lat,sub.location)) 
 # remove duplicates
@@ -245,6 +246,11 @@ overlap_check<-inner_join(length_age10_to_Ingrid2, gillnets7_to_Ingrid2, by = c(
 head(length_age10_to_Ingrid2)
 head(gillnets7_to_Ingrid2)
 # boh...is null...
+
+# exctract dataset for Agnes to get stsp estimates:
+write.xlsx(length_age10, file="G:/My Drive/FORCE/Output/length_age10.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
 
 #####
 # merge now as soon as I get the data from Ingrid, before next steps
