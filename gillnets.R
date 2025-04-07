@@ -70,7 +70,9 @@ summary(temp_gillnet_day$month)
 hist(temp_gillnet_day$month)
 
 # set the format for date:
-temp_gillnet_day$date<-as.Date(temp_gillnet_day$date)
+temp_gillnet_day$date<-as.Date(temp_gillnet_day$date,"%d/%m/%Y")
+
+
 
 ## OBS in same cases temp doesn´t vary between January and April. It could depend on that there is ice, or a problem with data extraction
 # this is mainly found in the 80s. but also later, see Råneå example. check what parameters to extract and which years we consider
@@ -356,6 +358,10 @@ unloadNamespace("plyr")
 detach("package:ExcelFunctionsR", unload=TRUE)
 library(dplyr)
 
+# # Convert dates to Date objects, so that I can calculate an avg date to use later with climwin:
+library(lubridate)
+gillnets_indiv$date <- dmy(gillnets_indiv$Fiskedatum)
+
 # calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year:
 gillnets_length_indexes<- gillnets_indiv %>%
   filter(Art=="Abborre") %>%
@@ -367,10 +373,15 @@ gillnets_length_indexes<- gillnets_indiv %>%
             sk1=skewness(length_group ,remove_na = TRUE, type = "1", iterations = 100),
             sk2=skewness(length_group ,remove_na = TRUE, type = "2", iterations = 100),
             ku1=kurtosis(length_group ,remove_na = TRUE, type = "1", iterations = 100),
-            ku2=skewness(length_group ,remove_na = TRUE, type = "2", iterations = 100)
-            ) 
+            ku2=skewness(length_group ,remove_na = TRUE, type = "2", iterations = 100),
+            # calculate an avg date of sampling:
+            date=mean(date ,na.rm=TRUE),
+            # count how many sampling days per location and year:
+            n_days=n_distinct(date)) 
 
 head(gillnets_length_indexes)
+table(gillnets_length_indexes$n_days)
+
 
 # check if I can skip SE calculation
 #s1<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1", iterations = 100)
@@ -738,7 +749,7 @@ plot(M8)
 
 hist(gillnets_pool$L90)
 
-# inlcude correlation STR using all replicate (gillnets_pool)
+# inlcude correlation STR using all replicates (gillnets_pool)
 M0<-gls(L90~avg_year_temp+totCPUE_Abborre+totCPUE_Mört,
         method="REML",na.action=na.omit, data=gillnets_pool)
 vif(M0)
@@ -844,3 +855,22 @@ head(gillnets_pool)
 
 ## strip an object's attributes:
 #attributes(x) <- NULL
+
+# try this, suggested by Agnes (not sure/check how):
+attributes(df_mod$distance_sc)$`scaled:scale`
+
+#####
+# climwin on mean length
+#####
+library(climwin)
+# following steps from the help vignette, basic analyses. the add advanced options
+
+# check formate of date:
+3gillnets_pool$date <- as.Date(gillnets_pool$date, format="%Y-%m-%d")
+# check if it worked
+3gillnets_pool$date[1]
+
+cdate = temp_gillnet_day$date
+bdate = gillnets_pool$date
+
+# all good so far,go on!
