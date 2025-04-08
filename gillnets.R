@@ -865,12 +865,83 @@ attributes(df_mod$distance_sc)$`scaled:scale`
 library(climwin)
 # following steps from the help vignette, basic analyses. the add advanced options
 
-# check formate of date:
-3gillnets_pool$date <- as.Date(gillnets_pool$date, format="%Y-%m-%d")
-# check if it worked
-3gillnets_pool$date[1]
+head(gillnets_pool)
+head(temp_gillnet_day)
 
-cdate = temp_gillnet_day$date
-bdate = gillnets_pool$date
+# check if date is a date: 
+class(gillnets_pool$date)
+class(temp_gillnet_day$date)
 
-# all good so far,go on!
+# if not:
+gillnets_pool$date <- as.Date(gillnets_pool$date)
+temp_gillnet_day$date <- as.Date(temp_gillnet_day$date)
+
+# check if it is the right format for date. Ita hs to be dd/mm/yyyy format.
+gillnets_pool$date[1]
+temp_gillnet_day$date[1]
+
+# Format date
+gillnets_pool$date_formatted<- format(gillnets_pool$date, format="%d/%m/%Y")
+gillnets_pool$date_formatted[1]
+class(gillnets_pool$date_formatted) # but now it is a charachter, does it matter? it works!
+temp_gillnet_day$date_formatted<- format(temp_gillnet_day$date, format="%d/%m/%Y")
+temp_gillnet_day$date_formatted[1]
+
+# check locations in common:
+unique(gillnets_pool$location)
+unique(temp_gillnet_day$location)
+# subset climate dataset so that only locations in the gillnet pool dtaset are included:
+temp_gillnet_day2<-temp_gillnet_day %>%
+  filter(location %in% unique(gillnets_pool$location))
+
+# maybe I need the same temporal overlap? It shouldn't matter, but check
+summary(gillnets_pool$date)
+summary(temp_gillnet_day$date)
+
+# subset temp datset to retain dates between 1996 and 2023
+temp_gillnet_day3<-temp_gillnet_day2 %>%
+  filter(year>1996)
+
+# this will be my final settings, once I get it to work:
+baseline = lme(mean_length~totCPUE_Abborre,
+               random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
+               method="REML",na.action=na.omit, data=gillnets_pool)
+range = c(150, 0) # these will be from March to end of July
+type = "absolute", refday = c(31, 07)
+
+# only intercept model
+MassWin <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+                      cdate = temp_gillnet_day3$date_formatted,
+                      bdate = gillnets_pool$date_formatted,
+                      baseline = lme(mean_length~1,
+                                     random=~1|location,
+                                     method="REML",na.action=na.omit, data=gillnets_pool),
+                      cinterval = "day",
+                      range = c(150, 0), # these will be from March to end of July
+                      type = "absolute", refday = c(31, 07),
+                      stat = "mean",
+                      func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+# with perch density as covariate
+MassWin1 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+                      cdate = temp_gillnet_day3$date_formatted,
+                      bdate = gillnets_pool$date_formatted,
+                      baseline = lme(mean_length~totCPUE_Abborre,
+                                     random=~1|location,
+                                     method="REML",na.action=na.omit, data=gillnets_pool),
+                      cinterval = "day",
+                      range = c(150, 0), # these will be from March to end of July
+                      type = "absolute", refday = c(31, 07),
+                      stat = "mean",
+                      func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+
+# it seems like the corAR str gives problems. let's go on without for now
+
+head(MassWin1[[1]]$Dataset)
+# the best climate window is 37 - 10 days before 31 July, equivalent to temperature between June 24 and July 21.
+
+MassWin1[[1]]$BestModel
+
+head(MassWin1[[1]]$BestModelData)
+
+MassOutput1 <- MassWin1[[1]]$Dataset
+plotdelta(dataset = MassOutput1)
