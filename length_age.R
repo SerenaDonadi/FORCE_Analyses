@@ -299,16 +299,16 @@ head(length_age11)
 
 summary(length_age10)
 
-length_age10_age2<-length_age10 %>% 
+length_age11_age2<-length_age11 %>% 
   filter(age == 2)
-length_age10_age3<-length_age10 %>% 
+length_age11_age3<-length_age11 %>% 
   filter(age == 3)
-length_age10_age4<-length_age10 %>% 
+length_age11_age4<-length_age11 %>% 
   filter(age == 4)
-length_age10_age2to4<-length_age10 %>% 
+length_age11_age2to4<-length_age11 %>% 
   filter(age < 5 & age >1)
 
-unique(sort(length_age10$year))
+unique(sort(length_age10$location))
 
 
 #####
@@ -357,9 +357,9 @@ ggplot(length_age7_age2to4, aes(x = year , y = total_length)) +
   theme_classic(base_size=13)
 
 # length at age vs locations and year
-ggplot(length_age7_age2, aes(x = year , y = total_length)) +
+ggplot(length_age11_age2, aes(x = year , y = total_length)) +
   geom_point()+
-  geom_smooth(method = "gam")+ 
+  geom_smooth(method = "lm")+ 
   facet_wrap(~location)+
   labs(title="age 2")+
   theme_classic(base_size=13)

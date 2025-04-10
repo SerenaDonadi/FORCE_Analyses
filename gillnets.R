@@ -557,7 +557,7 @@ ggplot(summary_gillnets_CPUE_abbo, aes(x = length_group, y = mean_value, col = l
   theme(legend.position="none")
 
 # barplots of Abbo for different years in one specific location
-ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length_group, y=CPUE)) +
+ggplot(subset(gillnets_CPUE_abbo, location %in% "Asköfjärden"), aes(x=length_group, y=CPUE)) +
   geom_bar(stat="identity")+
   facet_wrap(~year)+
   theme_bw(base_size=15)+
@@ -568,6 +568,14 @@ ggplot(subset(gillnets_CPUE_abbo, location %in% "Askrikefjärden"), aes(x=length
   facet_wrap(~year)+
   theme_bw(base_size=15)+
   theme(legend.position="none")
+
+# plots for 2023:
+ggplot(subset(gillnets_CPUE_abbo, year %in% "2023"), aes(x=length_group, y=CPUE)) +
+  geom_bar(stat="identity")+
+  facet_wrap(~location)+
+  theme_bw(base_size=15)+
+  theme(legend.position="none")
+
 #####
 # stats on length indexes
 #####
@@ -581,7 +589,7 @@ count(gillnets_pool, 'location')
 # add n = n years of sampling for each location
 gillnets_pool_time<-gillnets_pool %>%
   add_count(location)
-gillnets_pool_time$n
+table(gillnets_pool_time$n)
 hist(gillnets_pool_time$n)
 # cut off..?
 
@@ -922,7 +930,7 @@ MassWin <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                       stat = "mean",
                       func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
 # with perch density as covariate
-MassWin1 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+MassWin0 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                       cdate = temp_gillnet_day3$date_formatted,
                       bdate = gillnets_pool$date_formatted,
                       baseline = lme(mean_length~totCPUE_Abborre,
@@ -936,8 +944,32 @@ MassWin1 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
 
 # it seems like the corAR str gives problems. let's go on without for now
 
-head(MassWin1[[1]]$Dataset)
+head(MassWin0[[1]]$Dataset)
 # the best climate window is 37 - 10 days before 31 July, equivalent to temperature between June 24 and July 21.
+
+MassWin0[[1]]$BestModel
+
+head(MassWin0[[1]]$BestModelData)
+
+MassOutput0 <- MassWin0[[1]]$Dataset
+plotdelta(dataset = MassOutput0)
+
+# looking at max temp windows
+
+# with perch density as covariate
+MassWin1 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+                       cdate = temp_gillnet_day3$date_formatted,
+                       bdate = gillnets_pool$date_formatted,
+                       baseline = lme(mean_length~totCPUE_Abborre,
+                                      random=~1|location,
+                                      method="REML",na.action=na.omit, data=gillnets_pool),
+                       cinterval = "day",
+                       range = c(150, 0), # these will be from March to end of July
+                       type = "absolute", refday = c(31, 07),
+                       stat = "max",
+                       func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+
+head(MassWin1[[1]]$Dataset)
 
 MassWin1[[1]]$BestModel
 
@@ -945,3 +977,169 @@ head(MassWin1[[1]]$BestModelData)
 
 MassOutput1 <- MassWin1[[1]]$Dataset
 plotdelta(dataset = MassOutput1)
+
+# using quadratic relationship
+Clim_quadr <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+                       cdate = temp_gillnet_day3$date_formatted,
+                       bdate = gillnets_pool$date_formatted,
+                       baseline = lme(mean_length~totCPUE_Abborre,
+                                      random=~1|location,
+                                      method="REML",na.action=na.omit, data=gillnets_pool),
+                       cinterval = "day",
+                       range = c(150, 0), # these will be from March to end of July
+                       type = "absolute", refday = c(31, 07),
+                       stat = "mean",
+                       func = "quad", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+
+# time back 1 year, linear
+Clim_lin_1year <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+                         cdate = temp_gillnet_day3$date_formatted,
+                         bdate = gillnets_pool$date_formatted,
+                         baseline = lme(mean_length~totCPUE_Abborre,
+                                        random=~1|location,
+                                        method="REML",na.action=na.omit, data=gillnets_pool),
+                         cinterval = "day",
+                         range = c(365, 0), # these will be from July the year before
+                         type = "absolute", refday = c(31, 07),
+                         stat = "mean",
+                         func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+
+# stat = c("max", "mean")
+# func = c("lin", "quad")
+
+# at site level:
+sort(unique(gillnets_pool$location))
+##### Askrikefjärden ####
+gillnets_pool_Askrikefjärden<-gillnets_pool %>%
+  filter(location %in% "Askrikefjärden")
+
+temp_gillnet_day3_Askrikefjärden<-temp_gillnet_day3 %>%
+  filter(location %in% "Askrikefjärden")
+# USE ONLY LINEAR RELATIONSHIP and mean
+Clim_1year_Askrikefjärden <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Askrikefjärden$temp),
+                             cdate = temp_gillnet_day3_Askrikefjärden$date_formatted,
+                             bdate = gillnets_pool_Askrikefjärden$date_formatted,
+                             baseline = lme(mean_length~totCPUE_Abborre,
+                                            random=~1|location,
+                                            method="REML",na.action=na.omit, data=gillnets_pool_Askrikefjärden),
+                             cinterval = "day",
+                             range = c(365, 0), # these will be from July the year before
+                             type = "absolute", refday = c(31, 07),
+                             stat = c("mean"),
+                             func = c("lin"), 
+                             spatial = list(gillnets_pool_Askrikefjärden$location, y = temp_gillnet_day3_Askrikefjärden$location))
+##### Asköfjärden####
+gillnets_pool_Asköfjärden<-gillnets_pool %>%
+  filter(location %in% "Asköfjärden")
+temp_gillnet_day3_Asköfjärden<-temp_gillnet_day3 %>%
+  filter(location %in% "Asköfjärden")
+
+Clim_1year_Asköfjärden <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Asköfjärden$temp),
+                                        cdate = temp_gillnet_day3_Asköfjärden$date_formatted,
+                                        bdate = gillnets_pool_Asköfjärden$date_formatted,
+                                        baseline = lme(mean_length~totCPUE_Abborre,
+                                                       random=~1|location,
+                                                       method="REML",na.action=na.omit, data=gillnets_pool_Asköfjärden),
+                                        cinterval = "day",
+                                        range = c(365, 0), # these will be from July the year before
+                                        type = "absolute", refday = c(31, 07),
+                                        stat = c("mean"),
+                                        func = c("lin"), 
+                                        spatial = list(gillnets_pool_Asköfjärden$location, 
+                                                       y = temp_gillnet_day3_Asköfjärden$location))
+
+Clim_1year_Asköf_relat_wind <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Asköfjärden$temp),
+                                     cdate = temp_gillnet_day3_Asköfjärden$date_formatted,
+                                     bdate = gillnets_pool_Asköfjärden$date_formatted,
+                                     baseline = lme(mean_length~totCPUE_Abborre,
+                                                    random=~1|location,
+                                                    method="REML",na.action=na.omit, data=gillnets_pool_Asköfjärden),
+                                     cinterval = "day",
+                                     range = c(365, 0), # these will be from July the year before
+                                     type = "relative",
+                                     stat = c("mean"),
+                                     func = c("lin"), 
+                                     spatial = list(gillnets_pool_Asköfjärden$location, 
+                                                    y = temp_gillnet_day3_Asköfjärden$location))
+
+##### Aspöja ####
+gillnets_pool_Aspöja<-gillnets_pool %>%
+  filter(location %in% "Aspöja")
+temp_gillnet_day3_Aspöja<-temp_gillnet_day3 %>%
+  filter(location %in% "Aspöja")
+
+Clim_1year_Aspöja <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Aspöja$temp),
+                                        cdate = temp_gillnet_day3_Aspöja$date_formatted,
+                                        bdate = gillnets_pool_Aspöja$date_formatted,
+                                        baseline = lme(mean_length~totCPUE_Abborre,
+                                                       random=~1|location,
+                                                       method="REML",na.action=na.omit, data=gillnets_pool_Aspöja),
+                                        cinterval = "day",
+                                        range = c(365, 0), # these will be from July the year before
+                                        type = "absolute", refday = c(31, 07),
+                                        stat = c("max","mean"),
+                                        func = c("lin","quad"), 
+                                        spatial = list(gillnets_pool_Aspöja$location, 
+                                                       y = temp_gillnet_day3_Aspöja$location))
+##### Blekinge län####  
+gillnets_pool_Blekinge_län<-gillnets_pool %>%
+  filter(location %in% "Blekinge län")
+temp_gillnet_day3_Blekinge_län<-temp_gillnet_day3 %>%
+  filter(location %in% "Blekinge län")
+
+Clim_1year_Blekinge_län <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Blekinge_län$temp),
+                                cdate = temp_gillnet_day3_Blekinge_län$date_formatted,
+                                bdate = gillnets_pool_Blekinge_län$date_formatted,
+                                baseline = lme(mean_length~totCPUE_Abborre,
+                                               random=~1|location,
+                                               method="REML",na.action=na.omit, data=gillnets_pool_Blekinge_län),
+                                cinterval = "day",
+                                range = c(365, 0), # these will be from July the year before
+                                type = "absolute", refday = c(31, 07),
+                                stat = c("max","mean"),
+                                func = c("lin","quad"), 
+                                spatial = list(gillnets_pool_Blekinge_län$location, 
+                                               y = temp_gillnet_day3_Blekinge_län$location))
+##### Bråviken #### 
+gillnets_pool_Bråviken<-gillnets_pool %>%
+  filter(location %in% "Bråvikens kustvatten")
+temp_gillnet_day3_Bråviken<-temp_gillnet_day3 %>%
+  filter(location %in% "Bråvikens kustvatten")
+
+Clim_1year_Bråviken <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Bråviken$temp),
+                                        cdate = temp_gillnet_day3_Bråviken$date_formatted,
+                                        bdate = gillnets_pool_Bråviken$date_formatted,
+                                        baseline = lme(mean_length~totCPUE_Abborre,
+                                                       random=~1|location,
+                                                       method="REML",na.action=na.omit, data=gillnets_pool_Bråviken),
+                                        cinterval = "day",
+                                        range = c(365, 0), # these will be from July the year before
+                                        type = "absolute", refday = c(31, 07),
+                                        stat = c("max","mean"),
+                                        func = c("lin","quad"), 
+                                        spatial = list(gillnets_pool_Bråviken$location, 
+                                                       y = temp_gillnet_day3_Bråviken$location))
+##### Bulleröfjärden ####
+gillnets_pool_Bulleröfjärden<-gillnets_pool %>%
+  filter(location %in% "Bulleröfjärden")
+temp_gillnet_day3_Bulleröfjärden<-temp_gillnet_day3 %>%
+  filter(location %in% "Bulleröfjärden")
+
+clim_1year_Bulleröfjärden <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Bulleröfjärden$temp),
+                                        cdate = temp_gillnet_day3_Bulleröfjärden$date_formatted,
+                                        bdate = gillnets_pool_Bulleröfjärden$date_formatted,
+                                        baseline = lme(mean_length~totCPUE_Abborre,
+                                                       random=~1|location,
+                                                       method="REML",na.action=na.omit, data=gillnets_pool_Bulleröfjärden),
+                                        cinterval = "day",
+                                        range = c(365, 0), # these will be from July the year before
+                                        type = "absolute", refday = c(31, 07),
+                                        stat = c("max","mean"),
+                                        func = c("lin","quad"), 
+                                        spatial = list(gillnets_pool_Bulleröfjärden$location, 
+                                                       y = temp_gillnet_day3_Bulleröfjärden$location))
+
+
+
+  
+  
