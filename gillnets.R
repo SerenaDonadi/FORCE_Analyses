@@ -910,12 +910,10 @@ summary(temp_gillnet_day$date)
 temp_gillnet_day3<-temp_gillnet_day2 %>%
   filter(year>1996)
 
-# this will be my final settings, once I get it to work:
+# this is the best model: but corAR doesn't run
 baseline = lme(mean_length~totCPUE_Abborre,
                random=~1|location,correlation=corAR1(form=~year),weights=varFixed(~ avg_year_temp),
                method="REML",na.action=na.omit, data=gillnets_pool)
-range = c(150, 0) # these will be from March to end of July
-type = "absolute", refday = c(31, 07)
 
 # only intercept model
 MassWin <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
@@ -930,6 +928,7 @@ MassWin <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                       stat = "mean",
                       func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
 # with perch density as covariate
+##### use as demo ####
 MassWin0 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                       cdate = temp_gillnet_day3$date_formatted,
                       bdate = gillnets_pool$date_formatted,
@@ -954,9 +953,67 @@ head(MassWin0[[1]]$BestModelData)
 MassOutput0 <- MassWin0[[1]]$Dataset
 plotdelta(dataset = MassOutput0)
 
-# looking at max temp windows
+# accounting for overfitting: randomization of data (TO RUN)
+MassRand0 <- randwin(repeats = 5,
+                     xvar = list(Temp = temp_gillnet_day3$temp),
+                       cdate = temp_gillnet_day3$date_formatted,
+                       bdate = gillnets_pool$date_formatted,
+                       baseline = lme(mean_length~totCPUE_Abborre,
+                                      random=~1|location,
+                                      method="REML",na.action=na.omit, data=gillnets_pool),
+                       cinterval = "day",
+                       range = c(150, 0), # these will be from March to end of July
+                       type = "absolute", refday = c(31, 07),
+                       stat = "mean",
+                       func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+# check if deltaAIC are are very different from those in ht output above
+MassRand0[[1]]
 
-# with perch density as covariate
+# estimate how likely our observed result would be at random using pvalue.
+length(unique(gillnets_pool$year))
+pvalue(dataset = MassWin0[[1]]$Dataset, datasetrand = MassRand0[[1]], metric = "C", sample.size = 22)
+# compare histograms of deltaAICc
+MassOutput0 <- MassWin0[[1]]$Dataset
+MassRand0 <- MassRand0[[1]]
+plothist(dataset = MassOutpu0t, datasetrand = MassRand0)
+
+# using model weights to obtain a confidence window: 
+# consider all models that make up the top 95% of model weights (the 95% confidence set).
+# we can be 95% confident that the true ‘best’ model falls within the shaded region.
+plotweights(dataset = MassOutput0)
+
+# visualize the spread of model coefficients across all fitted climate windows. 
+plotbetas(dataset = MassOutput0)
+
+# boxplots of the start and end point of all climate windows that make up the 95% confidence set
+plotwin(dataset = MassOutput0)
+
+# generate BestModel and BestModelData
+MassSingle0 <- singlewin(xvar = list(Temp = temp_gillnet_day3$temp),
+                       cdate = temp_gillnet_day3$date_formatted,
+                       bdate = gillnets_pool$date_formatted,
+                       baseline = lme(mean_length~totCPUE_Abborre,
+                                      random=~1|location,
+                                      method="REML",na.action=na.omit, data=gillnets_pool),
+                       cinterval = "day",
+                       range = c(37, 10), # these will be from March to end of July
+                       type = "absolute", refday = c(31, 07),
+                       stat = "mean",
+                       func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+
+# plot the predictions of our best model over the biological dat to see how well climate within this period actually 
+# explains variation. Not working:  plotbest is currently not available with nlme of coxph models
+plotbest(dataset = MassOutput0,
+         bestmodel = MassSingle0$BestModel, 
+         bestmodeldata = MassSingle0$BestModelData)
+
+# all plots (not working for this case)
+plotall(dataset = MassOutput0,
+        datasetrand = MassRand0,
+        bestmodel = MassSingle0$BestModel, 
+        bestmodeldata = MassSingle0$BestModelData)
+
+##### looking at max temp windows #####
 MassWin1 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                        cdate = temp_gillnet_day3$date_formatted,
                        bdate = gillnets_pool$date_formatted,
@@ -978,7 +1035,15 @@ head(MassWin1[[1]]$BestModelData)
 MassOutput1 <- MassWin1[[1]]$Dataset
 plotdelta(dataset = MassOutput1)
 
-# using quadratic relationship
+plotweights(dataset = MassOutput1)
+
+plotbetas(dataset = MassOutput1)
+
+plotwin(dataset = MassOutput1)
+
+
+
+##### using quadratic relationship ######
 Clim_quadr <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                        cdate = temp_gillnet_day3$date_formatted,
                        bdate = gillnets_pool$date_formatted,
@@ -991,7 +1056,22 @@ Clim_quadr <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                        stat = "mean",
                        func = "quad", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
 
-# time back 1 year, linear
+head(Clim_quadr[[1]]$Dataset)
+
+Clim_quadr[[1]]$BestModel
+
+head(Clim_quadr[[1]]$BestModelData)
+
+Clim_quadr_Output <- Clim_quadr[[1]]$Dataset
+plotdelta(dataset = Clim_quadr_Output)
+
+plotweights(dataset = Clim_quadr_Output)
+
+plotbetas(dataset = Clim_quadr_Output)
+
+plotwin(dataset = Clim_quadr_Output)
+
+##### time back 1 year, linear####
 Clim_lin_1year <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                          cdate = temp_gillnet_day3$date_formatted,
                          bdate = gillnets_pool$date_formatted,
@@ -1004,8 +1084,21 @@ Clim_lin_1year <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
                          stat = "mean",
                          func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
 
-# stat = c("max", "mean")
-# func = c("lin", "quad")
+
+head(Clim_lin_1year[[1]]$Dataset)
+
+Clim_lin_1year[[1]]$BestModel
+
+head(Clim_lin_1year[[1]]$BestModelData)
+
+Clim_lin_1year_Output <- Clim_lin_1year[[1]]$Dataset
+plotdelta(dataset = Clim_lin_1year_Output)
+
+plotweights(dataset = Clim_lin_1year_Output)
+
+plotbetas(dataset = Clim_lin_1year_Output)
+
+plotwin(dataset = Clim_lin_1year_Output)
 
 # at site level:
 sort(unique(gillnets_pool$location))
@@ -1028,6 +1121,22 @@ Clim_1year_Askrikefjärden <- slidingwin(xvar = list(Temp = temp_gillnet_day3_As
                              stat = c("mean"),
                              func = c("lin"), 
                              spatial = list(gillnets_pool_Askrikefjärden$location, y = temp_gillnet_day3_Askrikefjärden$location))
+
+head(Clim_1year_Askrikefjärden[[1]]$Dataset)
+
+Clim_1year_Askrikefjärden[[1]]$BestModel
+
+head(Clim_1year_Askrikefjärden[[1]]$BestModelData)
+
+Clim_1year_Askrikefjärden_Output <- Clim_1year_Askrikefjärden[[1]]$Dataset
+plotdelta(dataset = Clim_1year_Askrikefjärden_Output)
+
+plotweights(dataset = Clim_1year_Askrikefjärden_Output)
+
+plotbetas(dataset = Clim_1year_Askrikefjärden_Output)
+
+plotwin(dataset = Clim_1year_Askrikefjärden_Output)
+
 ##### Asköfjärden####
 gillnets_pool_Asköfjärden<-gillnets_pool %>%
   filter(location %in% "Asköfjärden")
@@ -1047,6 +1156,21 @@ Clim_1year_Asköfjärden <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Ask�
                                         func = c("lin"), 
                                         spatial = list(gillnets_pool_Asköfjärden$location, 
                                                        y = temp_gillnet_day3_Asköfjärden$location))
+
+head(Clim_1year_Asköfjärden[[1]]$Dataset)
+
+Clim_1year_Asköfjärden[[1]]$BestModel
+
+head(Clim_1year_Asköfjärden[[1]]$BestModelData)
+
+Clim_1year_Asköfjärden_Output <- Clim_1year_Asköfjärden[[1]]$Dataset
+plotdelta(dataset = Clim_1year_Asköfjärden_Output)
+
+plotweights(dataset = Clim_1year_Asköfjärden_Output)
+
+plotbetas(dataset = Clim_1year_Asköfjärden_Output)
+
+plotwin(dataset = Clim_1year_Asköfjärden_Output)
 
 Clim_1year_Asköf_relat_wind <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Asköfjärden$temp),
                                      cdate = temp_gillnet_day3_Asköfjärden$date_formatted,
@@ -1143,3 +1267,29 @@ clim_1year_Bulleröfjärden <- slidingwin(xvar = list(Temp = temp_gillnet_day3_B
 
   
   
+##### Råneå ####
+gillnets_pool_Råneå<-gillnets_pool %>%
+  filter(location %in% "Råneå")
+temp_gillnet_day3_Råneå<-temp_gillnet_day3 %>%
+  filter(location %in% "Råneå")
+
+c
+
+##### Torhamn, Karlskrona Ö skärgård####
+gillnets_pool_Torhamn<-gillnets_pool %>%
+  filter(location %in% "Torhamn, Karlskrona Ö skärgård")
+temp_gillnet_day3_Torhamn<-temp_gillnet_day3 %>%
+  filter(location %in% "Torhamn, Karlskrona Ö skärgård")
+
+Clim_1year_Torhamn <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Torhamn$temp),
+                                     cdate = temp_gillnet_day3_Torhamn$date_formatted,
+                                     bdate = gillnets_pool_Torhamn$date_formatted,
+                                     baseline = lme(mean_length~totCPUE_Abborre,
+                                                    method="REML",na.action=na.omit, data=gillnets_pool_Torhamn),
+                                     cinterval = "day",
+                                     range = c(365, 0), # these will be from July the year before
+                                     type = "absolute", refday = c(31, 07),
+                                     stat = "mean",
+                                     func = "lin"))
+
+# boh, error
