@@ -238,7 +238,7 @@ unique(gillnets4$Ansträngning) # there are NAs. If I don't want to retain them:
 gillnets5<-gillnets4 %>% 
   filter(Ansträngning  == 1 ) 
 
-## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there
+## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there. no need 
 
 # remove columns not needed:
 gillnets5<-gillnets5 %>%
@@ -446,7 +446,7 @@ gillnets_totCPUE<-gillnets_CPUE %>%
             avg_year_temp=mean(avg_year_temp ,na.rm=TRUE)
   ) 
 
-summary(gillnets_totCPUE)
+head(gillnets_totCPUE)
 
 # SUMMARY of key datasets
 # gillnets_CPUE: replicated at level of location, year, size categories (and spp) - useful for plotting
@@ -472,10 +472,25 @@ gillnets_totCPUE_wide %>%
 # run this if it can't find function" select"(caused by name clash in package MASS):
 #find("select")
 #select <- dplyr::select
+
+## TO DO AFTER I ADDED THE NEW SPP: CHECK names with spaces inside. rename totCPUE_Sill/Strömming and totCPUE_Svartmunnad smörbult come minimo
 gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
-  select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,totCPUE_Mört,totCPUE_Gädda,totCPUE_Storspigg,
+  select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,
+           totCPUE_Björkna,totCPUE_Braxen,totCPUE_Mört,totCPUE_Siklöja,totCPUE_Id, totCPUE_Löja, # cyprinids
+           totCPUE_Ruda,totCPUE_Sarv,totCPUE_Stäm, totCPUE_Sutare, totCPUE_Vimma,  # cyprinids (preys when small)
+           totCPUE_Sill/Strömming, totCPUE_Skarpsill, totCPUE_Staksill,# clupeids
+           totCPUE_Storspigg, # stsp
+           totCPUE_Gös,totCPUE_Gädda, # competitors
+           totCPUE_Svart_smöbult, totCPUE_Svartmunnad smörbult, # preys when small
            totCPUE_Rötsimpa, totCPUE_Bergsimpa)) 
 
+sort(unique(gillnets_totCPUE$Art))
+# pool preys, assuming CPUE of adults corrleate to abundances of juv
+# cyprinyds: Björkna,Braxen,mört, siklöja, Id...
+# gobies: Svart smörbult, Svartmunnad smörbult..
+# pool competitors: Gös, gädda,..
+
+colnames(gillnets_totCPUE_wide)
 
 # merge gillnets_length_indexes table with CPUE of spp:
 gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
@@ -1100,6 +1115,35 @@ plotbetas(dataset = Clim_lin_1year_Output)
 
 plotwin(dataset = Clim_lin_1year_Output)
 
+##### time back 1 year, quadratic####
+Clim_quad_1year <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
+                             cdate = temp_gillnet_day3$date_formatted,
+                             bdate = gillnets_pool$date_formatted,
+                             baseline = lme(mean_length~totCPUE_Abborre,
+                                            random=~1|location,
+                                            method="REML",na.action=na.omit, data=gillnets_pool),
+                             cinterval = "day",
+                             range = c(365, 0), # these will be from July the year before
+                             type = "absolute", refday = c(31, 07),
+                             stat = "mean",
+                             func = "quad", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
+
+
+head(Clim_quad_1year[[1]]$Dataset)
+
+Clim_quad_1year[[1]]$BestModel
+
+head(Clim_quad_1year[[1]]$BestModelData)
+
+Clim_quad_1year_Output <- Clim_quad_1year[[1]]$Dataset
+plotdelta(dataset = Clim_quad_1year_Output)
+
+plotweights(dataset = Clim_quad_1year_Output)
+
+plotbetas(dataset = Clim_quad_1year_Output)
+
+plotwin(dataset = Clim_quad_1year_Output)
+
 # at site level:
 sort(unique(gillnets_pool$location))
 ##### Askrikefjärden ####
@@ -1273,23 +1317,94 @@ gillnets_pool_Råneå<-gillnets_pool %>%
 temp_gillnet_day3_Råneå<-temp_gillnet_day3 %>%
   filter(location %in% "Råneå")
 
-c
+
 
 ##### Torhamn, Karlskrona Ö skärgård####
 gillnets_pool_Torhamn<-gillnets_pool %>%
   filter(location %in% "Torhamn, Karlskrona Ö skärgård")
 temp_gillnet_day3_Torhamn<-temp_gillnet_day3 %>%
   filter(location %in% "Torhamn, Karlskrona Ö skärgård")
-
+# I should use a temporal corr str but doesn't work
 Clim_1year_Torhamn <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Torhamn$temp),
                                      cdate = temp_gillnet_day3_Torhamn$date_formatted,
                                      bdate = gillnets_pool_Torhamn$date_formatted,
-                                     baseline = lme(mean_length~totCPUE_Abborre,
-                                                    method="REML",na.action=na.omit, data=gillnets_pool_Torhamn),
+                                     baseline = lm(mean_length~totCPUE_Abborre,
+                                                    na.action=na.omit, data=gillnets_pool_Torhamn),
                                      cinterval = "day",
                                      range = c(365, 0), # these will be from July the year before
                                      type = "absolute", refday = c(31, 07),
                                      stat = "mean",
-                                     func = "lin"))
+                                     func = "lin")
+Clim_1year_Torhamn_quadr <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Torhamn$temp),
+                                 cdate = temp_gillnet_day3_Torhamn$date_formatted,
+                                 bdate = gillnets_pool_Torhamn$date_formatted,
+                                 baseline = lm(mean_length~totCPUE_Abborre,
+                                               na.action=na.omit, data=gillnets_pool_Torhamn),
+                                 cinterval = "day",
+                                 range = c(365, 0), # these will be from July the year before
+                                 type = "absolute", refday = c(31, 07),
+                                 stat = "mean",
+                                 func = "quad")
 
-# boh, error
+
+head(Clim_1year_Torhamn_quadr[[1]]$Dataset)
+
+Clim_1year_Torhamn_quadr[[1]]$BestModel
+
+head(Clim_1year_Torhamn_quadr[[1]]$BestModelData)
+
+Clim_1year_Torhamn_quadr_Output <- Clim_1year_Torhamn_quadr[[1]]$Dataset
+plotdelta(dataset = Clim_1year_Torhamn_quadr_Output)
+
+plotweights(dataset = Clim_1year_Torhamn_quadr_Output)
+
+plotbetas(dataset = Clim_1year_Torhamn_quadr_Output)
+
+plotwin(dataset = Clim_1year_Torhamn_quadr_Output)
+
+
+##### Valjeviken #### 
+# no, only 1 year of data, that is, one value of the response variable
+##### Långvindsfjärden#########
+sort(unique(gillnets_pool$location))
+
+gillnets_pool_Langvid<-gillnets_pool %>%
+  filter(location %in% "Långvindsfjärden")
+temp_gillnet_day3_Langvid<-temp_gillnet_day3 %>%
+  filter(location %in% "Långvindsfjärden")
+# I should use a temporal corr str but doesn't work
+Clim_1year_Langvid <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Langvid$temp),
+                                 cdate = temp_gillnet_day3_Langvid$date_formatted,
+                                 bdate = gillnets_pool_Langvid$date_formatted,
+                                 baseline = lm(mean_length~totCPUE_Abborre, data=gillnets_pool_Langvid),
+                                 cinterval = "day",
+                                 range = c(365, 0), # these will be from July the year before
+                                 type = "absolute", refday = c(31, 07),
+                                 stat = "mean",
+                                 func = "lin")
+
+Clim_1year_Langvid_quad <- slidingwin(xvar = list(Temp = temp_gillnet_day3_Langvid$temp),
+                                 cdate = temp_gillnet_day3_Langvid$date_formatted,
+                                 bdate = gillnets_pool_Langvid$date_formatted,
+                                 baseline = lm(mean_length~totCPUE_Abborre, data=gillnets_pool_Langvid),
+                                 cinterval = "day",
+                                 range = c(365, 0), # these will be from July the year before
+                                 type = "absolute", refday = c(31, 07),
+                                 stat = "mean",
+                                 func = "quad")
+
+
+head(Clim_1year_Langvid_quad[[1]]$Dataset)
+
+Clim_1year_Langvid_quad[[1]]$BestModel
+
+head(Clim_1year_Langvid_quad[[1]]$BestModelData)
+
+Clim_1year_Langvid_quad_Output <- Clim_1year_Langvid_quad[[1]]$Dataset
+plotdelta(dataset = Clim_1year_Langvid_quad_Output)
+
+plotweights(dataset = Clim_1year_Langvid_quad_Output)
+
+plotbetas(dataset = Clim_1year_Langvid_quad_Output)
+
+plotwin(dataset = Clim_1year_Langvid_quad_Output)
