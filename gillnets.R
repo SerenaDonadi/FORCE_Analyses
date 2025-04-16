@@ -461,7 +461,7 @@ gillnets_totCPUE_wide<-pivot_wider(gillnets_totCPUE, names_from = Art, values_fr
 gillnets_totCPUE_wide[is.na(gillnets_totCPUE_wide)] <- 0 # wait, replace with 0 only for spp, not temp!
 gillnets_totCPUE_wide$avg_year_temp[gillnets_totCPUE_wide$avg_year_temp==0] <- NA
 
-head(gillnets_totCPUE_wide)
+table(gillnets$Art)
 summary(gillnets_totCPUE_wide)
 
 # check how many location*year had zero abborre: ok, 4 cases. With the new dataset is 1
@@ -476,19 +476,24 @@ gillnets_totCPUE_wide %>%
 ## TO DO AFTER I ADDED THE NEW SPP: CHECK names with spaces inside. rename totCPUE_Sill/Strömming and totCPUE_Svartmunnad smörbult come minimo
 gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
   select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,
-           totCPUE_Björkna,totCPUE_Braxen,totCPUE_Mört,totCPUE_Siklöja,totCPUE_Id, totCPUE_Löja, # cyprinids
+           totCPUE_Björkna,totCPUE_Braxen,totCPUE_Mört,totCPUE_Id, totCPUE_Löja, # cyprinids
            totCPUE_Ruda,totCPUE_Sarv,totCPUE_Stäm, totCPUE_Sutare, totCPUE_Vimma,  # cyprinids (preys when small)
-           totCPUE_Sill/Strömming, totCPUE_Skarpsill, totCPUE_Staksill,# clupeids
+           'totCPUE_Sill/Strömming', totCPUE_Skarpsill,# clupeids
            totCPUE_Storspigg, # stsp
            totCPUE_Gös,totCPUE_Gädda, # competitors
-           totCPUE_Svart_smöbult, totCPUE_Svartmunnad smörbult, # preys when small
-           totCPUE_Rötsimpa, totCPUE_Bergsimpa)) 
+           'totCPUE_Svart smörbult', 'totCPUE_Svartmunnad smörbult' # preys when small
+           )) 
 
 sort(unique(gillnets_totCPUE$Art))
 # pool preys, assuming CPUE of adults corrleate to abundances of juv
 # cyprinyds: Björkna,Braxen,mört, siklöja, Id...
 # gobies: Svart smörbult, Svartmunnad smörbult..
 # pool competitors: Gös, gädda,..
+# individual spp:
+totCPUE_Mört, totCPUE_Löja
+totCPUE_Gös
+totCPUE_Gädda
+#...
 
 colnames(gillnets_totCPUE_wide)
 
@@ -614,7 +619,7 @@ table(gillnets_pool_time$year)
 # make one (or two) subset for time series analyses and one with only spatial replication
 gillnets_pool # all replicates: 375
 gillnets_pool_time1<-filter(gillnets_pool_time, n>10) # only time series with more than 10 years sampling: 275
-gillnets_pool_time2<-filter(gillnets_pool_time, n>2) # all replicates except location with less than 2 sampling years: 343
+gillnets_pool_time2<-filter(gillnets_pool_time, n>2) # all replicates except location with less than 3 sampling years: 343
 gillnets_pool_space2021<-filter(gillnets_pool_space, year==2021) # only the year with most sampled locations, 2022: 27
 
 # PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
@@ -981,7 +986,7 @@ MassRand0 <- randwin(repeats = 5,
                        type = "absolute", refday = c(31, 07),
                        stat = "mean",
                        func = "lin", spatial = list(gillnets_pool$location, y = temp_gillnet_day3$location))
-# check if deltaAIC are are very different from those in ht output above
+# check if deltaAIC are are very different from those in the output above
 MassRand0[[1]]
 
 # estimate how likely our observed result would be at random using pvalue.
@@ -1027,6 +1032,131 @@ plotall(dataset = MassOutput0,
         datasetrand = MassRand0,
         bestmodel = MassSingle0$BestModel, 
         bestmodeldata = MassSingle0$BestModelData)
+
+##### introducing interaction:####
+# create a variable 'climate' as a placeholder to specify where climate data will be included in hte model
+gillnets_pool$climate <- 1
+# not running with the random factor and the interaction. maybe bc some sites have only 1 year sampled? consider a
+# subset with time series, no less than 3 year per location:
+gillnets_pool_time2
+# or at least 10:
+gillnets_pool_time1
+# consider in hte temp dataset only locations found in gillnets_pool_time1
+temp_gillnet_time1 <- temp_gillnet_day3 %>%
+  filter(location %in% unique(gillnets_pool_time1$location))
+
+#nope. Use site as fixed, in interaction
+MassWin0bis <- slidingwin(xvar = list(Temp = temp_gillnet_time1$temp),
+                       cdate = temp_gillnet_time1$date_formatted,
+                       bdate = gillnets_pool_time1$date_formatted,
+                       baseline = lm(mean_length~totCPUE_Abborre*climate*location,
+                                      data=gillnets_pool_time1),
+                       cinterval = "day",
+                       range = c(150, 0), # these will be from March to end of July
+                       type = "absolute", refday = c(31, 07),
+                       stat = "mean",
+                       func = "lin"))
+
+head(MassWin0bis[[1]]$Dataset)
+
+MassWin0bis[[1]]$BestModel
+
+head(MassWin0bis[[1]]$BestModelData)
+
+MassOutput0bis <- MassWin0bis[[1]]$Dataset
+plotdelta(dataset = MassOutput0bis)
+
+plotweights(dataset = MassOutput0bis)
+
+plotbetas(dataset = MassOutput0bis)
+
+plotwin(dataset = MassOutput0bis)
+
+# try to include random factor using lme4:
+MassRand0tris <- slidingwin(xvar = list(Temp = temp_gillnet_time1$temp),
+                     cdate = temp_gillnet_time1$date_formatted,
+                     bdate = gillnets_pool_time1$date_formatted,
+                     baseline = lmer(mean_length~totCPUE_Abborre*climate
+                                    + (1|location), REML =F,
+                                    na.action=na.omit, data=gillnets_pool_time1),
+                     cinterval = "day",
+                     range = c(150, 0), # these will be from March to end of July
+                     type = "absolute", refday = c(31, 07),
+                     stat = "mean",
+                     func = "lin", spatial = list(gillnets_pool_time1$location, y = temp_gillnet_time1$location))
+head(MassRand0tris[[1]]$Dataset)
+
+MassRand0tris[[1]]$BestModel
+
+head(MassRand0tris[[1]]$BestModelData)
+
+MassOutput0tris <- MassRand0tris[[1]]$Dataset
+plotdelta(dataset = MassOutput0tris)
+
+plotweights(dataset = MassOutput0tris)
+
+plotbetas(dataset = MassOutput0tris)
+
+plotwin(dataset = MassOutput0tris)
+
+##### testing sum of days with temp > 10 ####
+
+# still using only the long time series
+MassRand0a <- slidingwin(xvar = list(Temp = temp_gillnet_time1$temp),
+                            cdate = temp_gillnet_time1$date_formatted,
+                            bdate = gillnets_pool_time1$date_formatted,
+                            baseline = lmer(mean_length~totCPUE_Abborre*climate
+                                            + (1|location), REML =F,
+                                            na.action=na.omit, data=gillnets_pool_time1),
+                            cinterval = "day",
+                            range = c(150, 0), # these will be from March to end of July
+                            upper = 10, binary = TRUE, # sum of days with temp > 10
+                            type = "absolute", refday = c(31, 07),
+                            stat = "sum",
+                            func = "lin", spatial = list(gillnets_pool_time1$location, y = temp_gillnet_time1$location))
+head(MassRand0a[[1]]$Dataset)
+
+MassRand0a[[1]]$BestModel
+
+head(MassRand0a[[1]]$BestModelData)
+
+MassOutput0a <- MassRand0a[[1]]$Dataset
+plotdelta(dataset = MassOutput0a)
+
+plotweights(dataset = MassOutput0a)
+
+plotbetas(dataset = MassOutput0a)
+
+plotwin(dataset = MassOutput0a)
+
+##### testing sum of degrees above 10
+# still using only the long time series
+MassRand0b <- slidingwin(xvar = list(Temp = temp_gillnet_time1$temp),
+                         cdate = temp_gillnet_time1$date_formatted,
+                         bdate = gillnets_pool_time1$date_formatted,
+                         baseline = lmer(mean_length~totCPUE_Abborre*climate
+                                         + (1|location), REML =F,
+                                         na.action=na.omit, data=gillnets_pool_time1),
+                         cinterval = "day",
+                         range = c(150, 0), # these will be from March to end of July
+                         upper = 10, binary = F, # sum of degrees > 10
+                         type = "absolute", refday = c(31, 07),
+                         stat = "sum",
+                         func = "lin", spatial = list(gillnets_pool_time1$location, y = temp_gillnet_time1$location))
+head(MassRand0b[[1]]$Dataset)
+
+MassRand0b[[1]]$BestModel
+
+head(MassRand0b[[1]]$BestModelData)
+
+MassOutput0b <- MassRand0b[[1]]$Dataset
+plotdelta(dataset = MassOutput0b)
+
+plotweights(dataset = MassOutput0b)
+
+plotbetas(dataset = MassOutput0b)
+
+plotwin(dataset = MassOutput0b)
 
 ##### looking at max temp windows #####
 MassWin1 <- slidingwin(xvar = list(Temp = temp_gillnet_day3$temp),
