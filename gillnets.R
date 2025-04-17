@@ -435,6 +435,36 @@ hist(gillnets_CPUE$CPUE)
 head(gillnets_CPUE)
 
 # if I want to use CPUE per size category as explanatory, I should go to wide format
+# spread rows into columns to obtain CPUE of spp SLIT BY SIZE CLASSES and retain zeros - only for perch!
+
+# Abborre dataset
+gillnets_CPUE_abbo<-gillnets_CPUE %>%
+  filter(Art == "Abborre")
+unique(gillnets_CPUE_abbo$length_group)
+#remova NA in length grupp:
+gillnets_CPUE_abbo<-gillnets_CPUE_abbo %>%
+  filter(!is.na(length_group)) 
+gillnets_CPUE_abbo$length_group<-as.factor(gillnets_CPUE_abbo$length_group)
+# remove number_indiv, which is not needed and is hindering pivot_wider from grouping by site and year:
+gillnets_CPUE_abbo<-gillnets_CPUE_abbo %>%
+  select(-c(number_indiv, number_nets))
+# sort descending dataset by location, year and length group
+gillnets_CPUE_abbo<-gillnets_CPUE_abbo[order(gillnets_CPUE_abbo$location, gillnets_CPUE_abbo$year, gillnets_CPUE_abbo$length_group),]
+
+# check overall frequency for each size classes
+plot(gillnets_CPUE_abbo$length_group, gillnets_CPUE_abbo$CPUE)
+
+
+library(tidyr)
+gillnets_CPUE_abbo_wide<-pivot_wider(gillnets_CPUE_abbo, names_from = length_group, values_from = CPUE)
+# replace with 0 only for spp, not temp! check that there are no zeros
+summary(gillnets_CPUE_abbo_wide$avg_year_temp)
+gillnets_CPUE_abbo_wide[is.na(gillnets_CPUE_abbo_wide)] <- 0  
+gillnets_CPUE_abbo_wide$avg_year_temp[gillnets_CPUE_abbo_wide$avg_year_temp==0] <- NA
+
+levels(gillnets_CPUE_abbo$length_group)
+# show names of columns:
+colnames(gillnets_CPUE_abbo_wide)
 
 
 ### calculate tot CPUE (pooled across size categories). Bring along number indiv and number of nets and avg temp
@@ -450,6 +480,7 @@ head(gillnets_totCPUE)
 
 # SUMMARY of key datasets
 # gillnets_CPUE: replicated at level of location, year, size categories (and spp) - useful for plotting
+# gillnets_CPUE_abbo_wide: replicated at level of location, with size categories in columns - only abbo
 # gillnets_totCPUE: replicated at level of location, year (and spp)
 # gillnets_length_indexes: replicated at level of location, year but only for Abborre - useful for stat. 
 
@@ -473,7 +504,6 @@ gillnets_totCPUE_wide %>%
 #find("select")
 #select <- dplyr::select
 
-## TO DO AFTER I ADDED THE NEW SPP: CHECK names with spaces inside. rename totCPUE_Sill/Strömming and totCPUE_Svartmunnad smörbult come minimo
 gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
   select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,
            totCPUE_Björkna,totCPUE_Braxen,totCPUE_Mört,totCPUE_Id, totCPUE_Löja, # cyprinids
@@ -484,23 +514,29 @@ gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
            'totCPUE_Svart smörbult', 'totCPUE_Svartmunnad smörbult' # preys when small
            )) 
 
-sort(unique(gillnets_totCPUE$Art))
-# pool preys, assuming CPUE of adults corrleate to abundances of juv
-# cyprinyds: Björkna,Braxen,mört, siklöja, Id...
-# gobies: Svart smörbult, Svartmunnad smörbult..
-# pool competitors: Gös, gädda,..
-# individual spp:
-totCPUE_Mört, totCPUE_Löja
-totCPUE_Gös
-totCPUE_Gädda
-#...
-
 colnames(gillnets_totCPUE_wide)
+sort(unique(gillnets_totCPUE$Art))
+
 
 # merge gillnets_length_indexes table with CPUE of spp:
-gillnets_pool<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
+gillnets_pool0<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
+# merge with CPUE of Abbo from different size classes:
+gillnets_CPUE_abbo_wide2<-gillnets_CPUE_abbo_wide %>%
+  select(-c(Art, avg_year_temp))
+gillnets_pool<-left_join(gillnets_pool0, gillnets_CPUE_abbo_wide2, by = c("location","year")) 
 
-# fix column names for variables that contain more variables: not done yet!
+# add variables such as clupeids, gobids, cyprinids, competitors, preys..
+gillnets_pool$clupeids<-gillnets_pool$totCPUE_Skarpsill + gillnets_pool$'totCPUE_Sill/Strömming'
+gillnets_pool$cyprinids<-gillnets_pool$totCPUE_Björkna + gillnets_pool$totCPUE_Braxen + 
+  gillnets_pool$totCPUE_Mört + gillnets_pool$totCPUE_Id + gillnets_pool$totCPUE_Löja + 
+  gillnets_pool$totCPUE_Ruda + gillnets_pool$totCPUE_Sarv + gillnets_pool$totCPUE_Stäm + 
+  gillnets_pool$totCPUE_Sutare + gillnets_pool$totCPUE_Vimma
+gillnets_pool$competitors<-gillnets_pool$totCPUE_Gös + gillnets_pool$totCPUE_Gädda
+gillnets_pool$gobies<-gillnets_pool$'totCPUE_Svart smörbult' + gillnets_pool$'totCPUE_Svartmunnad smörbult'
+gillnets_pool$all_prey<-gillnets_pool$clupeids+gillnets_pool$cyprinids+gillnets_pool$gobies
+
+
+# fix column names for variables that contain more variables: not done yet! maybe using'' works
 head(gillnets_pool)
 colnames(gillnets_pool)
 #gillnets_pool$sk1[1]
@@ -517,11 +553,9 @@ hist(gillnets_pool$skew1)
 # SUMMARY of key datasets
 # gillnets_CPUE: include CPUE separated for size categories. Replicated at level of location, year, size categories (and spp) - useful for plotting
 # gillnets_CPUE_abbo: only for perch
-# gillnets_pool: include length indexes for Abborre and tot CPUE of Abborre and few other spp. Replicated at level of location, year - useful for stat. 
+# gillnets_pool: include length indexes for Abborre and tot CPUE of Abborre and  other spp, and CPUE of 
+# abborrre of different size classes. Replicated at level of location, year - useful for stat. 
 
-# Abborre dataset
-gillnets_CPUE_abbo<-gillnets_CPUE %>%
-  filter(Art == "Abborre")
 
 #####
 # exploratory plots

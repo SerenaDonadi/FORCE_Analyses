@@ -291,31 +291,30 @@ gillnets1a %>%
 length_age11<-left_join(length_age10, gillnets_pool, by = c("year","location")) 
 head(length_age11)
 
-# remove unecessary columns:
-#length_age7<-length_age7 %>%
-#  select(-c(27:33)) 
-#length_age7<-length_age7 %>%
-#  select(-c(program,survey, gear.code, gear, gear_code,comments,approved,sampling_method ))
+# remove unnecessary columns:
+length_age12<-length_age11 %>%
+  select(-c(species,program,survey, gear.code, gear, ID, aging_method,somatic_weight_type,sex, comments,approved,
+            sampling_method))
 
-summary(length_age10)
+summary(length_age12)
 
-length_age11_age2<-length_age11 %>% 
+length_age12_age2<-length_age12 %>% 
   filter(age == 2)
-length_age11_age3<-length_age11 %>% 
+length_age12_age3<-length_age12 %>% 
   filter(age == 3)
-length_age11_age4<-length_age11 %>% 
+length_age12_age4<-length_age12 %>% 
   filter(age == 4)
-length_age11_age2to4<-length_age11 %>% 
+length_age12_age2to4<-length_age12 %>% 
   filter(age < 5 & age >1)
 
-unique(sort(length_age10$location))
-
+unique(sort(length_age12$location))
+table(length_age12$gear_code)
 
 #####
 # exploration plots
 #####
 # length at age vs temp:
-ggplot(subset(length_age11, age %in% "2"), aes(x = avg_year_temp , y = total_length)) +
+ggplot(subset(length_age12, age %in% "2"), aes(x = avg_year_temp , y = total_length)) +
   geom_point()+
   #facet_wrap(~year)+
   geom_smooth(method = "lm")+ 
@@ -338,7 +337,7 @@ ggplot(length_age7_age4, aes(x = totCPUE_Abborre , y = total_length)) +
   theme_classic(base_size=13)
 
 # length at age vs densities of spp
-ggplot(length_age7_age2, aes(x = totCPUE_Mört , y = total_length)) +
+ggplot(length_age12_age2, aes(x = all_prey , y = total_length)) +
   geom_point()+
   geom_smooth(method = "lm")+ 
   labs(title="Age 2")+
@@ -357,11 +356,11 @@ ggplot(length_age7_age2to4, aes(x = year , y = total_length)) +
   theme_classic(base_size=13)
 
 # length at age vs locations and year
-ggplot(length_age11_age2, aes(x = year , y = total_length)) +
+ggplot(length_age12_age4, aes(x = year , y = total_length)) +
   geom_point()+
   geom_smooth(method = "lm")+ 
   facet_wrap(~location)+
-  labs(title="age 2")+
+  labs(title="age 4")+
   theme_classic(base_size=13)
 
 # length at age vs locations and temp
@@ -456,36 +455,7 @@ l<-tapply(length_age10_age2to4$total_length,list(length_age10_age2to4$lat,length
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 
+
 #####
-# exploring differences in age distribution between year and sites - WAIt
+# statistical analysis - age 2
 #####
-# the aging was done only on some individuals for each length category, meaning that the age is likely biased by the length 
-# categories they found and how many samples they used for age determination for each length category, which may not reflect 
-# the actual age distribution of the populations. 
-
-# years and sites pooled
-ggplot(length_age11, aes(x=age)) +
-  geom_bar()
-
-# years pooled
-ggplot(length_age11, aes(x=age)) +
-  geom_bar()+
-  facet_wrap(~location)+
-  labs(title="")+
-  theme_classic(base_size=13)
-
-# sites pooled
-ggplot(length_age11, aes(x=age)) +
-  geom_bar()+
-  facet_wrap(~year)+
-  labs(title="")+
-  theme_classic(base_size=13)
-
-#
-avg<-tapply(length_age11$age,list(length_age11$year,length_age11$location),mean)
-sdpl<-tapply(length_age11$age,list(length_age11$year,length_age11$location),sd)
-l<-tapply(length_age11$age,list(length_age11$year,length_age11$location),length)
-ci<-sdpl/sqrt(l)
-barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "") 
-
-
