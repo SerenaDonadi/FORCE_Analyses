@@ -39,6 +39,24 @@ guess_encoding("gillnet-data-unfiltered-NEW.csv", n_max = 1000)
 gillnets <- read.csv2("gillnet-data-unfiltered-NEW.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
 head(gillnets)
 
+###UPDATE: NEW FILE WITH column "Artbestämning" WITH INFO ON OKÄND aRT IS:
+guess_encoding("gillnet-data-unfiltered.csv", n_max = 1000)
+# CHECK/COMPARE TO OLD FILE, AND EVENTUALLY USE THIS   AFTER FIXING TEMP DATA
+gillnets0 <- read.csv2("gillnet-data-unfiltered.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
+head(gillnets0)
+
+table(gillnets$Art)
+table(gillnets0$Art)
+table(gillnets0$Artbestämning)
+
+gillnets0 %>%
+  filter(Art == "Ok nd") %>%
+  select(Artbestämning) %>%
+  unique()
+
+# do it later if I have time. or maybe merge it at a certain point
+
+
 # make column with only month
 head(gillnets$Fiskedatum)
 gillnets$month<-as.numeric(LEFT(RIGHT(gillnets$Fiskedatum,7),2))
@@ -71,8 +89,6 @@ hist(temp_gillnet_day$month)
 
 # set the format for date:
 temp_gillnet_day$date<-as.Date(temp_gillnet_day$date,"%d/%m/%Y")
-
-
 
 ## OBS in same cases temp doesn´t vary between January and April. It could depend on that there is ice, or a problem with data extraction
 # this is mainly found in the 80s. but also later, see Råneå example. check what parameters to extract and which years we consider
@@ -478,6 +494,8 @@ gillnets_totCPUE<-gillnets_CPUE %>%
 
 head(gillnets_totCPUE)
 
+table(gillnets_totCPUE$Art) # only 22 Okänd, no worth bothering
+
 # SUMMARY of key datasets
 # gillnets_CPUE: replicated at level of location, year, size categories (and spp) - useful for plotting
 # gillnets_CPUE_abbo_wide: replicated at level of location, with size categories in columns - only abbo
@@ -534,6 +552,34 @@ gillnets_pool$cyprinids<-gillnets_pool$totCPUE_Björkna + gillnets_pool$totCPUE_
 gillnets_pool$competitors<-gillnets_pool$totCPUE_Gös + gillnets_pool$totCPUE_Gädda
 gillnets_pool$gobies<-gillnets_pool$'totCPUE_Svart smörbult' + gillnets_pool$'totCPUE_Svartmunnad smörbult'
 gillnets_pool$all_prey<-gillnets_pool$clupeids+gillnets_pool$cyprinids+gillnets_pool$gobies
+
+
+# calculate lags: TO DO
+# sort, if needed, by consecutive years per location
+head(gillnets_pool) # no need but I'll do it anyway:
+gillnets_pool_lag<-gillnets_pool %>% 
+  arrange(location, year) 
+head(gillnets_pool_lag)
+
+# from:https://stackoverflow.com/questions/26291988/how-to-create-a-lag-variable-within-each-group
+# introduce lags WITHIN groups using dplyr:
+
+gillnets_pool_lag <- 
+  gillnets_pool_lag %>%
+  group_by(location) %>%
+  mutate(avg_year_temp_1YearBefore = dplyr::lag(avg_year_temp, n = 1, default = NA)) %>%
+  mutate(avg_year_temp_2YearBefore = dplyr::lag(avg_year_temp, n = 2, default = NA)) %>%
+  
+  mutate(totCPUE_Abborre_1YearBefore = dplyr::lag(totCPUE_Abborre, n = 1, default = NA)) %>%
+  mutate(totCPUE_Mört_1YearBefore = dplyr::lag(totCPUE_Mört, n = 1, default = NA)) %>%
+  mutate(totCPUE_Löja_1YearBefore = dplyr::lag(totCPUE_Löja, n = 1, default = NA)) %>%
+  mutate(totCPUE_Storspigg_1YearBefore = dplyr::lag(totCPUE_Storspigg, n = 1, default = NA)) %>%
+  
+  mutate(clupeids_1YearBefore = dplyr::lag(clupeids, n = 1, default = NA)) %>%
+  mutate(cyprinids_1YearBefore = dplyr::lag(cyprinids, n = 1, default = NA)) %>%
+  mutate(competitors_1YearBefore = dplyr::lag(competitors, n = 1, default = NA)) %>%
+  mutate(gobies_1YearBefore = dplyr::lag(gobies, n = 1, default = NA)) %>%
+  mutate(all_prey_1YearBefore = dplyr::lag(all_prey, n = 1, default = NA))
 
 
 # fix column names for variables that contain more variables: not done yet! maybe using'' works

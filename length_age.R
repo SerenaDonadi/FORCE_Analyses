@@ -288,13 +288,14 @@ gillnets1a %>%
   filter(location %in% c("Mönsterås")) 
 #####
 # merge and keep all records in left dataset, and only matching record in right dataset
-length_age11<-left_join(length_age10, gillnets_pool, by = c("year","location")) 
+length_age11<-left_join(length_age10, gillnets_pool_lag, by = c("year","location")) 
 head(length_age11)
 
 # remove unnecessary columns:
 length_age12<-length_age11 %>%
   select(-c(species,program,survey, gear.code, gear, ID, aging_method,somatic_weight_type,sex, comments,approved,
             sampling_method))
+
 
 summary(length_age12)
 
@@ -304,6 +305,8 @@ length_age12_age3<-length_age12 %>%
   filter(age == 3)
 length_age12_age4<-length_age12 %>% 
   filter(age == 4)
+length_age12_age5<-length_age12 %>% 
+  filter(age == 5)
 length_age12_age2to4<-length_age12 %>% 
   filter(age < 5 & age >1)
 
@@ -356,11 +359,11 @@ ggplot(length_age7_age2to4, aes(x = year , y = total_length)) +
   theme_classic(base_size=13)
 
 # length at age vs locations and year
-ggplot(length_age12_age4, aes(x = year , y = total_length)) +
+ggplot(length_age12_age5, aes(x = year , y = total_length)) +
   geom_point()+
   geom_smooth(method = "lm")+ 
   facet_wrap(~location)+
-  labs(title="age 4")+
+  labs(title="age 5")+
   theme_classic(base_size=13)
 
 # length at age vs locations and temp
@@ -459,3 +462,30 @@ barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.
 #####
 # statistical analysis - age 2
 #####
+head(length_age12_age2)
+
+# covariates: date as covariate. maybe transform to ordinal number. Conspecific densities as total or split by
+# size classes (pooled somehow).  Temp variables: now I have only avg_year_temp, calculate and import others.
+# stsp densities: to come. Densities of other food, split by spp (mört and Löja) or pooled. Ddnsities of competitors
+# consider lags? for avg year temp, competitors, conspecific, preys, stsp. just 1 year?
+
+# distributional properties
+hist(length_age12_age2$)
+
+
+
+# collinearity (use matrix and plots and cor.test)
+
+# check collinearity with vif
+M0<- lm(total_length ~ avg_year_temp +  totCPUE_Abborre + clupeids + cyprinids +competitors + gobies+
+        field_temp + # account for different catchability of gillnets with temp (if not collinear, otherwise test on residuals)
+          catch_date, # account for extra growth in august until catch
+        data = length_age12_age2)
+
+# beyond optimal model
+
+# test for temporal corr str: 
+# random=~1|location,correlation=corAR1(form=~year). Use script in stat in gillnets for differnt str
+
+
+

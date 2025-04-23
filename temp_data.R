@@ -4,15 +4,8 @@
 #2) loggers
 #3) From the field
 
-# 1) temp from satellite (script copied from the gillnet dataset analyses) 
-# the data are attached to the gillnet dataset, the match has been done based on "location"
-# avg year temp from satellite: from 1982 to 2023, all locations of the gillnet dataset
-# avg day temp from satellite: all locations of the gillnet dataset but only until 2020
-# PS: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
-# Björnöfjärden and Älgöfjärden are not in the gillnet dataset, but they are in the temp dataset
-
-# 2) temp from loggers
-# read all files received from Ingrid and extract temp variables, such as:
+######
+# ecologically significant temp variables.
 #####
 # avg_day_temp_logger (to compare with day temp from satellite and with temp at the time of sampling) - if available (depending on loggers sampling frequency)
 
@@ -92,16 +85,31 @@
 # last_day_withavg_temp_over_10C_lag3year
 # last_day_withavg_temp_over_10C_lag4year
 
+# PS: some of these variables can be calculated for satellite data with day temp and with Ingrid data.
+# or, if I manage to combine temp variables according to Max approach, with that temp variable
 
-#PS: some of these variables can also be calculated for satellite data!
+
+##### 
+# temp from satellite
 #####
+# 1) temp from satellite (script copied from the gillnet dataset analyses) 
+# the data are attached to the gillnet dataset, the match has been done based on "location"
+# avg year temp from satellite: from 1982 to 2023, all locations of the gillnet dataset
+# avg day temp from satellite: all locations of the gillnet dataset but only until 2020
+# PS: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
+# Björnöfjärden and Älgöfjärden are not in the gillnet dataset, but they are in the temp dataset
+
+#####
+# temp from loggers
+#####
+# read all files received from Ingrid and extract ecologically important temp variables
 
 install.packages("climwin")
 library(climwin)
 vignette("climwin", package = "climwin")
 
 # check location match
-#####
+
 unique(length_age10$location) # 
 # locations in length age dataset for which we don't have temp data from loggers (but we have from satellite and field)
 # Askrikefjärden, Blekinge län,Bulleröfjärden,Gaviksfjärden... many
@@ -123,7 +131,6 @@ length_age10 %>%
 # data from Gålö (2 locations received), should correspond to location Stockholms skärgårds m kustvatten in gillnets dataset.
 # however, the fishing has been conducted out in the archipelago, not sure I should use the data from Gålö.
 # I could check deviations from satellite data as well
-#####
 
 #read all files with temp log data and add a column with the corresponding location in the length_age dataset
 # and fix lay out if needed
@@ -208,5 +215,8 @@ Långvi <- read.csv2("långvindsfj.csv",fileEncoding="ISO-8859-1",  header=TRUE,
 
 # before going on, check where the temop logg are located vs gillnets. maybe no need to import all these
 head(aland)
+
+### stop here until I know how to proceed with Max and Co.
+
 
 
