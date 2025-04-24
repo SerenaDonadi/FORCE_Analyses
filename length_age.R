@@ -651,28 +651,47 @@ length_age12_age2_pooled<-length_age12_age2 %>%
   group_by(location, year) %>%
   summarise(avg_total_length = mean(total_length, na.rm = TRUE),
             avg_year_temp = mean(avg_year_temp, na.rm = TRUE),
+            avg_year_temp_1YearBefore = mean(avg_year_temp_1YearBefore, na.rm = TRUE),
+            avg_year_temp_2YearBefore = mean(avg_year_temp_2YearBefore, na.rm = TRUE),
             totCPUE_Abborre = mean(totCPUE_Abborre, na.rm = TRUE),
             competitors = mean(competitors, na.rm = TRUE),
             all_prey = mean(all_prey, na.rm = TRUE),
+            totCPUE_Abborre_1YearBefore = mean(totCPUE_Abborre_1YearBefore, na.rm = TRUE),
+            competitors_1YearBefore = mean(competitors_1YearBefore, na.rm = TRUE),
+            all_prey_1YearBefore = mean(all_prey_1YearBefore, na.rm = TRUE),
             avg_field_temp = mean(field_temp, na.rm = TRUE),
             avg_catch_date = mean(catch_date, na.rm = TRUE),
             n_samples = n()) 
 
-# it looks like I have a lot of NAs. One reason is that, 
-# in some cases, even though I have the location in both gillnets and length age datasets, 
-# the year is not the same, so I get no covariates for the length at age data analysis.
-# CHECK
-# typ:
+summary(length_age12_age2_pooled)
+
+#####
+# show me where I have NAs
+length_age12_age2_pooled %>%
+  filter(is.na(totCPUE_Abborre) | is.na(competitors) | 
+           is.na(all_prey) | is.na(avg_field_temp) | is.na(avg_catch_date)) %>%
+  print(n=19)
+
+# show me where I have sample = 1:Kvädöfjärden
+length_age12_age2_pooled %>%
+  filter(n_samples == 1) 
+# show me where I have sample = 291: Blekinge län
+length_age12_age2_pooled %>%
+  filter(n_samples == 291)
+
+# it looks like I have some NAs. 19 (out of 250) site*year combinations not found in the gillnets dataset. Why?
+# However, not  big deal. Kvädöfjärden had only 1 fish. 
 length_age12_age2 %>%
   filter(location == "Aspöja")
 length_age10 %>%
   filter(location == "Aspöja")
 gillnets_pool %>%
   filter(location == "Aspöja")
-
-
+gillnets_pool %>%
+  filter(location == "Forsmark")
 
 ##### if I want to remove locations that were sampled only 1 or 2 years: ####
+# run later if needed
 table (length_age12_age2$location, length_age12_age2$year)
 
 length_age12_age2a<-length_age12_age2 %>%
@@ -686,20 +705,93 @@ length_age12_age2a<-length_age12_age2a %>%
   filter(unique_years > 2)
 #####
 
-# try weighted regression on n samples
+# collinearity: correlation matrix:
+df <- data.frame(length_age12_age2_pooled$avg_year_temp, length_age12_age2_pooled$avg_year_temp_1YearBefore, length_age12_age2_pooled$avg_year_temp_2YearBefore,
+                 length_age12_age2_pooled$totCPUE_Abborre, length_age12_age2_pooled$competitors,
+                 length_age12_age2_pooled$all_prey)
+# plot pariwise scatterplots of covariates:
+pairs(df)
+
+# with lagged variables
+df_lag <- data.frame(length_age12_age2_pooled$avg_year_temp_1YearBefore, length_age12_age2_pooled$avg_year_temp_2YearBefore,
+                     length_age12_age2_pooled$totCPUE_Abborre_1YearBefore, length_age12_age2_pooled$competitors_1YearBefore,
+                     length_age12_age2_pooled$all_prey_1YearBefore)
+# plot pariwise scatterplots of covariates:
+pairs(df_lag)
+
+# distributional properties
+hist(length_age12_age2_pooled$avg_total_length)
+hist(length_age12_age2_pooled$totCPUE_Abborre) 
+hist(length_age12_age2_pooled$competitors) # consider log transf
+hist(length_age12_age2_pooled$all_prey)
+
+
+# check collinearity with vif
+M0<- lm(avg_total_length ~ avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
+          totCPUE_Abborre + competitors + #  conspecifics, competitors
+          #totCPUE_Mört + totCPUE_Löja +    # food single spp
+          #clupeids + cyprinids + gobies +  # food pooled spp
+          all_prey +                       # food total
+          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
+          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
+          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
+          #all_prey_1YearBefore +
+          avg_field_temp + # account for different catchability of gillnets with temp (if not collinear, otherwise test on residuals)
+          avg_catch_date, # account for extra growth in august until catch
+        data = length_age12_age2_pooled)
+vif(M0)
+
+# try weighted regression on n samples - beyond optimal model
+M1<-lm(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+       weights= n_samples,data=length_age12_age2_pooled)
+# compare:
+summary(M0)
+summary(M1)
+# similar results. However, if I use weight, not sure how to incorporate corr str
+
+# without weight:
 
 # useful random str for later. remove samples if it doesn't run (see above)
+M2<-gls(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        method="REML",na.action=na.omit,,data=length_age12_age2_pooled)
+M3<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corExp(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M4<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M5<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M6<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corGaus(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M7<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corSpher(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+AIC(M2,M3,M4,M5,M6,M7)
+# best M3 and M4 and M5
 
-M3<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + catch_date,
-        random=~1|location,correlation=corExp(form=~year),method="REML",na.action=na.omit, data=length_age12_age2a)
-M4<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + catch_date,
-        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=length_age12_age2a)
-M5<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + catch_date,
-        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2)
-M6<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + catch_date,
-        random=~1|location,correlation=corGaus(form=~year),method="REML",na.action=na.omit, data=length_age12_age2)
-M7<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + catch_date,
-        random=~1|location,correlation=corSpher(form=~year),method="REML",na.action=na.omit, data=length_age12_age2)
-AIC(M0,M1,M2,M3,M4,M5,M6,M7)
-# best M3 and M4
+# variance str:
+M5<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M8<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        weights=varFixed(~ avg_year_temp),
+        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M9<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        weights=varFixed(~ totCPUE_Abborre),
+        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M10<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+         weights=varFixed(~ competitors),
+         random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M11<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+         weights=varFixed(~ all_prey),
+         random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+M12<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+         weights=varFixed(~ avg_field_temp),
+         random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+AIC(M5,M8,M9,M11,M12)
+
+# final
+M5<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_field_temp + avg_catch_date,
+        random=~1|location,correlation=corLin(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+anova.lme(M5, type = "marginal", adjustSigma = F) 
+rsquared(M5)
+summary(M5)
+plot(M5)
 
