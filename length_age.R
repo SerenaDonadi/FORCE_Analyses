@@ -530,7 +530,6 @@ vif(M0)
 # beyond optimal model: M0
 
 # test for temporal corr str: 
-# random=~1|location,correlation=corAR1(form=~year). Use script in stat in gillnets for differnt str
 M0<-gls(total_length ~ avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
           totCPUE_Abborre + competitors + #  conspecifics, competitors
           #totCPUE_Mört + totCPUE_Löja +    # food single spp
@@ -746,6 +745,9 @@ length_age12_age2_pooled<-length_age12_age2 %>%
             totCPUE_Abborre_1YearBefore = mean(totCPUE_Abborre_1YearBefore, na.rm = TRUE),
             competitors_1YearBefore = mean(competitors_1YearBefore, na.rm = TRUE),
             all_prey_1YearBefore = mean(all_prey_1YearBefore, na.rm = TRUE),
+            avg_CPUEabbo_13_14cm = mean(CPUEabbo_13_14cm, na.rm = TRUE),
+            avg_CPUEabbo_13_15cm = mean(CPUEabbo_13_15cm, na.rm = TRUE),
+            avg_CPUEabbo_13_16cm = mean(CPUEabbo_13_16cm, na.rm = TRUE),
             #avg_field_temp = mean(field_temp, na.rm = TRUE), # this affect the catchbility, that is the CPUE, not the length. potentially test it in an interactuon with CPUE
             avg_day_of_month = mean(day_of_month, na.rm = TRUE),
             n_samples = n()) 
@@ -756,7 +758,7 @@ summary(length_age12_age2_pooled)
 # show me where I have NAs
 length_age12_age2_pooled %>%
   filter(is.na(totCPUE_Abborre) | is.na(competitors) | 
-           is.na(all_prey) | is.na(avg_field_temp)) 
+           is.na(all_prey) | is.na(avg_day_of_month)) 
 
 # show me where I have sample = 1:Kvädöfjärden
 length_age12_age2_pooled %>%
@@ -893,5 +895,117 @@ summary(M6)
 # totCPUE_Abborre_1YearBefore, _1YearBefore, all_prey_1YearBefore: not much difference.
 
 # testing conspecifics size classes
+M5<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_day_of_month,
+        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+anova.lme(M5, type = "marginal", adjustSigma = F) 
+rsquared(M5)
+summary(M5)
+
+M7<-lme(avg_total_length~avg_year_temp+avg_CPUEabbo_13_16cm  + competitors + all_prey + avg_day_of_month,
+        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled)
+anova.lme(M7, type = "marginal", adjustSigma = F) 
+rsquared(M7)
+summary(M7)
+ 
 
 #OBS: If I don't use weight, maybe I should delete samples with n samples < of a certain value. Which one?
+
+table(length_age12_age2_pooled$n_samples)
+# if I use only site*location with at least 30 fish measured, I lose 48 replicates
+
+length_age12_age2_pooled_nsample30<-length_age12_age2_pooled %>%
+  filter(n_samples >= 30)
+
+# final preliminary
+M5a<-lme(avg_total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + avg_day_of_month,
+        random=~1|location,correlation=corAR1(form=~year),method="REML",na.action=na.omit, data=length_age12_age2_pooled_nsample30)
+anova.lme(M5a, type = "marginal", adjustSigma = F) 
+rsquared(M5a)
+summary(M5a)
+plot(M5a)
+
+
+
+
+
+#####
+# statistical analysis - all ages
+#####
+head(length_age12)
+table(length_age12$age)
+
+##### approach 1 all values retained with a simple corr str ####
+
+# collinearity: correlation matrix:
+df <- data.frame(length_age12$avg_year_temp, length_age12$avg_year_temp_1YearBefore, length_age12$avg_year_temp_2YearBefore,
+                 length_age12$totCPUE_Abborre, length_age12$competitors,
+                 length_age12$totCPUE_Mört,length_age12$totCPUE_Löja +length_age12$totCPUE_Storspigg,
+                 length_age12$clupeids,length_age12$cyprinids,length_age12$gobies,
+                 length_age12$all_prey)
+# plot pariwise scatterplots of covariates:
+pairs(df)
+
+# with lagged variables
+df_lag <- data.frame(length_age12$avg_year_temp_1YearBefore, length_age12_age2$avg_year_temp_2YearBefore,
+                     length_age12_age2$totCPUE_Abborre_1YearBefore, length_age12_age2$competitors_1YearBefore,
+                     length_age12_age2$totCPUE_Mört_1YearBefore,length_age12_age2$totCPUE_Löja_1YearBefore +length_age12_age2$totCPUE_Storspigg_1YearBefore,
+                     length_age12_age2$clupeids_1YearBefore,length_age12_age2$cyprinids_1YearBefore,length_age12_age2$gobies_1YearBefore,
+                     length_age12_age2$all_prey_1YearBefore)
+# plot pariwise scatterplots of covariates:
+pairs(df_lag)
+
+# distributional properties
+hist(length_age12$total_length)
+hist(length_age12$gobies) # consider log transf
+hist(length_age12$totCPUE_Löja) # consider log transf
+hist(length_age12$competitors) # consider log transf
+hist(length_age12$all_prey)
+
+# check collinearity with vif
+M0<- lm(total_length ~ age +avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
+          totCPUE_Abborre + competitors + #  conspecifics, competitors
+          #totCPUE_Mört + totCPUE_Löja +    # food single spp
+          #clupeids + cyprinids + gobies +  # food pooled spp
+          all_prey +                       # food total
+          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
+          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
+          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
+          #all_prey_1YearBefore +
+          field_temp + # account for different catchability of gillnets with temp (if not collinear, otherwise test on residuals)
+          day_of_month, # account for extra growth in august until catch
+        data = length_age12)
+vif(M0)
+
+# beyond optimal model: M0
+M0<- lm(total_length ~ age*avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
+          age*totCPUE_Abborre + age*competitors + #  conspecifics, competitors
+          #totCPUE_Mört + totCPUE_Löja +    # food single spp
+          #clupeids + cyprinids + gobies +  # food pooled spp
+          age*all_prey +                       # food total
+          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
+          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
+          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
+          #all_prey_1YearBefore +
+          day_of_month, # account for extra growth in august until catch
+        data = length_age12)
+summary(M0)
+
+# test for temporal corr str: 
+M0<-gls(total_length ~ age*avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
+          age*totCPUE_Abborre + age*competitors + #  conspecifics, competitors
+          #totCPUE_Mört + totCPUE_Löja +    # food single spp
+          #clupeids + cyprinids + gobies +  # food pooled spp
+          age*all_prey +                       # food total
+          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
+          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
+          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
+          #all_prey_1YearBefore +
+          day_of_month, # account for extra growth in august until catch
+        method="REML",na.action=na.omit, data=length_age12)
+
+M1<-lme(total_length~age*avg_year_temp+age*totCPUE_Abborre + age*competitors + age*all_prey + day_of_month,
+        random=~1|location,method="REML",na.action=na.omit, data=length_age12)
+M2<-lme(total_length~~age*avg_year_temp+age*totCPUE_Abborre + age*competitors + age*all_prey + day_of_month,
+        random=~1|location,correlation=corCompSymm(form=~year),method="REML",na.action=na.omit, data=length_age12)
+AIC(M0,M1,M2)
+ # not working, check
