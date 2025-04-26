@@ -301,7 +301,7 @@ head(length_age11)
 
 # remove unnecessary columns:
 length_age12<-length_age11 %>%
-  select(-c(species,program,survey, gear.code, gear, ID, aging_method,somatic_weight_type,sex, comments,approved,
+  select(-c(species,program,survey, gear, gear.code, ID, aging_method,somatic_weight_type,sex, comments,approved,
             sampling_method))
 
 summary(length_age12)
@@ -759,6 +759,14 @@ summary(length_age12_age2_pooled)
 length_age12_age2_pooled %>%
   filter(is.na(totCPUE_Abborre) | is.na(competitors) | 
            is.na(all_prey) | is.na(avg_day_of_month)) 
+
+# check what type of gear:
+length_age12_age2%>%
+  filter(is.na(totCPUE_Abborre) | is.na(competitors) | 
+           is.na(all_prey)) %>%
+  select(gear_code, location, year) %>%
+  unique()
+
 
 # show me where I have sample = 1:Kvädöfjärden
 length_age12_age2_pooled %>%

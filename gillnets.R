@@ -554,7 +554,7 @@ gillnets_pool$gobies<-gillnets_pool$'totCPUE_Svart smörbult' + gillnets_pool$'t
 gillnets_pool$all_prey<-gillnets_pool$clupeids+gillnets_pool$cyprinids+gillnets_pool$gobies
 
 
-# calculate lags: TO DO
+# calculate lags: 
 # sort, if needed, by consecutive years per location
 head(gillnets_pool) # no need but I'll do it anyway:
 gillnets_pool_lag<-gillnets_pool %>% 
@@ -574,12 +574,349 @@ gillnets_pool_lag <-
   mutate(totCPUE_Mört_1YearBefore = dplyr::lag(totCPUE_Mört, n = 1, default = NA)) %>%
   mutate(totCPUE_Löja_1YearBefore = dplyr::lag(totCPUE_Löja, n = 1, default = NA)) %>%
   mutate(totCPUE_Storspigg_1YearBefore = dplyr::lag(totCPUE_Storspigg, n = 1, default = NA)) %>%
-  
   mutate(clupeids_1YearBefore = dplyr::lag(clupeids, n = 1, default = NA)) %>%
   mutate(cyprinids_1YearBefore = dplyr::lag(cyprinids, n = 1, default = NA)) %>%
   mutate(competitors_1YearBefore = dplyr::lag(competitors, n = 1, default = NA)) %>%
   mutate(gobies_1YearBefore = dplyr::lag(gobies, n = 1, default = NA)) %>%
-  mutate(all_prey_1YearBefore = dplyr::lag(all_prey, n = 1, default = NA))
+  mutate(all_prey_1YearBefore = dplyr::lag(all_prey, n = 1, default = NA)) %>%
+  
+  mutate(totCPUE_Abborre_2YearBefore = dplyr::lag(totCPUE_Abborre, n = 2, default = NA)) %>%
+  mutate(totCPUE_Mört_2YearBefore = dplyr::lag(totCPUE_Mört, n = 2, default = NA)) %>%
+  mutate(totCPUE_Löja_2YearBefore = dplyr::lag(totCPUE_Löja, n = 2, default = NA)) %>%
+  mutate(totCPUE_Storspigg_2YearBefore = dplyr::lag(totCPUE_Storspigg, n = 2, default = NA)) %>%
+  mutate(clupeids_2YearBefore = dplyr::lag(clupeids, n = 2, default = NA)) %>%
+  mutate(cyprinids_2YearBefore = dplyr::lag(cyprinids, n = 2, default = NA)) %>%
+  mutate(competitors_2YearBefore = dplyr::lag(competitors, n = 2, default = NA)) %>%
+  mutate(gobies_2YearBefore = dplyr::lag(gobies, n = 2, default = NA)) %>%
+  mutate(all_prey_2YearBefore = dplyr::lag(all_prey, n = 2, default = NA)) %>%
+  
+  mutate(totCPUE_Abborre_3YearBefore = dplyr::lag(totCPUE_Abborre, n = 3, default = NA)) %>%
+  mutate(totCPUE_Mört_3YearBefore = dplyr::lag(totCPUE_Mört, n = 3, default = NA)) %>%
+  mutate(totCPUE_Löja_3YearBefore = dplyr::lag(totCPUE_Löja, n = 3, default = NA)) %>%
+  mutate(totCPUE_Storspigg_3YearBefore = dplyr::lag(totCPUE_Storspigg, n = 3, default = NA)) %>%
+  mutate(clupeids_3YearBefore = dplyr::lag(clupeids, n = 3, default = NA)) %>%
+  mutate(cyprinids_3YearBefore = dplyr::lag(cyprinids, n = 3, default = NA)) %>%
+  mutate(competitors_3YearBefore = dplyr::lag(competitors, n = 3, default = NA)) %>%
+  mutate(gobies_3YearBefore = dplyr::lag(gobies, n = 3, default = NA)) %>%
+  mutate(all_prey_3YearBefore = dplyr::lag(all_prey, n = 3, default = NA)) %>%
+  
+  mutate(totCPUE_Abborre_4YearBefore = dplyr::lag(totCPUE_Abborre, n = 4, default = NA)) %>%
+  mutate(totCPUE_Mört_4YearBefore = dplyr::lag(totCPUE_Mört, n = 4, default = NA)) %>%
+  mutate(totCPUE_Löja_4YearBefore = dplyr::lag(totCPUE_Löja, n = 4, default = NA)) %>%
+  mutate(totCPUE_Storspigg_4YearBefore = dplyr::lag(totCPUE_Storspigg, n = 4, default = NA)) %>%
+  mutate(clupeids_4YearBefore = dplyr::lag(clupeids, n = 4, default = NA)) %>%
+  mutate(cyprinids_4YearBefore = dplyr::lag(cyprinids, n = 4, default = NA)) %>%
+  mutate(competitors_4YearBefore = dplyr::lag(competitors, n = 4, default = NA)) %>%
+  mutate(gobies_4YearBefore = dplyr::lag(gobies, n = 4, default = NA)) %>%
+  mutate(all_prey_4YearBefore = dplyr::lag(all_prey, n = 4, default = NA)) %>%
+  
+  mutate(totCPUE_Abborre_5YearBefore = dplyr::lag(totCPUE_Abborre, n = 5, default = NA)) %>%
+  mutate(totCPUE_Mört_5YearBefore = dplyr::lag(totCPUE_Mört, n = 5, default = NA)) %>%
+  mutate(totCPUE_Löja_5YearBefore = dplyr::lag(totCPUE_Löja, n = 5, default = NA)) %>%
+  mutate(totCPUE_Storspigg_5YearBefore = dplyr::lag(totCPUE_Storspigg, n = 5, default = NA)) %>%
+  mutate(clupeids_5YearBefore = dplyr::lag(clupeids, n = 5, default = NA)) %>%
+  mutate(cyprinids_5YearBefore = dplyr::lag(cyprinids, n = 5, default = NA)) %>%
+  mutate(competitors_5YearBefore = dplyr::lag(competitors, n = 5, default = NA)) %>%
+  mutate(gobies_5YearBefore = dplyr::lag(gobies, n = 5, default = NA)) %>%
+  mutate(all_prey_5YearBefore = dplyr::lag(all_prey, n = 5, default = NA))
+  
+# add integrated estimates of CPUE of spp over multiple years:
+## avg
+# abbo
+gillnets_pool_lag$totCPUE_Abborre_avg_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore)/2
+gillnets_pool_lag$totCPUE_Abborre_avg_since_2YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore)/3
+gillnets_pool_lag$totCPUE_Abborre_avg_since_3YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_3YearBefore)/4
+gillnets_pool_lag$totCPUE_Abborre_avg_since_4YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_3YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_4YearBefore)/5
+gillnets_pool_lag$totCPUE_Abborre_avg_since_5YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_3YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_4YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_5YearBefore)/6
+# mört
+gillnets_pool_lag$totCPUE_Mört_avg_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                            gillnets_pool_lag$totCPUE_Mört_1YearBefore)/2
+gillnets_pool_lag$totCPUE_Mört_avg_since_2YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                            gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_2YearBefore)/3
+gillnets_pool_lag$totCPUE_Mört_avg_since_3YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                            gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_3YearBefore)/4
+gillnets_pool_lag$totCPUE_Mört_avg_since_4YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                            gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_3YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_4YearBefore)/5
+gillnets_pool_lag$totCPUE_Mört_avg_since_5YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                            gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_3YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_4YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Mört_5YearBefore)/6
+#clupeids
+gillnets_pool_lag$clupeids_avg_since_1YearBefore<-(gillnets_pool_lag$clupeids+
+                                                         gillnets_pool_lag$clupeids_1YearBefore)/2
+gillnets_pool_lag$clupeids_avg_since_2YearBefore<-(gillnets_pool_lag$clupeids+
+                                                         gillnets_pool_lag$clupeids_1YearBefore+
+                                                         gillnets_pool_lag$clupeids_2YearBefore)/3
+gillnets_pool_lag$clupeids_avg_since_3YearBefore<-(gillnets_pool_lag$clupeids+
+                                                         gillnets_pool_lag$clupeids_1YearBefore+
+                                                         gillnets_pool_lag$clupeids_2YearBefore+
+                                                         gillnets_pool_lag$clupeids_3YearBefore)/4
+gillnets_pool_lag$clupeids_avg_since_4YearBefore<-(gillnets_pool_lag$clupeids+
+                                                         gillnets_pool_lag$clupeids_1YearBefore+
+                                                         gillnets_pool_lag$clupeids_2YearBefore+
+                                                         gillnets_pool_lag$clupeids_3YearBefore+
+                                                         gillnets_pool_lag$clupeids_4YearBefore)/5
+gillnets_pool_lag$clupeids_avg_since_5YearBefore<-(gillnets_pool_lag$clupeids+
+                                                         gillnets_pool_lag$clupeids_1YearBefore+
+                                                         gillnets_pool_lag$clupeids_2YearBefore+
+                                                         gillnets_pool_lag$clupeids_3YearBefore+
+                                                         gillnets_pool_lag$clupeids_4YearBefore+
+                                                         gillnets_pool_lag$clupeids_5YearBefore)/6
+# cyprinids
+gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
+gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
+gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
+gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
+gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore+
+                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+# competitors
+gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
+gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
+gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
+gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
+gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore+
+                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+# gobies
+gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
+gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
+gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
+gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
+gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore+
+                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+# all prey
+gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
+gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
+gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
+gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
+gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                            gillnets_pool_lag$cyprinids_1YearBefore+
+                                                            gillnets_pool_lag$cyprinids_2YearBefore+
+                                                            gillnets_pool_lag$cyprinids_3YearBefore+
+                                                            gillnets_pool_lag$cyprinids_4YearBefore+
+                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+## sum
+# abbo
+gillnets_pool_lag$totCPUE_Abborre_sum_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore)
+gillnets_pool_lag$totCPUE_Abborre_sum_since_2YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore)
+gillnets_pool_lag$totCPUE_Abborre_sum_since_3YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_3YearBefore)
+gillnets_pool_lag$totCPUE_Abborre_sum_since_4YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_3YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_4YearBefore)
+gillnets_pool_lag$totCPUE_Abborre_sum_since_5YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
+                                                            gillnets_pool_lag$totCPUE_Abborre_1YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_2YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_3YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_4YearBefore+
+                                                            gillnets_pool_lag$totCPUE_Abborre_5YearBefore)
+# mört
+gillnets_pool_lag$totCPUE_Mört_sum_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                         gillnets_pool_lag$totCPUE_Mört_1YearBefore)
+gillnets_pool_lag$totCPUE_Mört_sum_since_2YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                         gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_2YearBefore)
+gillnets_pool_lag$totCPUE_Mört_sum_since_3YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                         gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_2YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_3YearBefore)
+gillnets_pool_lag$totCPUE_Mört_sum_since_4YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                         gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_2YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_3YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_4YearBefore)
+gillnets_pool_lag$totCPUE_Mört_sum_since_5YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
+                                                         gillnets_pool_lag$totCPUE_Mört_1YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_2YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_3YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_4YearBefore+
+                                                         gillnets_pool_lag$totCPUE_Mört_5YearBefore)
+#clupeids
+gillnets_pool_lag$clupeids_sum_since_1YearBefore<-(gillnets_pool_lag$clupeids+
+                                                     gillnets_pool_lag$clupeids_1YearBefore)
+gillnets_pool_lag$clupeids_sum_since_2YearBefore<-(gillnets_pool_lag$clupeids+
+                                                     gillnets_pool_lag$clupeids_1YearBefore+
+                                                     gillnets_pool_lag$clupeids_2YearBefore)
+gillnets_pool_lag$clupeids_sum_since_3YearBefore<-(gillnets_pool_lag$clupeids+
+                                                     gillnets_pool_lag$clupeids_1YearBefore+
+                                                     gillnets_pool_lag$clupeids_2YearBefore+
+                                                     gillnets_pool_lag$clupeids_3YearBefore)
+gillnets_pool_lag$clupeids_sum_since_4YearBefore<-(gillnets_pool_lag$clupeids+
+                                                     gillnets_pool_lag$clupeids_1YearBefore+
+                                                     gillnets_pool_lag$clupeids_2YearBefore+
+                                                     gillnets_pool_lag$clupeids_3YearBefore+
+                                                     gillnets_pool_lag$clupeids_4YearBefore)
+gillnets_pool_lag$clupeids_sum_since_5YearBefore<-(gillnets_pool_lag$clupeids+
+                                                     gillnets_pool_lag$clupeids_1YearBefore+
+                                                     gillnets_pool_lag$clupeids_2YearBefore+
+                                                     gillnets_pool_lag$clupeids_3YearBefore+
+                                                     gillnets_pool_lag$clupeids_4YearBefore+
+                                                     gillnets_pool_lag$clupeids_5YearBefore)
+# cyprinids
+gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore+
+                                                      gillnets_pool_lag$cyprinids_5YearBefore)
+# competitors
+gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore+
+                                                      gillnets_pool_lag$cyprinids_5YearBefore)
+# gobies
+gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore+
+                                                      gillnets_pool_lag$cyprinids_5YearBefore)
+# all prey
+gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore)
+gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
+                                                      gillnets_pool_lag$cyprinids_1YearBefore+
+                                                      gillnets_pool_lag$cyprinids_2YearBefore+
+                                                      gillnets_pool_lag$cyprinids_3YearBefore+
+                                                      gillnets_pool_lag$cyprinids_4YearBefore+
+                                                      gillnets_pool_lag$cyprinids_5YearBefore)
 
 
 # fix column names for variables that contain more variables: not done yet! maybe using'' works
