@@ -554,7 +554,7 @@ gillnets_pool$gobies<-gillnets_pool$'totCPUE_Svart smörbult' + gillnets_pool$'t
 gillnets_pool$all_prey<-gillnets_pool$clupeids+gillnets_pool$cyprinids+gillnets_pool$gobies
 
 
-# calculate lags: 
+##### calculate lags: ####
 # sort, if needed, by consecutive years per location
 head(gillnets_pool) # no need but I'll do it anyway:
 gillnets_pool_lag<-gillnets_pool %>% 
@@ -936,9 +936,8 @@ hist(gillnets_pool$skew1)
 # SUMMARY of key datasets
 # gillnets_CPUE: include CPUE separated for size categories. Replicated at level of location, year, size categories (and spp) - useful for plotting
 # gillnets_CPUE_abbo: only for perch
-# gillnets_pool: include length indexes for Abborre and tot CPUE of Abborre and  other spp, and CPUE of 
-# abborrre of different size classes. Replicated at level of location, year - useful for stat. 
-
+# gillnets_pool_lag: include length indexes for Abborre and tot CPUE of Abborre and  other spp, and CPUE of 
+# abborrre of different size classes, and lagged variables. Replicated at level of location, year - useful for stat. 
 
 #####
 # exploratory plots
@@ -1024,26 +1023,27 @@ table(gillnets_pool$year,gillnets_pool$location)
 count(gillnets_pool, 'location') 
 
 # add n = n years of sampling for each location
-gillnets_pool_time<-gillnets_pool %>%
+gillnets_pool_lag_time<-gillnets_pool_lag %>%
   add_count(location)
-table(gillnets_pool_time$n)
-hist(gillnets_pool_time$n)
-# cut off..?
+colnames(gillnets_pool_lag_time)[colnames(gillnets_pool_lag_time)=="n"]<-"n_sampled_years_per_site"
 
-table(gillnets_pool_time$year)
+table(gillnets_pool_lag_time$year)
 # 2022 has 24 locations
 
+table(gillnets_pool_lag_time$year,gillnets_pool_lag_time$location)
+table(gillnets$year,gillnets$location)
+
 # make one (or two) subset for time series analyses and one with only spatial replication
-gillnets_pool # all replicates: 375
-gillnets_pool_time1<-filter(gillnets_pool_time, n>10) # only time series with more than 10 years sampling: 275
-gillnets_pool_time2<-filter(gillnets_pool_time, n>2) # all replicates except location with less than 3 sampling years: 343
-gillnets_pool_space2021<-filter(gillnets_pool_space, year==2021) # only the year with most sampled locations, 2022: 27
+gillnets_pool_lag_time # all replicates: 375
+gillnets_pool_lag_time10<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>9) # only time series with at least 10 years sampling: 275
+gillnets_pool_lag_time2<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>2) # all replicates except location with less than 3 sampling years: 343
+gillnets_pool_lag_time2021<-filter(gillnets_pool_lag_time, year==2021) # only the year with most sampled locations, 2022: 27
 
 # PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
 
-# responseS: mean_length, median_length, L90, sk1$Skewness, sk2$Skewness, ku1$Kurtosis, ku2$Skewness
+# responses: mean_length, median_length, L90, sk1$Skewness, sk2$Skewness, ku1$Kurtosis, ku2$Skewness
 # drivers: avg_year_temp, totCPUE_Abborre, totCPUE_Mört, totCPUE_Gädda, totCPUE_Storspigg, totCPUE_Rötsimpa, totCPUE_Bergsimpa
-# random: location, year
+# size classes of abborre, lagged variables. Year. N years sampled per location. random: location, year
 
 # exploratory plots:
 ggplot(gillnets_pool, aes(x=avg_year_temp, y=ku1$Kurtosis, col=year)) +
@@ -1062,10 +1062,10 @@ ggplot(gillnets_pool, aes(x=totCPUE_Mört, y=mean_length, col=year)) +
   theme_bw(base_size=15)
 
 # distributional properties
-hist(gillnets_pool$mean_length)
-hist(gillnets_pool$avg_year_temp)
-hist(gillnets_pool$totCPUE_Abborre)
-hist(gillnets_pool$skew1)
+hist(gillnets_pool_lag_time$mean_length)
+hist(gillnets_pool_lag_time$avg_year_temp)
+hist(gillnets_pool_lag_time$totCPUE_Abborre)
+hist(gillnets_pool_lag_time$'sk1$Skewness')
 
 
 # collinearity
@@ -1189,8 +1189,35 @@ rsquared(M8)
 summary(M8)
 plot(M8)
 
+#### Skewness ####
+# time series analyses: I need to fix the name, see above when defyning the gillnet_pool dataset
 
-# time series analyses: L90
+#hist(gillnets_pool$sk1$Skewness)
+
+# rename: dont work
+head(gillnets_pool)
+#gillnets_pool <- rename(gillnets_pool, sk1 = 'sk1') # first name is the new one, second is the old one
+#colnames(gillnets_pool)
+#gillnets_pool<-as.data.frame(gillnets_pool)
+#colnames(gillnets_pool)[6:9] <- c("skew1", "skew2","kur1", "kur2")
+# check attributes
+#attributes(gillnets_pool$skew1)$`scaled:scale`
+
+#attributes(gillnets_pool$skew1)
+#un<-unclass(gillnets_pool$skew1)
+#x <- cbind(a = 1:3, pi = pi) # simple matrix with dimnames
+#attributes(x)
+
+#gillnets_pool$sk1<-gillnets_pool$skew1[1]
+
+## strip an object's attributes:
+#attributes(x) <- NULL
+
+# try this, suggested by Agnes (not sure/check how):
+attributes(df_mod$distance_sc)$`scaled:scale`
+
+
+#### time series analyses: L90 ####
 
 hist(gillnets_pool$L90)
 
@@ -1278,31 +1305,7 @@ rsquared(M8)
 summary(M8)
 plot(M8)
 
-# time series analyses: I need to fix the name, see above when defyning the gillnet_pool dataset
 
-#hist(gillnets_pool$sk1$Skewness)
-
-# rename: dont work
-head(gillnets_pool)
-#gillnets_pool <- rename(gillnets_pool, sk1 = 'sk1') # first name is the new one, second is the old one
-#colnames(gillnets_pool)
-#gillnets_pool<-as.data.frame(gillnets_pool)
-#colnames(gillnets_pool)[6:9] <- c("skew1", "skew2","kur1", "kur2")
-# check attributes
-#attributes(gillnets_pool$skew1)$`scaled:scale`
-
-#attributes(gillnets_pool$skew1)
-#un<-unclass(gillnets_pool$skew1)
-#x <- cbind(a = 1:3, pi = pi) # simple matrix with dimnames
-#attributes(x)
-
-#gillnets_pool$sk1<-gillnets_pool$skew1[1]
-
-## strip an object's attributes:
-#attributes(x) <- NULL
-
-# try this, suggested by Agnes (not sure/check how):
-attributes(df_mod$distance_sc)$`scaled:scale`
 
 #####
 # climwin on mean length
