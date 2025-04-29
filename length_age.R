@@ -31,7 +31,7 @@ library(ExcelFunctionsR)
 
 # to calculate the probability of a file of being encoded in several encodings
 library(readr)
-guess_encoding("perch-length-age.csv", n_max = 1000)
+guess_encoding("BIAS_stickleback.csv", n_max = 1000)
 # try both encoding = "" and fileEncoding = ""
 
 ### 1) length age dataset
@@ -49,6 +49,14 @@ hist(length_age$month)
 length_age$day_of_month<-as.numeric(LEFT(length_age$catch_date,2))
 summary(length_age$day_of_month)
 hist(length_age$day_of_month)
+
+### 2) read stsp data:
+stsp <- read.csv2("BIAS_stickleback.csv",fileEncoding ="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(stsp)
+
+### 3) read distance from open sea data:
+dist_offshore <- read.csv2("distance_from_open_sea.csv",fileEncoding ="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+
 
 # Thoughts:
 # does it matter how the fish was taken? E.g. gear, program, disturbance...not really if I need the age for length classes, 
@@ -281,7 +289,36 @@ length_age10 %>%
 sort(unique(gillnets1a$Fångstområde ))
 sort(unique(gillnets1a$location))
 gillnets1a %>%
-  filter(location %in% c("Mönsterås")) 
+  filter(location %in% c("Mönsterås"))
+# and location*year?
+length_age10 %>%
+  filter(!(location %in% gillnets_pool$location & year %in% gillnets_pool$year)) %>%
+  select(location, year) %>%
+  unique()
+# out of how many location*year:
+length_age10 %>%
+  select(location, year) %>%
+  unique() %>%
+  count()
+  
+# and sub.location?
+unique(length_age10$sub.location) # 37
+unique(gillnets_indiv$Fångstområde) #77
+length_age10 %>%
+  filter(!(sub.location %in% gillnets_indiv$Fångstområde)) %>%
+  select(sub.location) %>%
+  unique()
+# and sub.location*year?
+length_age10 %>%
+  filter(!(sub.location %in% gillnets_indiv$Fångstområde & year %in% gillnets_indiv$year)) %>%
+  select(sub.location, year) %>%
+  unique()
+#out of how many sub.location*year:
+length_age10 %>%
+  select(sub.location, year) %>%
+  unique()
+
+table(length_age10$gear_code,length_age10$sub.location, length_age10$year)
 
 # however, in some cases, even though I have the location in both datasets, the year is not the same, so I get no
 # covariates for the length at age data analysis
@@ -294,10 +331,43 @@ gillnets_pool %>%
 table(length_age10$location, length_age10$year)
 table(gillnets_pool$location, gillnets_pool$year)
 
+#different gear, in gillnets we have filterd out based on K064
+
 #####
 # merge and keep all records in left dataset, and only matching record in right dataset
-length_age11<-left_join(length_age10, gillnets_pool_lag, by = c("year","location")) 
+# merge with stsp data abd dist from offshore
+
+# convert gear to factor, rename it and rename its levels:
+stsp$gear_code <- as.factor(stsp$gear)
+# Check the current levels
+levels(stsp$gear_code)
+# Rename the levels
+levels(as.factor(length_age10$gear_code))
+levels(stsp$gear_code) <- c("K009","K053", "K059","K064")
+# delete  column gear
+stsp$gear <- NULL
+
+# merge with stsp data:
+length_age10a<-left_join(length_age10, stsp, by = c("year","location","sub.location","gear_code")) 
+
+# same for distance from offshore data:
+# convert gear to factor, rename it and rename its levels:
+dist_offshore$gear_code <- as.factor(dist_offshore$gear)
+# Check the current levels
+levels(dist_offshore$gear_code)
+# Rename the levels
+levels(dist_offshore$gear_code) <- c("K009","K053", "K059","K064")
+# delete  column gear
+dist_offshore$gear <- NULL
+
+# merge with dist data:
+length_age10b<-left_join(length_age10a, dist_offshore, by = c("location","sub.location","gear_code")) 
+
+# start from here, merge after fixing gillnets at sublocation levels
+# merge with gillnets data:   group by sublocation!
+length_age11<-left_join(length_age10b, gillnets_pool_lag, by = c("year","location", "sub.location")) 
 head(length_age11)
+
 
 # remove unnecessary columns:
 length_age12<-length_age11 %>%

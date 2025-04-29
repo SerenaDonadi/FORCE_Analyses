@@ -45,7 +45,7 @@ When counting the number of nets to calculate the effort, I still should be able
 
 - What's LANGDGRUPP_ANTAL vs ANTAL? 
 
-Antal is the overall catch of a net, LANGDGRUPP_ANTAL is the  number per size class (what I want)
+Antal is the overall catch PER SECTION of a net (and per spp), LANGDGRUPP_ANTAL is the  number per size class (what I want)
 
 - langdrupp_langd is often but not always rounded to 0.5 cm. Consider size classes? 
 

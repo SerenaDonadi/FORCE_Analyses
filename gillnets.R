@@ -335,6 +335,10 @@ head(gillnets7)
 gillnets7 %>%
   filter(Art=="_ingen fångst")
 
+# rename sublocations for merging later:
+gillnets7 <- rename(gillnets7, sub.location = 'Fångstområde')
+
+
 # extract only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
 #####
 gillnets7_to_Ingrid<-gillnets7 %>%
@@ -375,15 +379,29 @@ detach("package:ExcelFunctionsR", unload=TRUE)
 library(dplyr)
 
 # # Convert dates to Date objects, so that I can calculate an avg date to use later with climwin:
-library(lubridate)
-gillnets_indiv$date <- dmy(gillnets_indiv$Fiskedatum)
+#library(lubridate)
+#gillnets_indiv$date <- dmy(gillnets_indiv$Fiskedatum)
 
-# calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location and year:
+# use location or sub.location (Fångstområde) for grouping? TO DECIDE
+table(gillnets_indiv$location, gillnets_indiv$Fångstområde)
+unique(gillnets_indiv$Fångstområde) #76
+unique(gillnets_indiv$location) #51
+
+# rename column Fångstområde as sub.location:
+gillnets_indiv <- rename(gillnets_indiv, sub.location = 'Fångstområde')
+
+gillnets_indiv %>%
+  filter(Art=="Abborre") %>%
+  filter(sub.location=="Vaxholm")%>%
+  filter(year=="2016")
+
+# calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location, sublocation? and year:
 gillnets_length_indexes<- gillnets_indiv %>%
   filter(Art=="Abborre") %>%
-  group_by(location, year) %>%
+  group_by(location, sub.location, year) %>%
   summarise(field_temp= mean(Temp_vittjning_vid_redskap,na.rm=TRUE),
             mean_length=mean(length_group ,na.rm=TRUE),
+            n_fish=n(), ## 
             median_length=median(length_group ,na.rm=TRUE),
             L90=quantile(length_group ,0.90,na.rm=TRUE),
             sk1=skewness(length_group ,remove_na = TRUE, type = "1", iterations = 100),
@@ -413,13 +431,13 @@ table(gillnets_length_indexes$n_days)
 ### calculate CPUE per size categories, using dataset with ingen fångst
 # first, calculate sum of indiv per size category
 gillnets_freq<-gillnets7 %>% 
-  group_by(location, year, Art, length_group) %>%
+  group_by(location,sub.location, year, Art, length_group) %>%
   summarise(number_indiv=sum(LANGDGRUPP_ANTAL ,na.rm=TRUE)
   ) 
 
 # second, calculate effort per each location and year
 gillnets_effort<-gillnets7 %>% 
-  group_by(location, year) %>%
+  group_by(location,sub.location, year) %>%
   summarise(number_nets=n_distinct(OBS_ID), # check! if correct divide sum_LANGDGRUPP_ANTAL by number_nets to obtain CPUE
             avg_year_temp=mean(avg_year_temp)
   ) 
@@ -434,14 +452,14 @@ gillnets_effort<-gillnets7 %>%
 # other values of Ansträngning
 
 # merge and keep all records in left dataset, and only matching record in right dataset
-gillnets_CPUE<-left_join(gillnets_freq, gillnets_effort, by = c("location","year")) 
+gillnets_CPUE<-left_join(gillnets_freq, gillnets_effort, by = c("location","sub.location","year")) 
 
 summary(gillnets_CPUE)
 hist(gillnets_CPUE$number_nets)
 summary(gillnets_CPUE$number_nets)
 
 # check:
-filter(gillnets_CPUE, number_nets == 153)
+filter(gillnets_CPUE, number_nets == 90)
 # is it possible that 153 nets were deployed in 2017 in Blekinge län??
 
 # third, calculate CPUE
@@ -465,7 +483,7 @@ gillnets_CPUE_abbo$length_group<-as.factor(gillnets_CPUE_abbo$length_group)
 gillnets_CPUE_abbo<-gillnets_CPUE_abbo %>%
   select(-c(number_indiv, number_nets))
 # sort descending dataset by location, year and length group
-gillnets_CPUE_abbo<-gillnets_CPUE_abbo[order(gillnets_CPUE_abbo$location, gillnets_CPUE_abbo$year, gillnets_CPUE_abbo$length_group),]
+gillnets_CPUE_abbo<-gillnets_CPUE_abbo[order(gillnets_CPUE_abbo$location,gillnets_CPUE_abbo$sub.location, gillnets_CPUE_abbo$year, gillnets_CPUE_abbo$length_group),]
 
 # check overall frequency for each size classes
 plot(gillnets_CPUE_abbo$length_group, gillnets_CPUE_abbo$CPUE)
@@ -485,7 +503,7 @@ colnames(gillnets_CPUE_abbo_wide)
 
 ### calculate tot CPUE (pooled across size categories). Bring along number indiv and number of nets and avg temp
 gillnets_totCPUE<-gillnets_CPUE %>% 
-  group_by(location, year, Art) %>%
+  group_by(location,sub.location, year, Art) %>%
   summarise(totCPUE=sum(CPUE ,na.rm=TRUE),
             tot_number=sum(number_indiv ,na.rm=TRUE),
             number_nets=mean(number_nets ,na.rm=TRUE),
@@ -523,7 +541,7 @@ gillnets_totCPUE_wide %>%
 #select <- dplyr::select
 
 gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
-  select(c(location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,
+  select(c(location,sub.location,year,avg_year_temp, number_nets,tot_number_Abborre, totCPUE_Abborre,
            totCPUE_Björkna,totCPUE_Braxen,totCPUE_Mört,totCPUE_Id, totCPUE_Löja, # cyprinids
            totCPUE_Ruda,totCPUE_Sarv,totCPUE_Stäm, totCPUE_Sutare, totCPUE_Vimma,  # cyprinids (preys when small)
            'totCPUE_Sill/Strömming', totCPUE_Skarpsill,# clupeids
@@ -537,11 +555,11 @@ sort(unique(gillnets_totCPUE$Art))
 
 
 # merge gillnets_length_indexes table with CPUE of spp:
-gillnets_pool0<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","year")) # 
+gillnets_pool0<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","sub.location","year")) # 
 # merge with CPUE of Abbo from different size classes:
 gillnets_CPUE_abbo_wide2<-gillnets_CPUE_abbo_wide %>%
   select(-c(Art, avg_year_temp))
-gillnets_pool<-left_join(gillnets_pool0, gillnets_CPUE_abbo_wide2, by = c("location","year")) 
+gillnets_pool<-left_join(gillnets_pool0, gillnets_CPUE_abbo_wide2, by = c("location","sub.location","year")) 
 
 # add variables such as clupeids, gobids, cyprinids, competitors, preys..
 gillnets_pool$clupeids<-gillnets_pool$totCPUE_Skarpsill + gillnets_pool$'totCPUE_Sill/Strömming'
@@ -558,7 +576,7 @@ gillnets_pool$all_prey<-gillnets_pool$clupeids+gillnets_pool$cyprinids+gillnets_
 # sort, if needed, by consecutive years per location
 head(gillnets_pool) # no need but I'll do it anyway:
 gillnets_pool_lag<-gillnets_pool %>% 
-  arrange(location, year) 
+  arrange(location,sub.location, year) 
 head(gillnets_pool_lag)
 
 # from:https://stackoverflow.com/questions/26291988/how-to-create-a-lag-variable-within-each-group
@@ -566,7 +584,7 @@ head(gillnets_pool_lag)
 
 gillnets_pool_lag <- 
   gillnets_pool_lag %>%
-  group_by(location) %>%
+  group_by(location, sub.location) %>%
   mutate(avg_year_temp_1YearBefore = dplyr::lag(avg_year_temp, n = 1, default = NA)) %>%
   mutate(avg_year_temp_2YearBefore = dplyr::lag(avg_year_temp, n = 2, default = NA)) %>%
   
@@ -929,9 +947,32 @@ colnames(gillnets_pool)
 
 hist(gillnets_pool$skew1)
 
+# add n = n years of sampling for each sub.location
+gillnets_pool_lag_time<-gillnets_pool_lag %>%
+  add_count(sub.location)
+colnames(gillnets_pool_lag_time)[colnames(gillnets_pool_lag_time)=="n"]<-"n_sampled_years_per_site"
+
+table(gillnets_pool_lag_time$year)
+# 2022 has 24 locations
+
+table(gillnets_pool_lag_time$year,gillnets_pool_lag_time$sub.location)
+
+# make one (or two) subset for time series analyses and one with only spatial replication
+gillnets_pool_lag_time # all replicates: 390
+gillnets_pool_lag_time10<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>9) # only time series with at least 10 years sampling: 270
+gillnets_pool_lag_time2<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>2) # all replicates except location with less than 3 sampling years: 325
+gillnets_pool_lag_time2021<-filter(gillnets_pool_lag_time, year==2021) # only the year with most sampled locations, 2021: 29
+
+# PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
+
+# responses: mean_length, median_length, L90, sk1$Skewness, sk2$Skewness, ku1$Kurtosis, ku2$Skewness
+# drivers: avg_year_temp, totCPUE_Abborre, totCPUE_Mört, totCPUE_Gädda, totCPUE_Storspigg, totCPUE_Rötsimpa, totCPUE_Bergsimpa
+# size classes of abborre, lagged variables. Year. N years sampled per location. random: location, year
+
+
 # ready for analyses! 
 # OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines
-# also consider lag? In that case check function "lag" in dplyr
+
 
 # SUMMARY of key datasets
 # gillnets_CPUE: include CPUE separated for size categories. Replicated at level of location, year, size categories (and spp) - useful for plotting
@@ -1013,37 +1054,15 @@ ggplot(subset(gillnets_CPUE_abbo, year %in% "2023"), aes(x=length_group, y=CPUE)
   theme(legend.position="none")
 
 #####
-# stats on length indexes
+# stats on length indexes - REVISE USING ALSO SUBLOCATION, STSP ETC ETC - SEE NOTES
 #####
 
 # check spatial and temporal replication:
 summary(gillnets_pool)
 table(gillnets_pool$location,gillnets_pool$year)
-table(gillnets_pool$year,gillnets_pool$location)
+table(gillnets_pool$year,gillnets_pool$sub.location)
 count(gillnets_pool, 'location') 
 
-# add n = n years of sampling for each location
-gillnets_pool_lag_time<-gillnets_pool_lag %>%
-  add_count(location)
-colnames(gillnets_pool_lag_time)[colnames(gillnets_pool_lag_time)=="n"]<-"n_sampled_years_per_site"
-
-table(gillnets_pool_lag_time$year)
-# 2022 has 24 locations
-
-table(gillnets_pool_lag_time$year,gillnets_pool_lag_time$location)
-table(gillnets$year,gillnets$location)
-
-# make one (or two) subset for time series analyses and one with only spatial replication
-gillnets_pool_lag_time # all replicates: 375
-gillnets_pool_lag_time10<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>9) # only time series with at least 10 years sampling: 275
-gillnets_pool_lag_time2<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>2) # all replicates except location with less than 3 sampling years: 343
-gillnets_pool_lag_time2021<-filter(gillnets_pool_lag_time, year==2021) # only the year with most sampled locations, 2022: 27
-
-# PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
-
-# responses: mean_length, median_length, L90, sk1$Skewness, sk2$Skewness, ku1$Kurtosis, ku2$Skewness
-# drivers: avg_year_temp, totCPUE_Abborre, totCPUE_Mört, totCPUE_Gädda, totCPUE_Storspigg, totCPUE_Rötsimpa, totCPUE_Bergsimpa
-# size classes of abborre, lagged variables. Year. N years sampled per location. random: location, year
 
 # exploratory plots:
 ggplot(gillnets_pool, aes(x=avg_year_temp, y=ku1$Kurtosis, col=year)) +
