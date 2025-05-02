@@ -365,7 +365,7 @@ length_age10b<-left_join(length_age10a, dist_offshore, by = c("location","sub.lo
 
 # start from here, merge after fixing gillnets at sublocation levels
 # merge with gillnets data:   group by sublocation!
-length_age11<-left_join(length_age10b, gillnets_pool_lag, by = c("year","location", "sub.location")) 
+length_age11<-left_join(length_age10b, gillnets_pool_lag_time, by = c("year","location", "sub.location")) 
 head(length_age11)
 
 

@@ -35,16 +35,16 @@ guess_encoding("gillnet-data-unfiltered-NEW.csv", n_max = 1000)
 # try both encoding = "" and fileEncoding = ""
 
 ### 1) gillnets
-# gillnets <- read.csv2("gillnet-data.csv",fileEncoding="ISO-8859-1",  header=TRUE, sep=",", dec=".")  # old 
-gillnets <- read.csv2("gillnet-data-unfiltered-NEW.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
+# gillnets <- read.csv2("gillnet-data-unfiltered-NEW.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
 head(gillnets)
 
-###UPDATE: NEW FILE WITH column "Artbestämning" WITH INFO ON OKÄND aRT IS:
+###UPDATE: NEW FILE WITH some areas previously excluded (Forsmark 2019, Holmon 2015, Muskö 2013), and
+# column "Artbestämning" with infor on okänd art (but eventually is really few indiv that are usefl for us):
 guess_encoding("gillnet-data-unfiltered.csv", n_max = 1000)
-# CHECK/COMPARE TO OLD FILE, AND EVENTUALLY USE THIS   AFTER FIXING TEMP DATA
-gillnets0 <- read.csv2("gillnet-data-unfiltered.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
+gillnets <- read.csv2("gillnet-data-unfiltered.csv",fileEncoding="UTF-8",  header=TRUE, sep=",", dec=".") 
 head(gillnets0)
 
+# delete this after everything is running
 table(gillnets$Art)
 table(gillnets0$Art)
 table(gillnets0$Artbestämning)
@@ -88,7 +88,7 @@ summary(temp_gillnet_day$month)
 hist(temp_gillnet_day$month)
 
 # set the format for date:
-temp_gillnet_day$date<-as.Date(temp_gillnet_day$date,"%d/%m/%Y")
+#temp_gillnet_day$date<-as.Date(temp_gillnet_day$date,"%d/%m/%Y")
 
 ## OBS in same cases temp doesn´t vary between January and April. It could depend on that there is ice, or a problem with data extraction
 # this is mainly found in the 80s. but also later, see Råneå example. check what parameters to extract and which years we consider
@@ -113,6 +113,7 @@ sort(unique(temp_gillnet_day$location)) #62
 sort(unique(temp_gillnet_year$location)) #62
 sort(unique(gillnets$Fångstområde)) #111
 sort(unique(gillnets$location))  # 60
+# later addition: but now we are running analyses at the level of Fångstområde...ask Agnes?
 
 # what locations are in the temp dataset but not in the gillnets dataset? Björnöfjärden and Älgöfjärden
 temp_gillnet_day %>%
@@ -128,6 +129,7 @@ gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
 head(gillnets1)
 
 # merge and keep all records in left dataset, and only matching record in right dataset
+is.Date(temp_gillnet_day$date)
 gillnets1a<-left_join(gillnets1, temp_gillnet_day, by = c("date","month","year","location")) # 
 
 # rename temp to be more specific: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
@@ -173,12 +175,12 @@ ggplot(subset(subset(gillnets1a, Temp_vittjning_vid_redskap != 999) , location %
 #####
 
 # filter out stations that are disturbed 
-unique(gillnets1a$Störning) # all NEJ
-# gillnets1 = subset(gillnets1, Störning == "NEJ" | is.na(Störning)) # none
+unique(gillnets1a$Störning) # all NEJ. Not in the most recent version
+gillnets1b = subset(gillnets1a, Störning == "NEJ" | is.na(Störning)) # 
 
 ## filter out stations that are not GODKAND
-unique(gillnets1a$GODKAND) # JA or NA
-# gillnets1 = subset(gillnets1, GODKAND == "JA " | is.na(GODKAND))  # none
+unique(gillnets1b$GODKAND) # JA or NA. Not in the most recent version
+gillnets1c = subset(gillnets1b, GODKAND == "JA " | is.na(GODKAND))  # 
 
 # Note: why I don't see NAs with table(gillnets1$GODKAND)? 
 # unique(gillnets$GODKAND) # they should be in there, but without quote because it is not considered a level
@@ -188,76 +190,73 @@ unique(gillnets1a$GODKAND) # JA or NA
 #table(gillnets2$Art,gillnets2$GODKAND) # ok!
 
 # filter out stations 991-995 (hydrographic stations).
-# gillnets2 = subset(gillnets1, !(StationsNr %in% 991:995)) 
-# sort(unique(gillnets1$StationsNr)) # I don't see any
+sort(unique(gillnets1c$StationsNr)) # I don't see any
+gillnets2 = subset(gillnets1c, !(StationsNr %in% 991:995)) 
 
 # remove restricted data 
-unique(gillnets1a$Behörighet) # none is "Restriktion"
-table(gillnets1a$Behörighet) 
+unique(gillnets2$Behörighet) # none is "Restriktion".Not in the most recent version
+table(gillnets2$Behörighet) 
+gillnets2a = subset(gillnets2, !(Behörighet %in% "Restriktion")) 
+
 # intern may have something odd, check them: boh
-subset(gillnets1a, Behörighet == "Intern")
+subset(gillnets2a, Behörighet == "Intern")
 
-# check samples that may not have Ansträngning = 1: all good
-table(gillnets1a$Ansträngning)
+# check samples that may not have Ansträngning = 1: all good.Not in the most recent version
+table(gillnets2a$Ansträngning)
+gillnets2b = subset(gillnets2a, Ansträngning == "1")
 
-# check samples that may have effort expressed in hours:
-unique(gillnets1a$Fisketid_enhet)
-unique(gillnets1a$Ansträngning_enhet)
-# check samples that have effort different from 1: remove them
-unique(gillnets1a$Fisketid)
-subset(gillnets1a, Fisketid == 12)
-gillnets2<-subset(gillnets1a, Fisketid != 12)
+# check samples that may have effort expressed in hours:none
+unique(gillnets2b$Fisketid_enhet)
+unique(gillnets2b$Ansträngning_enhet)
+
+# check samples that have effort different from 1: remove them. none in the most recent version
+unique(gillnets2b$Fisketid)
+#gillnets2<-subset(gillnets1a, Fisketid != 12)
 
 # check where the station number is listed, as in some cases it may be listed in the information column
-unique(gillnets2$station)
-unique(gillnets2$StationsNr)
-unique(gillnets2$Information)
-# there are some inconsistencies, but I also see that there are some NAs. Either fix or don't use it (the latter for now)
+unique(gillnets2b$station)
+unique(gillnets2b$StationsNr)
+unique(gillnets2b$Information)
 
 # check comments and remove possibly weird samples:
-unique(gillnets2$Info_publik)
+unique(gillnets2b$Info_publik)
 
-subset(gillnets2, Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
-ggplot(subset(gillnets2, location  == "Råneå"), aes(x = year, y = Antal)) +
+subset(gillnets2b, Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
+ggplot(subset(gillnets2b, location  == "Råneå"), aes(x = year, y = Antal)) +
   geom_point(size=2)+ 
   facet_wrap(~Info_publik)+
   theme_bw(base_size=15)
-# Antal is quite low, but also comparable with year 2009 and 2012. Not sure if I should remove it. To be on the safe side I do it:
-# if I use this script it, it removes too many rows
-# gillnets3<-subset(gillnets2, Info_publik != "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
-# same with this:
-#gillnets3<-gillnets2 %>%
+# Antal is quite low, but also comparable with year 2009 and 2012. 
+# I'll keep it for now. if I want to remove it use: 
+# not this script it, it removes too many rows: # gillnets3<-subset(gillnets2, Info_publik != "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
+# same with this: #gillnets3<-gillnets2 %>%
 #  filter(Info_publik != "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ")
-# if I use this script it is messing up with NAs:
-# gillnets3<-gillnets2[! gillnets2$Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ",]
+# if I use this script it is messing up with NAs: # gillnets3<-gillnets2[! gillnets2$Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst ",]
 # This looks ok:
-litecatch <- which(with(gillnets2, Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst "))
-gillnets3 <- gillnets2[ -litecatch, ]
+#litecatch <- which(with(gillnets2, Info_publik == "Låg vattentemp och många störda stationer pga igensatta nät har gett mycket liten fångst "))
+# gillnets3 <- gillnets2[ -litecatch, ]
 
-unique(gillnets3$Störning) 
-table(gillnets3$Störning) 
+unique(gillnets2b$Störning) 
 
-subset(gillnets3, Info_publik == "Många fiskar har angivits som skadad fångst, ospecificerat vad/vem som orsakat skadorna på fisken." )
+subset(gillnets2b, Info_publik == "Många fiskar har angivits som skadad fångst, ospecificerat vad/vem som orsakat skadorna på fisken." )
 # looks ok, keep
 
-subset(gillnets3, Info_publik == "En station 2009-08-14 är fiskad 2 nätter." & Fiskedatum == "14/08/2009")
+subset(gillnets2b, Info_publik == "En station 2009-08-14 är fiskad 2 nätter." & Fiskedatum == "14/08/2009")
 # remove:
-gillnets4<-gillnets3[!(gillnets3$Info_publik == 'En station 2009-08-14 är fiskad 2 nätter.' & gillnets3$Fiskedatum == '14/08/2009'),]
+gillnets3<-gillnets2b[!(gillnets2b$Info_publik == 'En station 2009-08-14 är fiskad 2 nätter.' & 
+                          gillnets2b$Fiskedatum == '14/08/2009'),]
 # now this script seems to work
 
-# NB: Agnes script (see email about new data or notes in data and methods file) does not seem to affect the data! 
-# check with Agnes if the filtered and unfiltered dataset should be different...
-
 # keep only Ansträngning = 1?
-table(gillnets4$Ansträngning)
-unique(gillnets4$Ansträngning) # there are NAs. If I don't want to retain them:
-gillnets5<-gillnets4 %>% 
+table(gillnets3$Ansträngning)
+unique(gillnets3$Ansträngning) # there are NAs. If I don't want to retain them:
+gillnets4<-gillnets3 %>% 
   filter(Ansträngning  == 1 ) 
 
 ## TO DO: maybe remove some values of Redskapsdetaljnummer, I didn't get which ones and why they are there. no need 
 
 # remove columns not needed:
-gillnets5<-gillnets5 %>%
+gillnets5<-gillnets4 %>%
   select(-c(Info_publik,GODKAND ,STORNINGAR))
 
 # remove fish < 12 cm, which are poorly sampled by gillnets:
@@ -267,11 +266,16 @@ gillnets6<-gillnets5 %>%
 # check and remove outliers:
 summary(gillnets6)
 
-# no need with the new dataset
-#gillnets %>%
-#  filter(Art  == "Abborre") %>%
-#  filter(LANGDGRUPP_LANGD>70)
-# remove giant perch 
+gillnets6 %>%
+  filter(Art  == "Abborre") %>%
+  select(LANGDGRUPP_LANGD)%>%
+  unique() 
+
+gillnets6 %>%
+  filter(Art  == "Abborre") %>%
+  filter(LANGDGRUPP_LANGD > 70)
+  
+# remove giant perch - # no need with the new dataset
 #gillnets6<-gillnets5[!(gillnets5$Art  == "Abborre" & gillnets5$LANGDGRUPP_LANGD > 70),]
 
 # substitute NA to values of temp at the time of fishing equal to 999 (a bit too warm)
@@ -286,7 +290,7 @@ gillnets7<-gillnets6 %>%
 # check if there is anything weird here: ok
 #gillnets7 %>% 
 #  filter(Behörighet  == "Intern" ) 
-#unique(gillnets7$FISKE)
+unique(gillnets7$FISKE)
 #svartmunnad_dataset<-gillnets4 %>% 
 #  filter(FISKE  == "Svartmunnad Smörbult Inventering" ) 
 #unique(svartmunnad_dataset$Info_publik)
@@ -328,6 +332,7 @@ hist(length_group3)
 # the best is number 2
 table(length_group2)
 #####
+library(plyr)
 gillnets7$length_group<-round_any(gillnets7$LANGDGRUPP_LANGD, 1, ceiling) # I have to subtract 0.5 to obtain original values
 
 head(gillnets7)
@@ -340,6 +345,7 @@ gillnets7 <- rename(gillnets7, sub.location = 'Fångstområde')
 
 
 # extract only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
+# this extraction was done with a previous version of the data (less samples)
 #####
 gillnets7_to_Ingrid<-gillnets7 %>%
   select(c(År,Fiskedatum ,location,Fångstområde , StationsNr, Lat_grader,Long_grader, Temp_vittjning_vid_redskap)) 
@@ -382,10 +388,10 @@ library(dplyr)
 #library(lubridate)
 #gillnets_indiv$date <- dmy(gillnets_indiv$Fiskedatum)
 
-# use location or sub.location (Fångstområde) for grouping? TO DECIDE
+# use location or sub.location (Fångstområde) for grouping? Fångstområde
 table(gillnets_indiv$location, gillnets_indiv$Fångstområde)
-unique(gillnets_indiv$Fångstområde) #76
-unique(gillnets_indiv$location) #51
+unique(gillnets_indiv$Fångstområde) #78
+unique(gillnets_indiv$location) #52
 
 # rename column Fångstområde as sub.location:
 gillnets_indiv <- rename(gillnets_indiv, sub.location = 'Fångstområde')
@@ -396,6 +402,7 @@ gillnets_indiv %>%
   filter(year=="2016")
 
 # calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location, sublocation? and year:
+is.Date(gillnets_indiv$date)
 gillnets_length_indexes<- gillnets_indiv %>%
   filter(Art=="Abborre") %>%
   group_by(location, sub.location, year) %>%
@@ -409,14 +416,24 @@ gillnets_length_indexes<- gillnets_indiv %>%
             ku1=kurtosis(length_group ,remove_na = TRUE, type = "1", iterations = 100),
             ku2=skewness(length_group ,remove_na = TRUE, type = "2", iterations = 100),
             # calculate an avg date of sampling:
-            date=mean(date ,na.rm=TRUE),
+            date=mean(date ,na.rm=TRUE))
             # count how many sampling days per location and year:
-            n_days=n_distinct(date)) 
+            #n_days=n_distinct(date)) # this doesn't work. I don't need it for now
 
 head(gillnets_length_indexes)
-table(gillnets_length_indexes$n_days)
+table(gillnets_length_indexes$n_fish)
+#table(gillnets_length_indexes$n_days)
 
+gillnets_length_indexes %>%
+  filter(n_fish==2055) %>%
+  select(location,sub.location,year,date)
 
+gillnets_indiv %>%
+  filter(Art=="Abborre") %>%
+  filter(sub.location=="Kumlinge, Åland" & year==2022)%>%
+  select(date)%>%
+  unique()
+  
 # check if I can skip SE calculation
 #s1<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1", iterations = 100)
 #s11<-skewness(gillnets_indiv$length_group ,remove_na = TRUE, type = "1")
@@ -499,7 +516,46 @@ gillnets_CPUE_abbo_wide$avg_year_temp[gillnets_CPUE_abbo_wide$avg_year_temp==0] 
 levels(gillnets_CPUE_abbo$length_group)
 # show names of columns:
 colnames(gillnets_CPUE_abbo_wide)
-
+# rename columns:
+gillnets_CPUE_abbo_wide2 <- rename(gillnets_CPUE_abbo_wide, 
+                                   CPUE_Abborre_12cm = '12',
+                                   CPUE_Abborre_13cm = '13',
+                                   CPUE_Abborre_14cm = '14',
+                                   CPUE_Abborre_15cm = '15',
+                                   CPUE_Abborre_16cm = '16',
+                                   CPUE_Abborre_17cm = '17',
+                                   CPUE_Abborre_18cm = '18',
+                                   CPUE_Abborre_19cm = '19',
+                                   CPUE_Abborre_20cm = '20',
+                                   CPUE_Abborre_21cm = '21',
+                                   CPUE_Abborre_22cm = '22',
+                                   CPUE_Abborre_23cm = '23',
+                                   CPUE_Abborre_24cm = '24',
+                                   CPUE_Abborre_25cm = '25',
+                                   CPUE_Abborre_26cm = '26',
+                                   CPUE_Abborre_27cm = '27',
+                                   CPUE_Abborre_28cm = '28',
+                                   CPUE_Abborre_29cm = '29',
+                                   CPUE_Abborre_30cm = '30',
+                                   CPUE_Abborre_31cm = '31',
+                                   CPUE_Abborre_32cm = '32',
+                                   CPUE_Abborre_33cm = '33',
+                                   CPUE_Abborre_34cm = '34',
+                                   CPUE_Abborre_35cm = '35',
+                                   CPUE_Abborre_36cm = '36',
+                                   CPUE_Abborre_37cm = '37',
+                                   CPUE_Abborre_38cm = '38',
+                                   CPUE_Abborre_39cm = '39',
+                                   CPUE_Abborre_40cm = '40',
+                                   CPUE_Abborre_41cm = '41',
+                                   CPUE_Abborre_42cm = '42',
+                                   CPUE_Abborre_43cm = '43',
+                                   CPUE_Abborre_44cm = '44',
+                                   CPUE_Abborre_45cm = '45',
+                                   CPUE_Abborre_46cm = '46',
+                                   CPUE_Abborre_47cm = '47',
+                                   CPUE_Abborre_48cm = '48',
+                                   CPUE_Abborre_49cm = '49')
 
 ### calculate tot CPUE (pooled across size categories). Bring along number indiv and number of nets and avg temp
 gillnets_totCPUE<-gillnets_CPUE %>% 
@@ -516,7 +572,7 @@ table(gillnets_totCPUE$Art) # only 22 Okänd, no worth bothering
 
 # SUMMARY of key datasets
 # gillnets_CPUE: replicated at level of location, year, size categories (and spp) - useful for plotting
-# gillnets_CPUE_abbo_wide: replicated at level of location, with size categories in columns - only abbo
+# gillnets_CPUE_abbo_wide2: replicated at level of location, with size categories in columns - only abbo
 # gillnets_totCPUE: replicated at level of location, year (and spp)
 # gillnets_length_indexes: replicated at level of location, year but only for Abborre - useful for stat. 
 
@@ -557,7 +613,7 @@ sort(unique(gillnets_totCPUE$Art))
 # merge gillnets_length_indexes table with CPUE of spp:
 gillnets_pool0<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","sub.location","year")) # 
 # merge with CPUE of Abbo from different size classes:
-gillnets_CPUE_abbo_wide2<-gillnets_CPUE_abbo_wide %>%
+gillnets_CPUE_abbo_wide2<-gillnets_CPUE_abbo_wide2 %>%
   select(-c(Art, avg_year_temp))
 gillnets_pool<-left_join(gillnets_pool0, gillnets_CPUE_abbo_wide2, by = c("location","sub.location","year")) 
 
@@ -938,8 +994,8 @@ gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
 
 
 # fix column names for variables that contain more variables: not done yet! maybe using'' works
-head(gillnets_pool)
-colnames(gillnets_pool)
+#head(gillnets_pool)
+#colnames(gillnets_pool)
 #gillnets_pool$sk1[1]
 #skew1<-gillnets_pool$sk1$Skewness
 #gillnets_pool<-cbind(gillnets_pool,skew1)
@@ -953,15 +1009,15 @@ gillnets_pool_lag_time<-gillnets_pool_lag %>%
 colnames(gillnets_pool_lag_time)[colnames(gillnets_pool_lag_time)=="n"]<-"n_sampled_years_per_site"
 
 table(gillnets_pool_lag_time$year)
-# 2022 has 24 locations
+# 2021 has 30 locations
 
 table(gillnets_pool_lag_time$year,gillnets_pool_lag_time$sub.location)
 
 # make one (or two) subset for time series analyses and one with only spatial replication
-gillnets_pool_lag_time # all replicates: 390
-gillnets_pool_lag_time10<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>9) # only time series with at least 10 years sampling: 270
-gillnets_pool_lag_time2<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>2) # all replicates except location with less than 3 sampling years: 325
-gillnets_pool_lag_time2021<-filter(gillnets_pool_lag_time, year==2021) # only the year with most sampled locations, 2021: 29
+gillnets_pool_lag_time # all replicates: 424
+gillnets_pool_lag_time10<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>9) # only time series with at least 10 years sampling: 285
+gillnets_pool_lag_time2<-filter(gillnets_pool_lag_time, n_sampled_years_per_site>2) # all replicates except location with less than 3 sampling years: 369
+gillnets_pool_lag_time2021<-filter(gillnets_pool_lag_time, year==2021) # only the year with most sampled locations, 2021: 30
 
 # PS: consider spatial corr based on lat and long, but for tha I need to bring/average them from the original dataset
 
