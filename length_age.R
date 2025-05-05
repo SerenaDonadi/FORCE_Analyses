@@ -56,6 +56,7 @@ head(stsp)
 
 ### 3) read distance from open sea data:
 dist_offshore <- read.csv2("distance_from_open_sea.csv",fileEncoding ="ISO-8859-1",  header=TRUE, sep=",", dec=".") 
+head(dist_offshore)
 
 
 # Thoughts:
@@ -360,7 +361,7 @@ levels(dist_offshore$gear_code) <- c("K009","K053", "K059","K064")
 # delete  column gear
 dist_offshore$gear <- NULL
 
-# merge with dist data:
+# merge with dist from offshore data:
 length_age10b<-left_join(length_age10a, dist_offshore, by = c("location","sub.location","gear_code")) 
 
 # start from here, merge after fixing gillnets at sublocation levels
@@ -375,6 +376,16 @@ length_age12<-length_age11 %>%
             sampling_method))
 
 summary(length_age12)
+
+# convert negative values of dist from offshore to zeros:
+length_age12$distance[length_age12$distance < 0] <- 0
+hist(length_age12$distance)
+# check dist from offshore for Gotland: ok
+unique(length_age12$sub.location)
+length_age12 %>%
+  filter(location == "Östra Gotlands m kustvatten") %>%
+  select(distance) %>%
+  unique()
 
 length_age12_age2<-length_age12 %>% 
   filter(age == 2)

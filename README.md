@@ -1,5 +1,25 @@
 R scripts of analyses for FORCE project - Serena Donadi
 
+##### 
+Length-age dataset
+#####
+
+It should be a subset of the gillnets, however, some site* location were not found in this latter one. This is because the gillnets dataset was filtered based on gear K064, while the lnegth-age dataset, provided by Ronny via email to Agnes and then to me, include samples collected with various gear. This is not a problem for us, as the gear will affect the catchability (and not the length), hence the CPUE, for which we are using that data from the gillnet.
+
+- I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
+No, keep them, they are outside the basin.
+
+- we decided to use sublocation*year, rather than location per year, as our replicates, as they can be quite far apart and be represenattive of different populations.
+
+- note that Råneå 2008, which had a comment of disturbed nets in the gillnets (for the covariates) and was initially excluded, was reincluded. Potentially test with and without it.
+
+- the matching between length-age dataset and stsp and distance from offshore datasets was done based on location, sub.location, year and gear. This is because the fishing was conducted in different places with different gear, even within the same location and sublocation, so we can use finer coordinates to match where the fish was caught and the distance to offshore and the stsp estimates.
+The matching with the gillnets dataset, hence all covariate, is not based on gear, as we retained only k064 samples. Hence there will be a slight mismatch in the exact point where the length of fish was taken and the covariates, e.g. CPUE of other species and conspecifics, temperature (except for stsp and distance from offshore). Agnes suggests to include gear as a random factor, to account for the variation produced by such mismatch, as well as differences in catchability of different gear. however, I don't think it helps, as gear may cause variation in the CPUEs (covariates) but not in hte response variable (length), unless it alters the relationship between length and age. No harm to test it as random though.
+
+-about the data on stsp and dist offshore. Stsp come from BIAS. The spatial unit is ICES rectangles, but Agnes will extract estimates for our location (typ a buffer integrated measure). In the model use stsp*dist offshore. The unit for distance to the open sea is in meters. Gotland maybe has no data on dist from offhsore, but it is open, so I can use zeros. I also have some other places with negative distance from offshore, and substituted them with zeros.
+The northern areas may be missing now (no data before 2007), Agnes and Ulf will see what to do, and also dist fromn offshore from Åland is missing now, but will come later. If I get more data in the future, use a variable to distinguish stsp estimates obtained with different methods. 
+
+
 ###
 Gillnets dataset:
 ###
@@ -143,11 +163,6 @@ UPDATE: Agnes sent me a new version of the dataset, including comments and sub-l
 
 
 
-##### 
-Length-age dataset
-#####
-- I see under "sub.lokation": "Väst Biotestsjön" and "Syd Biotestsjön". Lokation is "Forsmark". Keep it or remove it? probably remove
-No, keep them, they are outside the basin
 
 
 
