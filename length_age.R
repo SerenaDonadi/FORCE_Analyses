@@ -983,7 +983,7 @@ coefTable(dM1)
 ##### gamm ####
 library(mgcv)
 
-# beyond optimal model:
+# list of all possible predictors (temp variables missing now)
 M1<-lm(total_length~avg_year_temp+day_of_month +
          BIASmean + distance + # BIASmean_avg_since_1YearBefore * distance + BIASmean_avg_since_2YearBefore +
          # BIASmean_sum_since_1YearBefore * distance + BIASmean_sum_since_2YearBefore
@@ -1012,7 +1012,8 @@ M1<-lm(total_length~avg_year_temp+day_of_month +
 plot(length_age12_age2$cyprinids, length_age12_age2$gobies) # all prey  and gobies together gives alias coeff
 vif(M1)
 
-# beyond optimal model with avg of predictors over the life span of fish:
+# with avg of predictors over the life span of fish:
+# check collinearity: stsp and year don't get along well
 M1<-lm(total_length~avg_year_temp+day_of_month +
          BIASmean_avg_since_2YearBefore + distance +
          #totCPUE_Abborre_avg_since_2YearBefore +
@@ -1031,6 +1032,77 @@ M1<-lm(total_length~avg_year_temp+day_of_month +
 vif(M1)
 # all prey  and gobies together gives alias coeff. I keep the prey separated for now
 
+# beyond optimal model
+M1<-lm(total_length~avg_year_temp+day_of_month +
+         BIASmean_avg_since_2YearBefore * distance +
+         #totCPUE_Abborre_avg_since_2YearBefore +
+         CPUE_Abborre_25andabove_avg_since_2YearBefore +
+         CPUE_Abborre_less25_avg_since_2YearBefore +
+         competitors_avg_since_2YearBefore + 
+         #totCPUE_Mört_avg_since_2YearBefore +
+         cyprinids_avg_since_2YearBefore +
+         clupeids_avg_since_2YearBefore +
+         gobies_avg_since_2YearBefore,
+       #all_prey_avg_since_2YearBefore,
+       #year,
+       # random=~1|sub.location, #weights=varFixed(~ avg_year_temp), method = "ML", 
+       na.action = na.omit, #na.action = "na.fail", # na.action = na.pass, na.action = "na.exclude",
+       data=length_age12_age2)
+summary(M1)
+
+# using non linear models (with no temporal or spatial correl). leave temp out for now
+M1<-gam(total_length ~ te(BIASmean_avg_since_2YearBefore,distance) +
+          s(CPUE_Abborre_25andabove_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"),
+          method = "REML",data=avg5)
+summary(M1)
+anova(M1) # useful when I have a factor, gives a overall F test
+#The fx and k means that the amount of smoothing is not fixed to a predeternmined value;hence, cross-validation is used to estimate the optimal amount of smoothing. 
+# bs is for cubic regression spline to be used. try either "cr" or "cs".
+#if convergence problems: 
+# The option "control = lmc," can be used to ensure convergence
+# One option is to increase the number of iterations in the routine or reduce the convergence criteria, see the help file of gamm
+# Other options are to fix the degrees of freedom (and not use cross-validation) 
+# plots
+plot(M1)
+plot.gam(M1,  shade=TRUE, residuals=TRUE, rug=T,pers=F, all.terms=T,shade.col = 2,by.resids=T,  scheme=3) # It plots resid of both CB and B
+plot.gam(M1,  shade=TRUE, residuals=F, rug=T,pers=F, all.terms=T,shade.col = 2, scheme=2)
+# using plot_smooth function:
+library(tidymv)
+plot_smooths(
+  model = M1,
+  series = Year,
+  facet_terms = region.x,
+  comparison = region.x) +
+  theme_classic(base_size=15)+
+  theme(legend.position = "top")
+
+# predictions
+pred_larg_herr<-predict_gam(
+  M1,
+  exclude_terms = NULL,
+  length_out = 50,
+  values = NULL,
+  type = "link"
+)
+# diagnostic:
+gam.check (M1)
+E <- resid(M1, type = "deviance")
+Fit <- fitted(M1)
+hist(E)
+plot(x = Fit,y = E,xlab = "Fitted values", ylab = "Residuals",main = "Residuals versus fitted values") 
+# or:
+plot(M1, resid(., type = "n") ~ fitted(.),abline = 0, col = 1)
+
+#with temp correlat: not working -> try to change smoothers type
+lmc <- lmeControl(niterEM = 5000,msMaxIter = 1000)
+M1<-gamm(avg_HERR_above18_B_km2 ~ s(Year,fx = FALSE, k = -1, bs = "cr", by = as.numeric(region.x == "Central_Baltic")) +
+           s(Year,fx = FALSE, k = -1, bs = "cr", by = as.numeric(region.x == "Bothnian")), 
+         correlation = corAR1(form =~ Year|region.x),control = lmc, method = "REML",data=avg5)
+# to fix heteroschedasticity, try with different error distribution: family= "Gamma","quasipoisson","tw", "nb", scat,gaulss()
+# instead of the isotropic smooth ("s()"), try tensor product smooth ("te()"). I used it for the spatial component before
+
+#	consider gear
 
 
 
