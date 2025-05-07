@@ -852,68 +852,68 @@ gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
                                                             gillnets_pool_lag$cyprinids_4YearBefore+
                                                             gillnets_pool_lag$cyprinids_5YearBefore)/6
 # competitors
-gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
-gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
-gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
-gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore+
-                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
-gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore+
-                                                            gillnets_pool_lag$cyprinids_4YearBefore+
-                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+gillnets_pool_lag$competitors_avg_since_1YearBefore<-(gillnets_pool_lag$competitors+
+                                                            gillnets_pool_lag$competitors_1YearBefore)/2
+gillnets_pool_lag$competitors_avg_since_2YearBefore<-(gillnets_pool_lag$competitors+
+                                                            gillnets_pool_lag$competitors_1YearBefore+
+                                                            gillnets_pool_lag$competitors_2YearBefore)/3
+gillnets_pool_lag$competitors_avg_since_3YearBefore<-(gillnets_pool_lag$competitors+
+                                                            gillnets_pool_lag$competitors_1YearBefore+
+                                                            gillnets_pool_lag$competitors_2YearBefore+
+                                                            gillnets_pool_lag$competitors_3YearBefore)/4
+gillnets_pool_lag$competitors_avg_since_4YearBefore<-(gillnets_pool_lag$competitors+
+                                                            gillnets_pool_lag$competitors_1YearBefore+
+                                                            gillnets_pool_lag$competitors_2YearBefore+
+                                                            gillnets_pool_lag$competitors_3YearBefore+
+                                                            gillnets_pool_lag$competitors_4YearBefore)/5
+gillnets_pool_lag$competitors_avg_since_5YearBefore<-(gillnets_pool_lag$competitors+
+                                                            gillnets_pool_lag$competitors_1YearBefore+
+                                                            gillnets_pool_lag$competitors_2YearBefore+
+                                                            gillnets_pool_lag$competitors_3YearBefore+
+                                                            gillnets_pool_lag$competitors_4YearBefore+
+                                                            gillnets_pool_lag$competitors_5YearBefore)/6
 # gobies
-gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
-gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
-gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
-gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore+
-                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
-gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore+
-                                                            gillnets_pool_lag$cyprinids_4YearBefore+
-                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+gillnets_pool_lag$gobies_avg_since_1YearBefore<-(gillnets_pool_lag$gobies+
+                                                            gillnets_pool_lag$gobies_1YearBefore)/2
+gillnets_pool_lag$gobies_avg_since_2YearBefore<-(gillnets_pool_lag$gobies+
+                                                            gillnets_pool_lag$gobies_1YearBefore+
+                                                            gillnets_pool_lag$gobies_2YearBefore)/3
+gillnets_pool_lag$gobies_avg_since_3YearBefore<-(gillnets_pool_lag$gobies+
+                                                            gillnets_pool_lag$gobies_1YearBefore+
+                                                            gillnets_pool_lag$gobies_2YearBefore+
+                                                            gillnets_pool_lag$gobies_3YearBefore)/4
+gillnets_pool_lag$gobies_avg_since_4YearBefore<-(gillnets_pool_lag$gobies+
+                                                            gillnets_pool_lag$gobies_1YearBefore+
+                                                            gillnets_pool_lag$gobies_2YearBefore+
+                                                            gillnets_pool_lag$gobies_3YearBefore+
+                                                            gillnets_pool_lag$gobies_4YearBefore)/5
+gillnets_pool_lag$gobies_avg_since_5YearBefore<-(gillnets_pool_lag$gobies+
+                                                            gillnets_pool_lag$gobies_1YearBefore+
+                                                            gillnets_pool_lag$gobies_2YearBefore+
+                                                            gillnets_pool_lag$gobies_3YearBefore+
+                                                            gillnets_pool_lag$gobies_4YearBefore+
+                                                            gillnets_pool_lag$gobies_5YearBefore)/6
 # all prey
-gillnets_pool_lag$cyprinids_avg_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore)/2
-gillnets_pool_lag$cyprinids_avg_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore)/3
-gillnets_pool_lag$cyprinids_avg_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore)/4
-gillnets_pool_lag$cyprinids_avg_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore+
-                                                            gillnets_pool_lag$cyprinids_4YearBefore)/5
-gillnets_pool_lag$cyprinids_avg_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                            gillnets_pool_lag$cyprinids_1YearBefore+
-                                                            gillnets_pool_lag$cyprinids_2YearBefore+
-                                                            gillnets_pool_lag$cyprinids_3YearBefore+
-                                                            gillnets_pool_lag$cyprinids_4YearBefore+
-                                                            gillnets_pool_lag$cyprinids_5YearBefore)/6
+gillnets_pool_lag$all_prey_avg_since_1YearBefore<-(gillnets_pool_lag$all_prey+
+                                                            gillnets_pool_lag$all_prey_1YearBefore)/2
+gillnets_pool_lag$all_prey_avg_since_2YearBefore<-(gillnets_pool_lag$all_prey+
+                                                            gillnets_pool_lag$all_prey_1YearBefore+
+                                                            gillnets_pool_lag$all_prey_2YearBefore)/3
+gillnets_pool_lag$all_prey_avg_since_3YearBefore<-(gillnets_pool_lag$all_prey+
+                                                            gillnets_pool_lag$all_prey_1YearBefore+
+                                                            gillnets_pool_lag$all_prey_2YearBefore+
+                                                            gillnets_pool_lag$all_prey_3YearBefore)/4
+gillnets_pool_lag$all_prey_avg_since_4YearBefore<-(gillnets_pool_lag$all_prey+
+                                                            gillnets_pool_lag$all_prey_1YearBefore+
+                                                            gillnets_pool_lag$all_prey_2YearBefore+
+                                                            gillnets_pool_lag$all_prey_3YearBefore+
+                                                            gillnets_pool_lag$all_prey_4YearBefore)/5
+gillnets_pool_lag$all_prey_avg_since_5YearBefore<-(gillnets_pool_lag$all_prey+
+                                                            gillnets_pool_lag$all_prey_1YearBefore+
+                                                            gillnets_pool_lag$all_prey_2YearBefore+
+                                                            gillnets_pool_lag$all_prey_3YearBefore+
+                                                            gillnets_pool_lag$all_prey_4YearBefore+
+                                                            gillnets_pool_lag$all_prey_5YearBefore)/6
 ## sum
 # abbo
 gillnets_pool_lag$totCPUE_Abborre_sum_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Abborre+
@@ -1044,68 +1044,68 @@ gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
                                                       gillnets_pool_lag$cyprinids_4YearBefore+
                                                       gillnets_pool_lag$cyprinids_5YearBefore)
 # competitors
-gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore+
-                                                      gillnets_pool_lag$cyprinids_4YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore+
-                                                      gillnets_pool_lag$cyprinids_4YearBefore+
-                                                      gillnets_pool_lag$cyprinids_5YearBefore)
+gillnets_pool_lag$competitors_sum_since_1YearBefore<-(gillnets_pool_lag$competitors+
+                                                      gillnets_pool_lag$competitors_1YearBefore)
+gillnets_pool_lag$competitors_sum_since_2YearBefore<-(gillnets_pool_lag$competitors+
+                                                      gillnets_pool_lag$competitors_1YearBefore+
+                                                      gillnets_pool_lag$competitors_2YearBefore)
+gillnets_pool_lag$competitors_sum_since_3YearBefore<-(gillnets_pool_lag$competitors+
+                                                      gillnets_pool_lag$competitors_1YearBefore+
+                                                      gillnets_pool_lag$competitors_2YearBefore+
+                                                      gillnets_pool_lag$competitors_3YearBefore)
+gillnets_pool_lag$competitors_sum_since_4YearBefore<-(gillnets_pool_lag$competitors+
+                                                      gillnets_pool_lag$competitors_1YearBefore+
+                                                      gillnets_pool_lag$competitors_2YearBefore+
+                                                      gillnets_pool_lag$competitors_3YearBefore+
+                                                      gillnets_pool_lag$competitors_4YearBefore)
+gillnets_pool_lag$competitors_sum_since_5YearBefore<-(gillnets_pool_lag$competitors+
+                                                      gillnets_pool_lag$competitors_1YearBefore+
+                                                      gillnets_pool_lag$competitors_2YearBefore+
+                                                      gillnets_pool_lag$competitors_3YearBefore+
+                                                      gillnets_pool_lag$competitors_4YearBefore+
+                                                      gillnets_pool_lag$competitors_5YearBefore)
 # gobies
-gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore+
-                                                      gillnets_pool_lag$cyprinids_4YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore+
-                                                      gillnets_pool_lag$cyprinids_4YearBefore+
-                                                      gillnets_pool_lag$cyprinids_5YearBefore)
+gillnets_pool_lag$gobies_sum_since_1YearBefore<-(gillnets_pool_lag$gobies+
+                                                      gillnets_pool_lag$gobies_1YearBefore)
+gillnets_pool_lag$gobies_sum_since_2YearBefore<-(gillnets_pool_lag$gobies+
+                                                      gillnets_pool_lag$gobies_1YearBefore+
+                                                      gillnets_pool_lag$gobies_2YearBefore)
+gillnets_pool_lag$gobies_sum_since_3YearBefore<-(gillnets_pool_lag$gobies+
+                                                      gillnets_pool_lag$gobies_1YearBefore+
+                                                      gillnets_pool_lag$gobies_2YearBefore+
+                                                      gillnets_pool_lag$gobies_3YearBefore)
+gillnets_pool_lag$gobies_sum_since_4YearBefore<-(gillnets_pool_lag$gobies+
+                                                      gillnets_pool_lag$gobies_1YearBefore+
+                                                      gillnets_pool_lag$gobies_2YearBefore+
+                                                      gillnets_pool_lag$gobies_3YearBefore+
+                                                      gillnets_pool_lag$gobies_4YearBefore)
+gillnets_pool_lag$gobies_sum_since_5YearBefore<-(gillnets_pool_lag$gobies+
+                                                      gillnets_pool_lag$gobies_1YearBefore+
+                                                      gillnets_pool_lag$gobies_2YearBefore+
+                                                      gillnets_pool_lag$gobies_3YearBefore+
+                                                      gillnets_pool_lag$gobies_4YearBefore+
+                                                      gillnets_pool_lag$gobies_5YearBefore)
 # all prey
-gillnets_pool_lag$cyprinids_sum_since_1YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_2YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_3YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_4YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore+
-                                                      gillnets_pool_lag$cyprinids_4YearBefore)
-gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
-                                                      gillnets_pool_lag$cyprinids_1YearBefore+
-                                                      gillnets_pool_lag$cyprinids_2YearBefore+
-                                                      gillnets_pool_lag$cyprinids_3YearBefore+
-                                                      gillnets_pool_lag$cyprinids_4YearBefore+
-                                                      gillnets_pool_lag$cyprinids_5YearBefore)
+gillnets_pool_lag$all_prey_sum_since_1YearBefore<-(gillnets_pool_lag$all_prey+
+                                                      gillnets_pool_lag$all_prey_1YearBefore)
+gillnets_pool_lag$all_prey_sum_since_2YearBefore<-(gillnets_pool_lag$all_prey+
+                                                      gillnets_pool_lag$all_prey_1YearBefore+
+                                                      gillnets_pool_lag$all_prey_2YearBefore)
+gillnets_pool_lag$all_prey_sum_since_3YearBefore<-(gillnets_pool_lag$all_prey+
+                                                      gillnets_pool_lag$all_prey_1YearBefore+
+                                                      gillnets_pool_lag$all_prey_2YearBefore+
+                                                      gillnets_pool_lag$all_prey_3YearBefore)
+gillnets_pool_lag$all_prey_sum_since_4YearBefore<-(gillnets_pool_lag$all_prey+
+                                                      gillnets_pool_lag$all_prey_1YearBefore+
+                                                      gillnets_pool_lag$all_prey_2YearBefore+
+                                                      gillnets_pool_lag$all_prey_3YearBefore+
+                                                      gillnets_pool_lag$all_prey_4YearBefore)
+gillnets_pool_lag$all_prey_sum_since_5YearBefore<-(gillnets_pool_lag$all_prey+
+                                                      gillnets_pool_lag$all_prey_1YearBefore+
+                                                      gillnets_pool_lag$all_prey_2YearBefore+
+                                                      gillnets_pool_lag$all_prey_3YearBefore+
+                                                      gillnets_pool_lag$all_prey_4YearBefore+
+                                                      gillnets_pool_lag$all_prey_5YearBefore)
 
 
 # fix column names for variables that contain more variables: not done yet! maybe using'' works

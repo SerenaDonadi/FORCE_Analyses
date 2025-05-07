@@ -1015,20 +1015,21 @@ vif(M1)
 # beyond optimal model with avg of predictors over the life span of fish:
 M1<-lm(total_length~avg_year_temp+day_of_month +
          BIASmean_avg_since_2YearBefore + distance +
-         # totCPUE_Abborre_avg_since_2YearBefore +
+         #totCPUE_Abborre_avg_since_2YearBefore +
          CPUE_Abborre_25andabove_avg_since_2YearBefore +
          CPUE_Abborre_less25_avg_since_2YearBefore +
          competitors_avg_since_2YearBefore + 
          #totCPUE_Mört_avg_since_2YearBefore +
          cyprinids_avg_since_2YearBefore +
          clupeids_avg_since_2YearBefore +
-         gobies_avg_since_2YearBefore +
-         # all_prey_avg_since_2YearBefore +
-         year,
+         gobies_avg_since_2YearBefore,
+         #all_prey_avg_since_2YearBefore,
+         #year,
        # random=~1|sub.location, #weights=varFixed(~ avg_year_temp), method = "ML", 
        na.action = na.omit, #na.action = "na.fail", # na.action = na.pass, na.action = "na.exclude",
        data=length_age12_age2)
 vif(M1)
+# all prey  and gobies together gives alias coeff. I keep the prey separated for now
 
 
 
