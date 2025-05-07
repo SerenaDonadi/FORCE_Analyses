@@ -626,7 +626,19 @@ gillnets_pool$cyprinids<-gillnets_pool$totCPUE_Björkna + gillnets_pool$totCPUE_
 gillnets_pool$competitors<-gillnets_pool$totCPUE_Gös + gillnets_pool$totCPUE_Gädda
 gillnets_pool$gobies<-gillnets_pool$'totCPUE_Svart smörbult' + gillnets_pool$'totCPUE_Svartmunnad smörbult'
 gillnets_pool$all_prey<-gillnets_pool$clupeids+gillnets_pool$cyprinids+gillnets_pool$gobies
-
+# and pool abbo size classes using a threshold for a diet shift (Jacobson et al. 2019: above 25cm, more than 50% of the diet is made by fish)
+gillnets_pool$CPUE_Abborre_less25 <-gillnets_pool$CPUE_Abborre_13cm+gillnets_pool$CPUE_Abborre_14cm+
+  gillnets_pool$CPUE_Abborre_15cm+gillnets_pool$CPUE_Abborre_16cm+gillnets_pool$CPUE_Abborre_17cm+gillnets_pool$CPUE_Abborre_18cm+
+  gillnets_pool$CPUE_Abborre_19cm+gillnets_pool$CPUE_Abborre_20cm+gillnets_pool$CPUE_Abborre_21cm+gillnets_pool$CPUE_Abborre_22cm+
+  gillnets_pool$CPUE_Abborre_23cm+gillnets_pool$CPUE_Abborre_24cm
+gillnets_pool$CPUE_Abborre_25andabove <-gillnets_pool$CPUE_Abborre_25cm+gillnets_pool$CPUE_Abborre_26cm+
+  gillnets_pool$CPUE_Abborre_27cm+gillnets_pool$CPUE_Abborre_28cm+
+  gillnets_pool$CPUE_Abborre_29cm+gillnets_pool$CPUE_Abborre_30cm+gillnets_pool$CPUE_Abborre_21cm+gillnets_pool$CPUE_Abborre_31cm+
+  gillnets_pool$CPUE_Abborre_32cm+gillnets_pool$CPUE_Abborre_33cm+gillnets_pool$CPUE_Abborre_34cm+gillnets_pool$CPUE_Abborre_35cm+
+  gillnets_pool$CPUE_Abborre_36cm+gillnets_pool$CPUE_Abborre_37cm+gillnets_pool$CPUE_Abborre_38cm+gillnets_pool$CPUE_Abborre_39cm+
+  gillnets_pool$CPUE_Abborre_40cm+gillnets_pool$CPUE_Abborre_41cm+gillnets_pool$CPUE_Abborre_42cm+gillnets_pool$CPUE_Abborre_43cm+
+  gillnets_pool$CPUE_Abborre_44cm+gillnets_pool$CPUE_Abborre_45cm+gillnets_pool$CPUE_Abborre_46cm+gillnets_pool$CPUE_Abborre_47cm+
+  gillnets_pool$CPUE_Abborre_48cm+gillnets_pool$CPUE_Abborre_49cm
 
 ##### calculate lags: ####
 # sort, if needed, by consecutive years per location
@@ -692,7 +704,21 @@ gillnets_pool_lag <-
   mutate(cyprinids_5YearBefore = dplyr::lag(cyprinids, n = 5, default = NA)) %>%
   mutate(competitors_5YearBefore = dplyr::lag(competitors, n = 5, default = NA)) %>%
   mutate(gobies_5YearBefore = dplyr::lag(gobies, n = 5, default = NA)) %>%
-  mutate(all_prey_5YearBefore = dplyr::lag(all_prey, n = 5, default = NA))
+  mutate(all_prey_5YearBefore = dplyr::lag(all_prey, n = 5, default = NA)) %>%
+  
+  mutate(CPUE_Abborre_less25_1YearBefore = dplyr::lag(CPUE_Abborre_less25, n = 1, default = NA)) %>%
+  mutate(CPUE_Abborre_less25_2YearBefore = dplyr::lag(CPUE_Abborre_less25, n = 2, default = NA)) %>%
+  mutate(CPUE_Abborre_less25_3YearBefore = dplyr::lag(CPUE_Abborre_less25, n = 3, default = NA)) %>%
+  mutate(CPUE_Abborre_less25_4YearBefore = dplyr::lag(CPUE_Abborre_less25, n = 4, default = NA)) %>%
+  mutate(CPUE_Abborre_less25_5YearBefore = dplyr::lag(CPUE_Abborre_less25, n = 5, default = NA)) %>%
+  
+  mutate(CPUE_Abborre_25andabove_1YearBefore = dplyr::lag(CPUE_Abborre_25andabove, n = 1, default = NA)) %>%
+  mutate(CPUE_Abborre_25andabove_2YearBefore = dplyr::lag(CPUE_Abborre_25andabove, n = 2, default = NA)) %>%
+  mutate(CPUE_Abborre_25andabove_3YearBefore = dplyr::lag(CPUE_Abborre_25andabove, n = 3, default = NA)) %>%
+  mutate(CPUE_Abborre_25andabove_4YearBefore = dplyr::lag(CPUE_Abborre_25andabove, n = 4, default = NA)) %>%
+  mutate(CPUE_Abborre_25andabove_5YearBefore = dplyr::lag(CPUE_Abborre_25andabove, n = 5, default = NA)) 
+  
+  
   
 # add integrated estimates of CPUE of spp over multiple years:
 ## avg
@@ -717,6 +743,51 @@ gillnets_pool_lag$totCPUE_Abborre_avg_since_5YearBefore<-(gillnets_pool_lag$totC
                                                             gillnets_pool_lag$totCPUE_Abborre_3YearBefore+
                                                             gillnets_pool_lag$totCPUE_Abborre_4YearBefore+
                                                             gillnets_pool_lag$totCPUE_Abborre_5YearBefore)/6
+
+# abbo less than 25 cm:
+gillnets_pool_lag$CPUE_Abborre_less25_avg_since_1YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore)/2
+gillnets_pool_lag$CPUE_Abborre_less25_avg_since_2YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore)/3
+gillnets_pool_lag$CPUE_Abborre_less25_avg_since_3YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_3YearBefore)/4
+gillnets_pool_lag$CPUE_Abborre_less25_avg_since_4YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_3YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_4YearBefore)/5
+gillnets_pool_lag$CPUE_Abborre_less25_avg_since_5YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_3YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_4YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_less25_5YearBefore)/6
+
+# abbo 25 cm and above:
+gillnets_pool_lag$CPUE_Abborre_25andabove_avg_since_1YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore)/2
+gillnets_pool_lag$CPUE_Abborre_25andabove_avg_since_2YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore)/3
+gillnets_pool_lag$CPUE_Abborre_25andabove_avg_since_3YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_3YearBefore)/4
+gillnets_pool_lag$CPUE_Abborre_25andabove_avg_since_4YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_3YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_4YearBefore)/5
+gillnets_pool_lag$CPUE_Abborre_25andabove_avg_since_5YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_3YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_4YearBefore+
+                                                            gillnets_pool_lag$CPUE_Abborre_25andabove_5YearBefore)/6
+
 # mört
 gillnets_pool_lag$totCPUE_Mört_avg_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
                                                             gillnets_pool_lag$totCPUE_Mört_1YearBefore)/2
@@ -865,6 +936,50 @@ gillnets_pool_lag$totCPUE_Abborre_sum_since_5YearBefore<-(gillnets_pool_lag$totC
                                                             gillnets_pool_lag$totCPUE_Abborre_3YearBefore+
                                                             gillnets_pool_lag$totCPUE_Abborre_4YearBefore+
                                                             gillnets_pool_lag$totCPUE_Abborre_5YearBefore)
+# abbo less than 25 cm:
+gillnets_pool_lag$CPUE_Abborre_less25_sum_since_1YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore)
+gillnets_pool_lag$CPUE_Abborre_less25_sum_since_2YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore)
+gillnets_pool_lag$CPUE_Abborre_less25_sum_since_3YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_3YearBefore)
+gillnets_pool_lag$CPUE_Abborre_less25_sum_since_4YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_3YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_4YearBefore)
+gillnets_pool_lag$CPUE_Abborre_less25_sum_since_5YearBefore<-(gillnets_pool_lag$CPUE_Abborre_less25+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_1YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_2YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_3YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_4YearBefore+
+                                                                gillnets_pool_lag$CPUE_Abborre_less25_5YearBefore)
+
+# abbo 25 cm and above:
+gillnets_pool_lag$CPUE_Abborre_25andabove_sum_since_1YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore)
+gillnets_pool_lag$CPUE_Abborre_25andabove_sum_since_2YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore)
+gillnets_pool_lag$CPUE_Abborre_25andabove_sum_since_3YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_3YearBefore)
+gillnets_pool_lag$CPUE_Abborre_25andabove_sum_since_4YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_3YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_4YearBefore)
+gillnets_pool_lag$CPUE_Abborre_25andabove_sum_since_5YearBefore<-(gillnets_pool_lag$CPUE_Abborre_25andabove+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_1YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_2YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_3YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_4YearBefore+
+                                                                    gillnets_pool_lag$CPUE_Abborre_25andabove_5YearBefore)
+
 # mört
 gillnets_pool_lag$totCPUE_Mört_sum_since_1YearBefore<-(gillnets_pool_lag$totCPUE_Mört+
                                                          gillnets_pool_lag$totCPUE_Mört_1YearBefore)
@@ -1000,8 +1115,7 @@ gillnets_pool_lag$cyprinids_sum_since_5YearBefore<-(gillnets_pool_lag$cyprinids+
 #skew1<-gillnets_pool$sk1$Skewness
 #gillnets_pool<-cbind(gillnets_pool,skew1)
 #gillnets_pool$skew1<-gillnets_pool$sk1[1]
-
-hist(gillnets_pool$skew1)
+# Agnes suggest this: attributes(df_mod$distance_sc)$`scaled:scale`
 
 # add n = n years of sampling for each sub.location
 gillnets_pool_lag_time<-gillnets_pool_lag %>%
@@ -1024,7 +1138,7 @@ gillnets_pool_lag_time2021<-filter(gillnets_pool_lag_time, year==2021) # only th
 # responses: mean_length, median_length, L90, sk1$Skewness, sk2$Skewness, ku1$Kurtosis, ku2$Skewness
 # drivers: avg_year_temp, totCPUE_Abborre, totCPUE_Mört, totCPUE_Gädda, totCPUE_Storspigg, totCPUE_Rötsimpa, totCPUE_Bergsimpa
 # size classes of abborre, lagged variables. Year. N years sampled per location. random: location, year
-
+# see more details in the length age analyses scripts
 
 # ready for analyses! 
 # OBS: check how many fish are used to calculate the indexes and compare with Örjan guidelines

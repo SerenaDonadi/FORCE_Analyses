@@ -335,8 +335,7 @@ table(gillnets_pool$location, gillnets_pool$year)
 #different gear, in gillnets we have filterd out based on K064
 
 #####
-# merge and keep all records in left dataset, and only matching record in right dataset
-# merge with stsp data abd dist from offshore
+# merge with stsp data abd dist from offshore. 
 
 # convert gear to factor, rename it and rename its levels:
 stsp$gear_code <- as.factor(stsp$gear)
@@ -348,7 +347,63 @@ levels(stsp$gear_code) <- c("K009","K053", "K059","K064")
 # delete  column gear
 stsp$gear <- NULL
 
-# merge with stsp data:
+# calculate lag and cumulative estimates for stsp
+# sort, if needed, by consecutive years per location
+stsp_lag<-stsp %>% 
+  arrange(location,sub.location,gear_code,year) 
+head(stsp_lag)
+
+stsp_lag <- stsp %>%
+  group_by(location, sub.location,gear_code) %>%
+  mutate(BIASmean_1YearBefore = dplyr::lag(BIASmean, n = 1, default = NA)) %>%
+  mutate(BIASmean_2YearBefore = dplyr::lag(BIASmean, n = 2, default = NA)) %>%
+  mutate(BIASmean_3YearBefore = dplyr::lag(BIASmean, n = 3, default = NA)) %>%
+  mutate(BIASmean_4YearBefore = dplyr::lag(BIASmean, n = 4, default = NA)) %>%
+  mutate(BIASmean_5YearBefore = dplyr::lag(BIASmean, n = 5, default = NA)) 
+
+stsp_lag$BIASmean_avg_since_1YearBefore<-(stsp_lag$BIASmean+
+                                            stsp_lag$BIASmean_1YearBefore)/2
+stsp_lag$BIASmean_avg_since_2YearBefore<-(stsp_lag$BIASmean+
+                                                         stsp_lag$BIASmean_1YearBefore+
+                                                         stsp_lag$BIASmean_2YearBefore)/3
+stsp_lag$BIASmean_avg_since_3YearBefore<-(stsp_lag$BIASmean+
+                                                         stsp_lag$BIASmean_1YearBefore+
+                                                         stsp_lag$BIASmean_2YearBefore+
+                                                         stsp_lag$BIASmean_3YearBefore)/4
+stsp_lag$BIASmean_avg_since_4YearBefore<-(stsp_lag$BIASmean+
+                                                         stsp_lag$BIASmean_1YearBefore+
+                                                         stsp_lag$BIASmean_2YearBefore+
+                                                         stsp_lag$BIASmean_3YearBefore+
+                                                         stsp_lag$BIASmean_4YearBefore)/5
+stsp_lag$BIASmean_avg_since_5YearBefore<-(stsp_lag$BIASmean+
+                                                         stsp_lag$BIASmean_1YearBefore+
+                                                         stsp_lag$BIASmean_2YearBefore+
+                                                         stsp_lag$BIASmean_3YearBefore+
+                                                         stsp_lag$BIASmean_4YearBefore+
+                                                         stsp_lag$BIASmean_5YearBefore)/6
+
+stsp_lag$BIASmean_sum_since_1YearBefore<-(stsp_lag$BIASmean+
+                                            stsp_lag$BIASmean_1YearBefore)
+stsp_lag$BIASmean_sum_since_2YearBefore<-(stsp_lag$BIASmean+
+                                            stsp_lag$BIASmean_1YearBefore+
+                                            stsp_lag$BIASmean_2YearBefore)
+stsp_lag$BIASmean_sum_since_3YearBefore<-(stsp_lag$BIASmean+
+                                            stsp_lag$BIASmean_1YearBefore+
+                                            stsp_lag$BIASmean_2YearBefore+
+                                            stsp_lag$BIASmean_3YearBefore)
+stsp_lag$BIASmean_sum_since_4YearBefore<-(stsp_lag$BIASmean+
+                                            stsp_lag$BIASmean_1YearBefore+
+                                            stsp_lag$BIASmean_2YearBefore+
+                                            stsp_lag$BIASmean_3YearBefore+
+                                            stsp_lag$BIASmean_4YearBefore)
+stsp_lag$BIASmean_sum_since_5YearBefore<-(stsp_lag$BIASmean+
+                                            stsp_lag$BIASmean_1YearBefore+
+                                            stsp_lag$BIASmean_2YearBefore+
+                                            stsp_lag$BIASmean_3YearBefore+
+                                            stsp_lag$BIASmean_4YearBefore+
+                                            stsp_lag$BIASmean_5YearBefore)
+
+# merge with stsp data:  merge and keep all records in left dataset, and only matching record in right dataset
 length_age10a<-left_join(length_age10, stsp, by = c("year","location","sub.location","gear_code")) 
 
 # same for distance from offshore data:
@@ -364,9 +419,8 @@ dist_offshore$gear <- NULL
 # merge with dist from offshore data:
 length_age10b<-left_join(length_age10a, dist_offshore, by = c("location","sub.location","gear_code")) 
 
-# start from here, merge after fixing gillnets at sublocation levels
 # merge with gillnets data:   group by sublocation!
-length_age11<-left_join(length_age10b, gillnets_pool_lag_time, by = c("year","location", "sub.location")) 
+length_age11<-left_join(length_age10b, gillnets_pool_lag, by = c("year","location", "sub.location")) 
 head(length_age11)
 
 
@@ -387,6 +441,7 @@ length_age12 %>%
   select(distance) %>%
   unique()
 
+
 length_age12_age2<-length_age12 %>% 
   filter(age == 2)
 length_age12_age3<-length_age12 %>% 
@@ -405,7 +460,7 @@ table(length_age12$location, length_age12$year)
 # exploration plots
 #####
 # length at age vs temp:
-ggplot(subset(length_age12, age %in% "2"), aes(x = avg_year_temp , y = total_length)) +
+ggplot(subset(length_age12, age %in% "2"), aes(x = BIASmean , y = total_length)) +
   geom_point()+
   #facet_wrap(~year)+
   geom_smooth(method = "lm")+ 
@@ -550,19 +605,56 @@ barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.
 #####
 # statistical analysis - age 2
 #####
-head(length_age12_age2)
+summary(length_age12_age2)
 
-# covariates: date as covariate. maybe transform to ordinal number. Conspecific densities as total or split by
-# size classes (pooled somehow).  Temp variables: now I have only avg_year_temp, calculate and import others.
-# stsp densities: to come. Densities of other food, split by spp (mört and Löja) or pooled. Ddnsities of competitors
-# consider lags: for avg year temp, competitors, conspecific, preys, stsp. just 1 year?
+# covariates: 
+# date of catch (day_of_month) to account for the extra growth since age determination. maybe transform to ordinal number. 
+# Temp variables: now I have only avg_year_temp, calculate and import others.
+# stsp densities* dist from offshore: BIASmean * distance
+# Conspecific densities: as total (totCPUE_Abborre) or split by size classes (pooled somehow): CPUE_Abborre_25andabove,CPUE_Abborre_less25  
+# clupeids, gobies, cyprinids, competitors, all_preys, totCPUE_Mört
+# year, if not collinear
+# n_fish if I considered avg by sublocation. or set a threshold for a minimum number of fish measured per replicate
+# random: year within sub.location. also sublocation in location. Gear, even though don't think is useful. 
+
+# consider lags and cumulative estimates for abbo,totCPUE_Mört, clupeids, cyprinids, all_preys, competitors
+# lag: totCPUE_Abborre_1YearBefore, totCPUE_Abborre_2YearBefore...MAYBE SKIP
+# avg: totCPUE_Abborre_avg_since_1YearBefore, totCPUE_Abborre_avg_since_2YearBefore...
+# sum: totCPUE_Abborre_sum_since_1YearBefore, totCPUE_Abborre_sum_since_2YearBefore...
+# same for temp: TO DO
+# same for stsp: BIASmean_avg_since_1YearBefore, BIASmean_avg_since_2YearBefore..BIASmean_sum_since_1YearBefore, BIASmean_sum_since_2YearBefore
+# same for size classes, but pooled: CPUE_Abborre_25andabove_avg_since_1YearBefore...CPUE_Abborre_25andabove_sum_since_1YearBefore...
 
 # OBS: as a second step, consider effects of temp (possibly different variables) on predictors, maybe SEM
 
 # OBS: since I have multiple values per location and year, I can't model a temporal correlation structure
-# more complex than a symmetrical one unless I pool the values, i.e. take the mean length per location and 
+# more complex than a symmetrical one unless I pool the values, i.e. take the mean length per sublocation and 
 # year. I can try and compare both approach, i.e. (1) all values retained with a simple corr str, and (2) the 
-# means with more complex corr str
+# means with more complex corr str. try also in gls and in gamm: correlation = corGaus(form =~ sub.location|Year,nugget=TRUE)
+# together with a spatial random factor location/sublocation
+
+# OBS: consider gamm, see clupeids R scripts
+
+# try with or without Råneå 2008
+
+# using the MuMIn package:
+library(MuMIn)
+
+# the function na.action = "na.fail"  prevents fitting models to different datasets due to NA
+
+# I think I should use here ML since I am doing model selection for the fixed part. But then I get also the coefficients, for
+# which I would rather use REML. After researching on the topic I found: "using likelihood-based methods (including AIC) to 
+# compare two models with different fixed effects that are fitted by REML will generally lead to nonsense. In Faraway (2006, 
+# Extending the linear model with R (p. 156): The reason is that REML estimates the random effects by considering linear 
+# combinations of the data that remove the fixed effects. If these fixed effects are changed, the likelihoods of the two models
+# will not be directly comparable"
+
+# AICc should be used instead AIC when sample size is small in comparison to the number of estimated parameters (Burnham & 
+# Anderson 2002 recommend its use when n/K < 40. (Burnham, K. P. and Anderson, D. R. 2002 Model selection and multimodel 
+# inference: a practical information-theoretic approach. 2nd ed. New York, Springer-Verlag)
+# By default, AICc is used to rank models and obtain model weights
+# for more info: https://cran.r-project.org/web/packages/MuMIn/MuMIn.pdf
+
 
 ##### approach 1 all values retained with a simple corr str ####
 
@@ -628,6 +720,8 @@ M1<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + fi
         random=~1|location,method="REML",na.action=na.omit, data=length_age12_age2)
 M2<-lme(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + day_of_month,
         random=~1|location,correlation=corCompSymm(form=~year),method="REML",na.action=na.omit, data=length_age12_age2)
+M3<-gls(total_length~avg_year_temp+totCPUE_Abborre + competitors + all_prey + field_temp + day_of_month,
+        correlation = corGaus(form =~ location|year,nugget=TRUE),method="REML",na.action=na.omit, data=length_age12_age2)
 AIC(M0,M1,M2)
 # best is M1
 
@@ -805,6 +899,48 @@ summary(M3a)
 
 # NB: I can remove field temp, as it affect the catch ability of gillnets, but not the length of fish
 
+#### using MuMin ####
+library(MuMIn)
+# linear models:
+M3<-lme(total_length~avg_year_temp+day_of_month +
+          BIASmean * distance + # BIASmean_avg_since_1YearBefore * distance + BIASmean_avg_since_2YearBefore +
+          # BIASmean_sum_since_1YearBefore * distance + BIASmean_sum_since_2YearBefore
+          totCPUE_Abborre + # totCPUE_Abborre_avg_since_1YearBefore + totCPUE_Abborre_avg_since_2YearBefore +
+          # totCPUE_Abborre_sum_since_1YearBefore + totCPUE_Abborre_sum_since_2YearBefore +
+          CPUE_Abborre_25andabove + # CPUE_Abborre_25andabove_avg_since_1YearBefore + CPUE_Abborre_25andabove_avg_since_2YearBefore +
+          # CPUE_Abborre_25andabove_sum_since_1YearBefore + CPUE_Abborre_25andabove_sum_since_2YearBefore +
+          CPUE_Abborre_less25 + # CPUE_Abborre_less25_avg_since_1YearBefore + CPUE_Abborre_less25_avg_since_2YearBefore +
+          # CPUE_Abborre_less25_sum_since_1YearBefore + CPUE_Abborre_less25_sum_since_2YearBefore +
+          competitors + # competitors_avg_since_1YearBefore + competitors_avg_since_2YearBefore +
+          # competitors_sum_since_1YearBefore + competitors_sum_since_2YearBefore +
+          totCPUE_Mört  +# totCPUE_Mört_avg_since_1YearBefore + totCPUE_Mört_avg_since_2YearBefore +
+          # totCPUE_Mört_sum_since_1YearBefore + totCPUE_Mört_sum_since_2YearBefore +
+          cyprinids + # cyprinids_avg_since_1YearBefore + cyprinids_avg_since_2YearBefore +
+          # cyprinids_sum_since_1YearBefore + cyprinids_sum_since_2YearBefore +
+          clupeids + # clupeids_avg_since_1YearBefore + clupeids_avg_since_2YearBefore +
+          # clupeids_sum_since_1YearBefore + clupeids_sum_since_2YearBefore +
+          gobies + # gobies_avg_since_1YearBefore + gobies_avg_since_2YearBefore +
+          # gobies_sum_since_1YearBefore + gobies_sum_since_2YearBefore +
+          all_prey + # all_prey_avg_since_1YearBefore + all_prey_avg_since_2YearBefore +
+          # all_prey_sum_since_1YearBefore + all_prey_sum_since_2YearBefore +
+          year,
+        random=~1|location,weights=varFixed(~ avg_year_temp), 
+        na.action = "na.fail", method = "ML",na.action=na.omit, data=length_age12_age2)
+
+# to get all possible models:
+dM1<-dredge(M1,rank = "AICc", extra = "R^2")
+# to keep only models containing HERR_above18_B_km2_4root+herrbelow18_sprat_4root
+ddM1<-dredge(M1,rank = "AICc", extra = c("R^2","vif"), fixed = c("HERR_above18_B_km2_4root","herrbelow18_sprat_4root"))
+print(ddM1)
+coefTable(ddM1)
+# export to excel:
+library(openxlsx)
+write.xlsx(ddM1, file="C:/Users/sedi0002/Google Drive/R stickleback/H1models_B_winterT.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+
+
+# gam models:
 
 ###### approach 2: means and more complex corr str####
 
