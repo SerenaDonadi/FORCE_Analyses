@@ -332,10 +332,16 @@ gillnets_pool %>%
 table(length_age10$location, length_age10$year)
 table(gillnets_pool$location, gillnets_pool$year)
 
-#different gear, in gillnets we have filterd out based on K064
+#different gear, in gillnets we have filterd out based on K064. Now fixed
+
+# check coordinates for Kvädöfjärden:
+length_age10 %>%
+  filter(location == "Kvädöfjärden") %>%
+  select(sub.location, lat, long) %>%
+  unique()
 
 #####
-# merge with stsp data abd dist from offshore. 
+# merge with stsp data and dist from offshore. 
 
 # convert gear to factor, rename it and rename its levels:
 stsp$gear_code <- as.factor(stsp$gear)
@@ -404,7 +410,7 @@ stsp_lag$BIASmean_sum_since_5YearBefore<-(stsp_lag$BIASmean+
                                             stsp_lag$BIASmean_5YearBefore)
 
 # merge with stsp data:  merge and keep all records in left dataset, and only matching record in right dataset
-length_age10a<-left_join(length_age10, stsp, by = c("year","location","sub.location","gear_code")) 
+length_age10a<-left_join(length_age10, stsp_lag, by = c("year","location","sub.location","gear_code")) 
 
 # same for distance from offshore data:
 # convert gear to factor, rename it and rename its levels:
@@ -624,6 +630,35 @@ summary(length_age12_age2)
 # same for temp: TO DO
 # same for stsp: BIASmean_avg_since_1YearBefore, BIASmean_avg_since_2YearBefore..BIASmean_sum_since_1YearBefore, BIASmean_sum_since_2YearBefore
 # same for size classes, but pooled: CPUE_Abborre_25andabove_avg_since_1YearBefore...CPUE_Abborre_25andabove_sum_since_1YearBefore...
+
+### example of beyond optimal model (temp variables missing for now):
+# linear models:
+M1<-lm(total_length~avg_year_temp+day_of_month +
+         BIASmean + distance + # BIASmean_avg_since_1YearBefore * distance + BIASmean_avg_since_2YearBefore +
+         # BIASmean_sum_since_1YearBefore * distance + BIASmean_sum_since_2YearBefore
+         totCPUE_Abborre + # totCPUE_Abborre_avg_since_1YearBefore + totCPUE_Abborre_avg_since_2YearBefore +
+         # totCPUE_Abborre_sum_since_1YearBefore + totCPUE_Abborre_sum_since_2YearBefore +
+         CPUE_Abborre_25andabove + # CPUE_Abborre_25andabove_avg_since_1YearBefore + CPUE_Abborre_25andabove_avg_since_2YearBefore +
+         # CPUE_Abborre_25andabove_sum_since_1YearBefore + CPUE_Abborre_25andabove_sum_since_2YearBefore +
+         CPUE_Abborre_less25 + # CPUE_Abborre_less25_avg_since_1YearBefore + CPUE_Abborre_less25_avg_since_2YearBefore +
+         # CPUE_Abborre_less25_sum_since_1YearBefore + CPUE_Abborre_less25_sum_since_2YearBefore +
+         competitors + # competitors_avg_since_1YearBefore + competitors_avg_since_2YearBefore +
+         # competitors_sum_since_1YearBefore + competitors_sum_since_2YearBefore +
+         totCPUE_Mört  +# totCPUE_Mört_avg_since_1YearBefore + totCPUE_Mört_avg_since_2YearBefore +
+         # totCPUE_Mört_sum_since_1YearBefore + totCPUE_Mört_sum_since_2YearBefore +
+         cyprinids + # cyprinids_avg_since_1YearBefore + cyprinids_avg_since_2YearBefore +
+         # cyprinids_sum_since_1YearBefore + cyprinids_sum_since_2YearBefore +
+         clupeids + # clupeids_avg_since_1YearBefore + clupeids_avg_since_2YearBefore +
+         # clupeids_sum_since_1YearBefore + clupeids_sum_since_2YearBefore +
+         gobies + # gobies_avg_since_1YearBefore + gobies_avg_since_2YearBefore +
+         # gobies_sum_since_1YearBefore + gobies_sum_since_2YearBefore +
+         all_prey + # all_prey_avg_since_1YearBefore + all_prey_avg_since_2YearBefore +
+         # all_prey_sum_since_1YearBefore + all_prey_sum_since_2YearBefore +
+         year,
+       # random=~1|sub.location, #weights=varFixed(~ avg_year_temp), method = "ML", 
+       na.action = "na.fail", # na.action = na.pass, na.action = na.omit, na.action = "na.exclude",
+       data=clean_data)
+
 
 # OBS: as a second step, consider effects of temp (possibly different variables) on predictors, maybe SEM
 
@@ -879,10 +914,10 @@ summary(M7)
 
 #####
 # testing conspecific densities from size classes:
-colnames(length_age12_age2)
-length_age12_age2$CPUEabbo_13_14cm<-length_age12_age2$'13'+length_age12_age2$'14'
-length_age12_age2$CPUEabbo_13_15cm<-length_age12_age2$'15'+length_age12_age2$CPUEabbo_13_14cm
-length_age12_age2$CPUEabbo_13_16cm<-length_age12_age2$'16'+length_age12_age2$CPUEabbo_13_15cm
+summary(length_age12_age2)
+#length_age12_age2$CPUEabbo_13_14cm<-length_age12_age2$'13'+length_age12_age2$'14'
+#length_age12_age2$CPUEabbo_13_15cm<-length_age12_age2$'15'+length_age12_age2$CPUEabbo_13_14cm
+#length_age12_age2$CPUEabbo_13_16cm<-length_age12_age2$'16'+length_age12_age2$CPUEabbo_13_15cm
 
 # I remove totCPUE abbo:
 M0<-lm(total_length~avg_year_temp_2YearBefore + competitors + all_prey + field_temp + day_of_month
@@ -899,11 +934,18 @@ summary(M3a)
 
 # NB: I can remove field temp, as it affect the catch ability of gillnets, but not the length of fish
 
-#### using MuMin ####
+##### using MuMi - FAILED #### 
 library(MuMIn)
+
+# The dredge function from the MuMIn package requires consistent handling of missing values to ensure that 
+# all sub-models are fitted to the same dataset. So I make a pilot model on a clean dataset with no zeros
+# Alternatively, I could run random forest
+
+clean_data <- na.omit(length_age12_age2)
+
 # linear models:
-M3<-lme(total_length~avg_year_temp+day_of_month +
-          BIASmean * distance + # BIASmean_avg_since_1YearBefore * distance + BIASmean_avg_since_2YearBefore +
+M1<-lm(total_length~avg_year_temp+day_of_month +
+          BIASmean + distance + # BIASmean_avg_since_1YearBefore * distance + BIASmean_avg_since_2YearBefore +
           # BIASmean_sum_since_1YearBefore * distance + BIASmean_sum_since_2YearBefore
           totCPUE_Abborre + # totCPUE_Abborre_avg_since_1YearBefore + totCPUE_Abborre_avg_since_2YearBefore +
           # totCPUE_Abborre_sum_since_1YearBefore + totCPUE_Abborre_sum_since_2YearBefore +
@@ -924,23 +966,72 @@ M3<-lme(total_length~avg_year_temp+day_of_month +
           all_prey + # all_prey_avg_since_1YearBefore + all_prey_avg_since_2YearBefore +
           # all_prey_sum_since_1YearBefore + all_prey_sum_since_2YearBefore +
           year,
-        random=~1|location,weights=varFixed(~ avg_year_temp), 
-        na.action = "na.fail", method = "ML",na.action=na.omit, data=length_age12_age2)
+        # random=~1|sub.location, #weights=varFixed(~ avg_year_temp), method = "ML", 
+        na.action = "na.fail", # na.action = na.pass, na.action = na.omit, na.action = "na.exclude",
+        data=clean_data)
 
 # to get all possible models:
-dM1<-dredge(M1,rank = "AICc", extra = "R^2")
+dM1<-dredge(M1,rank = "AICc", extra = c("R^2"))
 # to keep only models containing HERR_above18_B_km2_4root+herrbelow18_sprat_4root
-ddM1<-dredge(M1,rank = "AICc", extra = c("R^2","vif"), fixed = c("HERR_above18_B_km2_4root","herrbelow18_sprat_4root"))
-print(ddM1)
-coefTable(ddM1)
-# export to excel:
-library(openxlsx)
-write.xlsx(ddM1, file="C:/Users/sedi0002/Google Drive/R stickleback/H1models_B_winterT.xlsx",
-           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+#ddM1<-dredge(M1,rank = "AICc", extra = c("R^2","vif"), fixed = c("HERR_above18_B_km2_4root","herrbelow18_sprat_4root"))
+print(dM1)
+coefTable(dM1)
+# export to excel
+
+#failed
+
+##### gamm ####
+library(mgcv)
+
+# beyond optimal model:
+M1<-lm(total_length~avg_year_temp+day_of_month +
+         BIASmean + distance + # BIASmean_avg_since_1YearBefore * distance + BIASmean_avg_since_2YearBefore +
+         # BIASmean_sum_since_1YearBefore * distance + BIASmean_sum_since_2YearBefore
+         totCPUE_Abborre + # totCPUE_Abborre_avg_since_1YearBefore + totCPUE_Abborre_avg_since_2YearBefore +
+         # totCPUE_Abborre_sum_since_1YearBefore + totCPUE_Abborre_sum_since_2YearBefore +
+         CPUE_Abborre_25andabove + # CPUE_Abborre_25andabove_avg_since_1YearBefore + CPUE_Abborre_25andabove_avg_since_2YearBefore +
+         # CPUE_Abborre_25andabove_sum_since_1YearBefore + CPUE_Abborre_25andabove_sum_since_2YearBefore +
+         CPUE_Abborre_less25 + # CPUE_Abborre_less25_avg_since_1YearBefore + CPUE_Abborre_less25_avg_since_2YearBefore +
+         # CPUE_Abborre_less25_sum_since_1YearBefore + CPUE_Abborre_less25_sum_since_2YearBefore +
+         competitors + # competitors_avg_since_1YearBefore + competitors_avg_since_2YearBefore +
+         # competitors_sum_since_1YearBefore + competitors_sum_since_2YearBefore +
+         totCPUE_Mört  +# totCPUE_Mört_avg_since_1YearBefore + totCPUE_Mört_avg_since_2YearBefore +
+         # totCPUE_Mört_sum_since_1YearBefore + totCPUE_Mört_sum_since_2YearBefore +
+         cyprinids + # cyprinids_avg_since_1YearBefore + cyprinids_avg_since_2YearBefore +
+         # cyprinids_sum_since_1YearBefore + cyprinids_sum_since_2YearBefore +
+         clupeids + # clupeids_avg_since_1YearBefore + clupeids_avg_since_2YearBefore +
+         # clupeids_sum_since_1YearBefore + clupeids_sum_since_2YearBefore +
+         gobies + # gobies_avg_since_1YearBefore + gobies_avg_since_2YearBefore +
+         # gobies_sum_since_1YearBefore + gobies_sum_since_2YearBefore +
+         all_prey + # all_prey_avg_since_1YearBefore + all_prey_avg_since_2YearBefore +
+         # all_prey_sum_since_1YearBefore + all_prey_sum_since_2YearBefore +
+         year,
+       # random=~1|sub.location, #weights=varFixed(~ avg_year_temp), method = "ML", 
+       na.action = na.omit, #na.action = "na.fail", # na.action = na.pass, na.action = "na.exclude",
+       data=length_age12_age2)
+plot(length_age12_age2$cyprinids, length_age12_age2$gobies) # all prey  and gobies together gives alias coeff
+vif(M1)
+
+# beyond optimal model with avg of predictors over the life span of fish:
+M1<-lm(total_length~avg_year_temp+day_of_month +
+         BIASmean_avg_since_2YearBefore + distance +
+         # totCPUE_Abborre_avg_since_2YearBefore +
+         CPUE_Abborre_25andabove_avg_since_2YearBefore +
+         CPUE_Abborre_less25_avg_since_2YearBefore +
+         competitors_avg_since_2YearBefore + 
+         #totCPUE_Mört_avg_since_2YearBefore +
+         cyprinids_avg_since_2YearBefore +
+         clupeids_avg_since_2YearBefore +
+         gobies_avg_since_2YearBefore +
+         # all_prey_avg_since_2YearBefore +
+         year,
+       # random=~1|sub.location, #weights=varFixed(~ avg_year_temp), method = "ML", 
+       na.action = na.omit, #na.action = "na.fail", # na.action = na.pass, na.action = "na.exclude",
+       data=length_age12_age2)
+vif(M1)
 
 
 
-# gam models:
 
 ###### approach 2: means and more complex corr str####
 

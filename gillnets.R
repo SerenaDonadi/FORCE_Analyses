@@ -568,7 +568,7 @@ gillnets_totCPUE<-gillnets_CPUE %>%
 
 head(gillnets_totCPUE)
 
-table(gillnets_totCPUE$Art) # only 22 Okänd, no worth bothering
+table(gillnets_totCPUE$Art) # only 25 Okänd, no worth bothering
 
 # SUMMARY of key datasets
 # gillnets_CPUE: replicated at level of location, year, size categories (and spp) - useful for plotting
