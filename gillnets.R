@@ -17,6 +17,7 @@ library(piecewiseSEM)
 library(lme4)
 library(car)
 library(visreg)
+library(mgcv)
 
 library(ExcelFunctionsR)
 #library(plyr)

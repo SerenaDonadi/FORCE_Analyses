@@ -1050,41 +1050,50 @@ M1<-lm(total_length~avg_year_temp+day_of_month +
        data=length_age12_age2)
 summary(M1)
 
-# using non linear models (with no temporal or spatial correl). leave temp out for now
+# GAM
+# using non linear models (with no temporal or spatial correl). leave temp out for now - IT TAKES FOREVER, REDUCE!
 M1<-gam(total_length ~ te(BIASmean_avg_since_2YearBefore,distance) +
           s(CPUE_Abborre_25andabove_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(competitors_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(clupeids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(gobies_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"),
+          method = "REML",data=length_age12_age2)
+# REDUCED/modify smooth:
+M1<-gam(total_length ~ s(BIASmean_avg_since_2YearBefore,distance) +
+          s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
           s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"),
-          method = "REML",data=avg5)
+        method = "REML",data=length_age12_age2)
+# with linear interaction term: and gear
+M1<-gam(total_length ~ BIASmean_avg_since_2YearBefore*distance + factor(gear_code)+day_of_month +
+          s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+          s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"),
+        method = "REML",data=length_age12_age2)
+
 summary(M1)
 anova(M1) # useful when I have a factor, gives a overall F test
-#The fx and k means that the amount of smoothing is not fixed to a predeternmined value;hence, cross-validation is used to estimate the optimal amount of smoothing. 
+# The fx and k means that the amount of smoothing is not fixed to a predeternmined value;hence, cross-validation is used to estimate the optimal amount of smoothing. 
 # bs is for cubic regression spline to be used. try either "cr" or "cs".
-#if convergence problems: 
-# The option "control = lmc," can be used to ensure convergence
+# if convergence problems: The option "control = lmc," can be used to ensure convergence
 # One option is to increase the number of iterations in the routine or reduce the convergence criteria, see the help file of gamm
 # Other options are to fix the degrees of freedom (and not use cross-validation) 
+
 # plots
 plot(M1)
-plot.gam(M1,  shade=TRUE, residuals=TRUE, rug=T,pers=F, all.terms=T,shade.col = 2,by.resids=T,  scheme=3) # It plots resid of both CB and B
+plot.gam(M1,  shade=TRUE, residuals=TRUE, rug=T,pers=F, all.terms=T,shade.col = 2,by.resids=T,  scheme=3) 
 plot.gam(M1,  shade=TRUE, residuals=F, rug=T,pers=F, all.terms=T,shade.col = 2, scheme=2)
-# using plot_smooth function:
-library(tidymv)
-plot_smooths(
-  model = M1,
-  series = Year,
-  facet_terms = region.x,
-  comparison = region.x) +
-  theme_classic(base_size=15)+
-  theme(legend.position = "top")
+plot.gam(M1, select=2, shade=TRUE, residuals=F, rug=T,pers=F, all.terms=F,shade.col=2, scheme=0, 
+         seWithMean=T, pages=0) # change scheme and shade.col for different colors
+vis.gam(M1, theta = 120, color = "heat")
+vis.gam(M1, view=c("BIASmean_avg_since_2YearBefore","distance"), plot.type="contour", color="cm", n.grid=60) # color="bw", for no color
 
-# predictions
-pred_larg_herr<-predict_gam(
-  M1,
-  exclude_terms = NULL,
-  length_out = 50,
-  values = NULL,
-  type = "link"
-)
+# try more graphic options here:
+#https://cran.r-project.org/web/packages/tidymv/vignettes/predict-gam.html
+# https://cran.r-project.org/web/packages/mgcViz/vignettes/mgcviz.html
+#http://zevross.com/blog/2014/09/15/recreate-the-gam-partial-regression-smooth-plots-from-r-package-mgcv-with-a-little-style/
+# for more options see: https://www.rdocumentation.org/packages/mgcv/versions/1.8-40/topics/plot.gam
+
 # diagnostic:
 gam.check (M1)
 E <- resid(M1, type = "deviance")
@@ -1094,19 +1103,249 @@ plot(x = Fit,y = E,xlab = "Fitted values", ylab = "Residuals",main = "Residuals 
 # or:
 plot(M1, resid(., type = "n") ~ fitted(.),abline = 0, col = 1)
 
-#with temp correlat: not working -> try to change smoothers type
+# with temp correlat: if not working -> try to change smoothers type
+# temporal correlation nested within locatiion or sublocation doen't make sense, as I am not measuring the same fish in consecutive year
+# rather, I will use location/sublocation as random, as well as year (which may not be significant once I get temperature variable)
+# and try also corr based on lat and long
 lmc <- lmeControl(niterEM = 5000,msMaxIter = 1000)
-M1<-gamm(avg_HERR_above18_B_km2 ~ s(Year,fx = FALSE, k = -1, bs = "cr", by = as.numeric(region.x == "Central_Baltic")) +
-           s(Year,fx = FALSE, k = -1, bs = "cr", by = as.numeric(region.x == "Bothnian")), 
-         correlation = corAR1(form =~ Year|region.x),control = lmc, method = "REML",data=avg5)
+f <- formula(total_length ~ BIASmean_avg_since_2YearBefore*distance + factor(gear_code)+day_of_month +
+               s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+               s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"))
+M1<-gamm(f,control = lmc, method = "REML",data=length_age12_age2)
+M2<-gamm(f,random = list(year =~ 1),control = lmc, method = "REML",data=length_age12_age2)
+M3<-gamm(f,random = list(sub.location =~ 1),control = lmc, method = "REML",data=length_age12_age2)
+M4<-gamm(f,random = list(location =~ 1),control = lmc, method = "REML",data=length_age12_age2)
+M5<-gamm(f,correlation = corGaus(form =~ lat,nugget=TRUE),control = lmc, method = "REML",data=length_age12_age2)
+#M6<-gamm(f,correlation = corGaus(form =~ lat + long,nugget=TRUE),control = lmc, method = "REML",data=length_age12_age2)
+#M7<-gamm(f, correlation = corGaus(form =~ lat + long,nugget=TRUE),random = list(year =~ 1),
+#         control = lmc, method = "REML",data=length_age12_age2)
+AIC(M1,M2,M3,M4) 
+# M3 best!
+
+# add variance str (weights = varFixed(~ Year), weights = varIdent(form =~ 1|region)), possibly with control=lmc. Possibly change type of smoother
+M3<-gamm(f,random = list(sub.location =~ 1),control = lmc, method = "REML",data=length_age12_age2)
+M4<-gamm(f,random = list(sub.location =~ 1),weights = varFixed(~ year),
+         control = lmc, method = "REML",data=length_age12_age2)
+M5<-gamm(f,random = list(sub.location =~ 1),weights = varFixed(~ BIASmean_avg_since_2YearBefore),
+         control = lmc, method = "REML",data=length_age12_age2)
+M6<-gamm(f,random = list(sub.location =~ 1),weights = varFixed(~ distance),
+         control = lmc, method = "REML",data=length_age12_age2)
+M7<-gamm(f,random = list(sub.location =~ 1),weights = varFixed(~ day_of_month),
+         control = lmc, method = "REML",data=length_age12_age2)
+M8<-gamm(f,random = list(sub.location =~ 1),weights = varFixed(~ CPUE_Abborre_less25_avg_since_2YearBefore),
+         control = lmc, method = "REML",data=length_age12_age2)
+M9<-gamm(f,random = list(sub.location =~ 1),weights = varFixed(~ all_prey_avg_since_2YearBefore),
+         control = lmc, method = "REML",data=length_age12_age2)
+M10<-gamm(f,random = list(sub.location =~ 1),weights = varIdent(form =~ 1|sub.location),
+         control = lmc, method = "REML",data=length_age12_age2)
+M11<-gamm(f,random = list(sub.location =~ 1),weights = varIdent(form =~ 1|location),
+          control = lmc, method = "REML",data=length_age12_age2)
+M12<-gamm(f,random = list(sub.location =~ 1),weights = varIdent(form =~ 1|gear_code),
+          control = lmc, method = "REML",data=length_age12_age2)
+AIC(M3,M4,M5,M7,M8,M9,M10,M11,M12)
+# best: M10 and 11
+f <- formula(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+               s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+               s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"))
+M10<-gamm(f,random = list(sub.location =~ 1),weights = varIdent(form =~ 1|sub.location),
+          control = lmc, method = "REML",data=length_age12_age2)
+summary(M10$gam) # very low R2
+anova(M10$gam)
+plot(M10$gam)
+plot(M10$lme)
+summary(M10$lme)
+plot(M10$lme, resid(., type = "n") ~ fitted(.),abline = 0, col = 1)
+plot(M10$lme, resid(., type = "n") ~ CPUE_Abborre_less25_avg_since_2YearBefore,abline = 0, col = 1)
+
+# plot linear term:
+library(ggeffects)
+pred <- ggpredict(M10, c("BIASmean_avg_since_2YearBefore", "distance"))
+plot(pred)
+
+# check with the method of cross validation if smoother gives only one degree of freedom. effect is linear if edf ~1
+# amount of smoothing: look at edf (effective degrees of freedom). A high value (8-10 or higher) means that the curve is highly non-linear, 
+# whereas a smoother with 1 degree of freedom is a straight line
+# if I remove all smoothers, compare with ML: meglio gamm
+M11<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+            s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+            s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"),
+          random = list(sub.location =~ 1),weights = varIdent(form =~ 1|sub.location),
+          control = lmc, na.action = na.omit,method = "ML",data=length_age12_age2)
+M12<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + all_prey_avg_since_2YearBefore, 
+         random = list(sub.location =~ 1),weights = varIdent(form =~ 1|sub.location),
+         control = lmc,na.action = na.omit, method = "ML",data=length_age12_age2)
+AIC(M11$lme, M12)
+
 # to fix heteroschedasticity, try with different error distribution: family= "Gamma","quasipoisson","tw", "nb", scat,gaulss()
+# remove variance str, as they don't run, indeed it doesn't make sense, as I account for hereroschedasticity via error distribution
+f <- formula(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+               s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+               s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"))
+M11<-gamm(f,random = list(sub.location =~ 1),weights = varIdent(form =~ 1|sub.location),
+          control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11$gam) # R 0.05
+gam.check(M11$gam)
+M11a<-gamm(f,random = list(sub.location =~ 1),#weights = varIdent(form =~ 1|sub.location),
+           family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11a$gam) #R = 0.09
+gam.check(M11a$gam)
+M11b<-gamm(f,random = list(sub.location =~ 1),#weights = varIdent(form =~ 1|sub.location),
+           family= "quasipoisson", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11b$gam) # 0.06
+gam.check(M11b$gam)
+M11c<-gamm(f,random = list(sub.location =~ 1),#weights = varIdent(form =~ 1|sub.location),
+           family= "tw", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11c$gam) # 0.07
+gam.check(M11c$gam)
+M11d<-gamm(f,random = list(sub.location =~ 1),#weights = varIdent(form =~ 1|sub.location),
+           family= "nb", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11d$gam) # 0.08
+gam.check(M11d$gam)
+M11e<-gamm(f,random = list(sub.location =~ 1),#weights = varIdent(form =~ 1|sub.location),
+           family= "scat", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11e$gam) # 0.03
+gam.check(M11e$gam)
+
+# best
+M11a<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+             s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+             s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+           random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M11a$gam)
+summary(M11a$lme)
+plot(M11a$gam)
+gam.check(M11a$gam)
+
+# plot linear term:
+library(ggeffects)
+pred <- ggpredict(M11a, c("BIASmean_avg_since_2YearBefore", "distance"))
+plot(pred)
+
+# try different smooothers: cr, cs, tp - not much differnce
+M2<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+             s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cs") +
+             s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cs"), method = "REML",
+           random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M2$gam) # R2 is 0.09. interaction ns
+
+M2<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "tp") +
+           s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "tp"), method = "REML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M2$gam) # R2 is 0.09. interaction ns
+
+# try different fixed structure and compare to M11a
+M3<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(CPUE_Abborre_25andabove_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+           random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M3$gam) # less R2
+
+M4<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           s(totCPUE_Abborre_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(all_prey_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M4$gam) # meglio, R2 0.11. interaction signif: but it looks weak
+pred <- ggpredict(M4, c("BIASmean_avg_since_2YearBefore", "distance"))
+plot(pred)
+
+M3<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M3$gam) # # super R is 0.16
+
+M4<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M4$gam) # super R is 27
+plot(M4$gam)
+vis.gam(M4, theta = 120, n.grid = 50, lwd = 0.4)
+
+# to know about smoother types, and how to tune a smooth:
+# https://stat.ethz.ch/R-manual/R-devel/library/mgcv/html/smooth.terms.html#:~:text=Smooth%20terms%20are%20specified%20in%20a%20gam%20formula,and%20users%20can%20add%20smooth%20classes%20(see%20user.defined.smooth).
+# https://stats.stackexchange.com/questions/243367/smoothing-methods-for-gam-in-mgcv-package
+# https://stats.stackexchange.com/questions/12223/how-to-tune-smoothing-in-mgcv-gam-model
+
+# if I use location in the fixed str (but not as diffenet smoother so far): doesn't run
+
 # instead of the isotropic smooth ("s()"), try tensor product smooth ("te()"). I used it for the spatial component before
+M5<-gamm(total_length ~ te(BIASmean_avg_since_2YearBefore,distance) +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M5$gam) # 0.20
+plot(M5$gam)
+vis.gam(M5$gam, view = c("BIASmean_avg_since_2YearBefore", "distance"),theta = 120, n.grid = 50, lwd = 0.4)
+plot(M5$gam, page = 1, scheme = 2)
 
-#	consider gear
+# try isotropic smoother instead of linear term for the interaction:
+M6<-gamm(total_length ~ s(BIASmean_avg_since_2YearBefore,distance) +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "REML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M6$gam) # 0.28
+vis.gam(M6$gam, view = c("BIASmean_avg_since_2YearBefore", "distance"),theta = 120, n.grid = 50, lwd = 0.4)
+plot(M6$gam, page = 1, scheme = 2)
+
+# remove the interaction and compare to M4:
+M4<-gamm(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "ML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M4$gam) # super R is 27
+plot(M4$gam)
+vis.gam(M4, theta = 120, n.grid = 50, lwd = 0.4)
+
+M1<-gamm(total_length ~ BIASmean_avg_since_2YearBefore+distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "ML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M1$gam) # 0.28
+plot(M1$gam)
+pred <- ggpredict(M1, c("BIASmean_avg_since_2YearBefore"))
+plot(pred)
+# the effects of stsp seem to be negative now: is bc of gobies? No, it is positive. but why the coeff is negative??
+
+# without distance?
+M2<-gamm(total_length ~ BIASmean_avg_since_2YearBefore +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "ML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M2$gam) # 0.18
+
+# with smoother for stsp
+M3<-gamm(total_length ~ s(BIASmean_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "ML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M3$gam) # 0.32
+
+# preliminary final: M3, amybe with REML and maybe without gobies
+M3<-gamm(total_length ~ s(BIASmean_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +distance +gear_code + day_of_month +
+           s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
+           s(gobies,fx = FALSE, k = -1, bs = "cr") +
+           s(cyprinids_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr"), method = "ML",
+         random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
+summary(M3$gam) # 0.32
+plot(M3$gam)
+gam.check(M3$gam)
+pred <- ggpredict(M3, c("BIASmean_avg_since_2YearBefore"))
+plot(pred)
 
 
 
-###### approach 2: means and more complex corr str####
+###### approach 2: means and more complex corr str - MAYBE SKIP ####
 
 # pool values per location and year and calculate the mean
 # bring along also the number of samples per location and year to use as weight
