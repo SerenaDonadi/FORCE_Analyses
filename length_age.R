@@ -1031,6 +1031,8 @@ M1<-lm(total_length~avg_year_temp+day_of_month +
        data=length_age12_age2)
 vif(M1)
 # all prey  and gobies together gives alias coeff. I keep the prey separated for now
+plot(length_age12_age2$cyprinids_avg_since_2YearBefore, length_age12_age2$gobies_avg_since_2YearBefore)
+plot(length_age12_age2$year, length_age12_age2$BIASmean_avg_since_2YearBefore)
 
 # beyond optimal model
 M1<-lm(total_length~avg_year_temp+day_of_month +
@@ -1331,7 +1333,7 @@ M3<-gamm(total_length ~ s(BIASmean_avg_since_2YearBefore,fx = FALSE, k = -1, bs 
          random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
 summary(M3$gam) # 0.32
 
-# preliminary final: M3, amybe with REML and maybe without gobies
+# preliminary final gamm: M3, amybe with REML and maybe without gobies
 M3<-gamm(total_length ~ s(BIASmean_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +distance +gear_code + day_of_month +
            s(CPUE_Abborre_less25_avg_since_2YearBefore,fx = FALSE, k = -1, bs = "cr") +
            s(gobies,fx = FALSE, k = -1, bs = "cr") +
@@ -1339,11 +1341,133 @@ M3<-gamm(total_length ~ s(BIASmean_avg_since_2YearBefore,fx = FALSE, k = -1, bs 
          random = list(sub.location =~ 1), family= "Gamma", control = lmc, na.action = na.omit,data=length_age12_age2)
 summary(M3$gam) # 0.32
 plot(M3$gam)
-gam.check(M3$gam)
+plot.gam(M3$gam,  shade=TRUE, residuals=TRUE, rug=T,pers=F, all.terms=T,shade.col = 2,by.resids=T,  scheme=3) 
 pred <- ggpredict(M3, c("BIASmean_avg_since_2YearBefore"))
 plot(pred)
+gam.check(M3$gam)
+
+##### LINEAR MODEL ####
+# going linear, using info gathered above on bets fixed and random str.
+# tuning random factor
+M1b<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+          CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+         random=~1|sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age2)
+M1c<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_age2)
+AIC(M1b,M1c) # not much difference. but I should go for the nested str, according to Smith
+M1d<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+         random=~1|location/sub.location, control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_age2)
+AIC(M1c,M1d)
 
 
+M1c<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_age2)
+anova.lme(M1c, type = "marginal", adjustSigma = F) 
+rsquared(M1c)
+summary(M1c)
+plot(M1c)
+pred <- ggpredict(M1c, c("BIASmean_avg_since_2YearBefore", "distance")) # not running now
+plot(pred)
+# remove ranodm factor to plot with visreg:
+#M1a<-gls(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+#          CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+#        weights = varIdent(form =~ 1|sub.location), control = lmc,
+#        na.action = na.omit, method = "REML",data=length_age12_age2)
+#visreg(M1a, "BIASmean_avg_since_2YearBefore", by = "distance")
+#visreg2d(M1a,x="distance",y="BIASmean_avg_since_2YearBefore",plot.type="image")
+
+# # compare lme with variance str and glmm with gamma or other distrib: failed to converge
+M2<-glmer(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies  
+           +(1|sub.location),family=poisson,  control = lmc,
+         na.action = na.omit, data=length_age12_age2)
+summary(M2)
+
+# remove interaction or other term and compare with LRT:
+M1<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_age2)
+M2<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
+           CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_age2)
+anova(M1,M2) #interaction is border line signif, gobies keep
+
+# adding temp: collinearity? ok
+M0<-lm(total_length ~ BIASmean_avg_since_2YearBefore+distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+        na.action = na.omit,data=length_age12_age2)
+vif(M0)
+
+M1<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age2)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+# interaction became very signif. Plot it: not working now, seems to be ue to a bug
+pred <- ggpredict(M1, terms = c("BIASmean_avg_since_2YearBefore", "distance"))
+unique(length_age12_age2$BIASmean_avg_since_2YearBefore)
+# use lmer instead: interaction is still very signif
+M1a<-lmer(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies +
+            (1|location/sub.location), 
+        na.action = na.omit, data=length_age12_age2)
+M1b<-lmer(total_length ~ BIASmean_avg_since_2YearBefore+distance +gear_code + day_of_month + avg_year_temp +
+            CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies +
+            (1|location/sub.location), 
+          na.action = na.omit, data=length_age12_age2)
+anova(M1a,M1b)
+# I am not able to compare it to the previous model
+anova.lme(M1a, type = "marginal", adjustSigma = F) 
+summary(M1a)
+# but at leat I can plot the interaction
+pred <- ggpredict(M1a, terms = c("BIASmean_avg_since_2YearBefore", "distance"))
+plot(pred)
+
+# preliminary final linear model:
+M0<-lme(total_length ~ BIASmean_avg_since_2YearBefore+distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_2YearBefore + cyprinids_avg_since_2YearBefore + gobies, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age2)
+anova.lme(M0, type = "marginal", adjustSigma = F) 
+rsquared(M0)
+summary(M0)
+plot(M0)
+
+pred <- ggpredict(M0, "CPUE_Abborre_less25_avg_since_2YearBefore")
+predict(M0)
+
+# check missing replicates:
+length_age12_age2 %>%
+  filter(is.na(BIASmean_avg_since_2YearBefore) | is.na(distance) | is.na(avg_year_temp) |is.na(gobies) |
+           is.na(gear_code) | is.na(day_of_month) | is.na(CPUE_Abborre_less25_avg_since_2YearBefore) 
+         |is.na(cyprinids_avg_since_2YearBefore)) %>%
+  select(location, sub.location, year) %>%
+  unique()
+
+length_age12_age2 %>%
+  filter(is.na(BIASmean_avg_since_2YearBefore)) %>%
+  select(location, sub.location, year) %>%
+  unique()
+
+# check location and sublocation: 11 group for both? yes
+subset(length_age12_age2, ! (is.na(BIASmean_avg_since_2YearBefore)| is.na(distance) | is.na(avg_year_temp) |is.na(gobies) |
+                               is.na(gear_code) | is.na(day_of_month) | is.na(CPUE_Abborre_less25_avg_since_2YearBefore) 
+                             |is.na(cyprinids_avg_since_2YearBefore)))%>%
+         select(location, sub.location) %>%
+         unique()
+  
 
 ###### approach 2: means and more complex corr str - MAYBE SKIP ####
 
@@ -1554,6 +1678,113 @@ plot(M5a)
 
 
 
+
+
+
+#####
+# statistical analysis - age 3
+#####
+
+# using the random str from the best preliminary model from age 2:
+hist(length_age12_age3$total_length)
+# I keep conspecifics below 25. Possibly replace density of conspecifics based on pooled size classes up to 
+# the max of total length in the subset
+
+# collinearity: remove year (collinear with stsp)
+M0<-lm(total_length ~ BIASmean_avg_since_3YearBefore+distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_3YearBefore + cyprinids_avg_since_3YearBefore + gobies, 
+        na.action = na.omit, data=length_age12_age3)
+vif(M0)
+
+M1<-lme(total_length ~ BIASmean_avg_since_3YearBefore*distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_3YearBefore + cyprinids_avg_since_3YearBefore + gobies, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age3)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+
+# plotting intearction with ggpredict fromlmer:
+M2<-lmer(total_length ~ BIASmean_avg_since_3YearBefore*distance +gear_code + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_3YearBefore + cyprinids_avg_since_3YearBefore + gobies +
+           (1|location/sub.location),
+        na.action = na.omit,data=length_age12_age3)
+pred <- ggpredict(M2, terms = c("BIASmean_avg_since_3YearBefore", "distance"))
+plot(pred)
+# without interaction: dosn't converge
+M2a<-lmer(total_length ~ BIASmean_avg_since_3YearBefore+distance +gear_code + day_of_month + avg_year_temp +
+           CPUE_Abborre_less25_avg_since_3YearBefore + cyprinids_avg_since_3YearBefore + gobies +
+           (1|location/sub.location),
+         na.action = na.omit,data=length_age12_age3)
+pred <- ggpredict(M2, terms = c("BIASmean_avg_since_3YearBefore"))
+plot(pred)
+
+#####
+# statistical analysis - age 4
+#####
+# using the random str from the best preliminary model from age 2:
+hist(length_age12_age4$total_length)
+# replace conspecifics below 25 with above. Possibly replace density of conspecifics based on pooled size classes up to 
+# the max of total length in the subset
+
+# collinearity: remove year (collinear with stsp)
+M0<-lm(total_length ~ BIASmean_avg_since_4YearBefore+distance +gear_code + day_of_month + avg_year_temp +
+         CPUE_Abborre_25andabove_avg_since_4YearBefore + cyprinids_avg_since_4YearBefore + gobies_avg_since_4YearBefore, 
+       na.action = na.omit, data=length_age12_age4)
+vif(M0)
+# remove gear code
+
+M1<-lme(total_length ~ BIASmean_avg_since_4YearBefore*distance  + day_of_month + avg_year_temp +
+          CPUE_Abborre_25andabove_avg_since_4YearBefore + cyprinids_avg_since_4YearBefore + gobies_avg_since_4YearBefore, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age4)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+
+# and with conspecifics below 25:
+M1<-lme(total_length ~ BIASmean_avg_since_4YearBefore*distance  + day_of_month + avg_year_temp +
+          CPUE_Abborre_less25_avg_since_4YearBefore + cyprinids_avg_since_4YearBefore + gobies_avg_since_4YearBefore, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age4)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+
+#####
+# statistical analysis - age 5
+#####
+# using the random str from the best preliminary model from age 2:
+hist(length_age12_age5$total_length)
+# replace conspecifics below 25 with above. Possibly replace density of conspecifics based on pooled size classes up to 
+# the max of total length in the subset
+
+# collinearity: 
+M0<-lm(total_length ~ BIASmean_avg_since_5YearBefore+distance + day_of_month + avg_year_temp +
+         CPUE_Abborre_25andabove_avg_since_5YearBefore  + gobies_avg_since_5YearBefore, 
+       na.action = na.omit, data=length_age12_age5)
+vif(M0)
+# remove year (collinear with stsp), gear code, cyprinids collinear with abbo
+
+M1<-lme(total_length ~ BIASmean_avg_since_5YearBefore*distance  + day_of_month + avg_year_temp +
+          CPUE_Abborre_25andabove_avg_since_5YearBefore  + gobies_avg_since_4YearBefore, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_age5)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+
+# plotting intearction with ggpredict from lmer: no convergence
+M2<-lmer(total_length ~ BIASmean_avg_since_5YearBefore*distance  + day_of_month + avg_year_temp +
+           CPUE_Abborre_25andabove_avg_since_5YearBefore  + gobies_avg_since_4YearBefore +
+           (1|location/sub.location),
+         na.action = na.omit,data=length_age12_age5)
+pred <- ggpredict(M2, terms = c("BIASmean_avg_since_3YearBefore", "distance"))
+plot(pred)
 
 
 #####

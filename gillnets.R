@@ -18,6 +18,7 @@ library(lme4)
 library(car)
 library(visreg)
 library(mgcv)
+library(ggeffects)
 
 library(ExcelFunctionsR)
 #library(plyr)
