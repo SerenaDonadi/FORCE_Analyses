@@ -1346,7 +1346,7 @@ pred <- ggpredict(M3, c("BIASmean_avg_since_2YearBefore"))
 plot(pred)
 gam.check(M3$gam)
 
-##### LINEAR MODEL ####
+##### LINEAR MODELS ####
 # going linear, using info gathered above on bets fixed and random str.
 # tuning random factor
 M1b<-lme(total_length ~ BIASmean_avg_since_2YearBefore*distance +gear_code + day_of_month +
@@ -1469,7 +1469,7 @@ subset(length_age12_age2, ! (is.na(BIASmean_avg_since_2YearBefore)| is.na(distan
          unique()
   
 
-###### approach 2: means and more complex corr str - MAYBE SKIP ####
+###### approach 2: means and more complex corr str - SKIP ####
 
 # pool values per location and year and calculate the mean
 # bring along also the number of samples per location and year to use as weight
@@ -1726,8 +1726,7 @@ plot(pred)
 #####
 # using the random str from the best preliminary model from age 2:
 hist(length_age12_age4$total_length)
-# replace conspecifics below 25 with above. Possibly replace density of conspecifics based on pooled size classes up to 
-# the max of total length in the subset
+# replace conspecifics below 25 with above. 
 
 # collinearity: remove year (collinear with stsp)
 M0<-lm(total_length ~ BIASmean_avg_since_4YearBefore+distance +gear_code + day_of_month + avg_year_temp +
@@ -1760,8 +1759,7 @@ plot(M1)
 #####
 # using the random str from the best preliminary model from age 2:
 hist(length_age12_age5$total_length)
-# replace conspecifics below 25 with above. Possibly replace density of conspecifics based on pooled size classes up to 
-# the max of total length in the subset
+# replace conspecifics below 25 with above. 
 
 # collinearity: 
 M0<-lm(total_length ~ BIASmean_avg_since_5YearBefore+distance + day_of_month + avg_year_temp +
@@ -1791,81 +1789,126 @@ plot(pred)
 #####
 # statistical analysis - all ages
 #####
-head(length_age12)
-table(length_age12$age)
+table(length_age12$age, length_age12$location)
 
-##### approach 1 all values retained with a simple corr str ####
+# copy for each subset by age all integrated measurements (avg and sum) of CPUE of spp and conspecifics over the whole life span of that age class:
+length_age12_age2$BIASmean_avg_lifespan<-length_age12_age2$BIASmean_avg_since_2YearBefore
+length_age12_age2$cyprinids_avg_lifespan<-length_age12_age2$cyprinids_avg_since_2YearBefore
+length_age12_age2$totCPUE_Mört_avg_lifespan<-length_age12_age2$totCPUE_Mört_avg_since_2YearBefore
+length_age12_age2$all_prey_avg_lifespan<-length_age12_age2$all_prey_avg_since_2YearBefore
+length_age12_age2$totCPUE_Abborre_avg_lifespan<-length_age12_age2$totCPUE_Abborre_avg_since_2YearBefore
+length_age12_age2$CPUE_Abborre_less25_avg_lifespan<-length_age12_age2$CPUE_Abborre_less25_avg_since_2YearBefore
+length_age12_age2$CPUE_Abborre_25andabove_avg_lifespan<-length_age12_age2$CPUE_Abborre_25andabove_avg_since_2YearBefore
+length_age12_age2$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2$CPUE_Abborre_less25_avg_since_2YearBefore
 
-# collinearity: correlation matrix:
-df <- data.frame(length_age12$avg_year_temp, length_age12$avg_year_temp_1YearBefore, length_age12$avg_year_temp_2YearBefore,
-                 length_age12$totCPUE_Abborre, length_age12$competitors,
-                 length_age12$totCPUE_Mört,length_age12$totCPUE_Löja +length_age12$totCPUE_Storspigg,
-                 length_age12$clupeids,length_age12$cyprinids,length_age12$gobies,
-                 length_age12$all_prey)
-# plot pariwise scatterplots of covariates:
-pairs(df)
+length_age12_age3$BIASmean_avg_lifespan<-length_age12_age3$BIASmean_avg_since_3YearBefore
+length_age12_age3$cyprinids_avg_lifespan<-length_age12_age3$cyprinids_avg_since_3YearBefore
+length_age12_age3$totCPUE_Mört_avg_lifespan<-length_age12_age3$totCPUE_Mört_avg_since_3YearBefore
+length_age12_age3$all_prey_avg_lifespan<-length_age12_age3$all_prey_avg_since_3YearBefore
+length_age12_age3$totCPUE_Abborre_avg_lifespan<-length_age12_age3$totCPUE_Abborre_avg_since_3YearBefore
+length_age12_age3$CPUE_Abborre_less25_avg_lifespan<-length_age12_age3$CPUE_Abborre_less25_avg_since_3YearBefore
+length_age12_age3$CPUE_Abborre_25andabove_avg_lifespan<-length_age12_age3$CPUE_Abborre_25andabove_avg_since_3YearBefore
+length_age12_age3$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3$CPUE_Abborre_less25_avg_since_3YearBefore
 
-# with lagged variables
-df_lag <- data.frame(length_age12$avg_year_temp_1YearBefore, length_age12_age2$avg_year_temp_2YearBefore,
-                     length_age12_age2$totCPUE_Abborre_1YearBefore, length_age12_age2$competitors_1YearBefore,
-                     length_age12_age2$totCPUE_Mört_1YearBefore,length_age12_age2$totCPUE_Löja_1YearBefore +length_age12_age2$totCPUE_Storspigg_1YearBefore,
-                     length_age12_age2$clupeids_1YearBefore,length_age12_age2$cyprinids_1YearBefore,length_age12_age2$gobies_1YearBefore,
-                     length_age12_age2$all_prey_1YearBefore)
-# plot pariwise scatterplots of covariates:
-pairs(df_lag)
+length_age12_age4$BIASmean_avg_lifespan<-length_age12_age4$BIASmean_avg_since_4YearBefore
+length_age12_age4$cyprinids_avg_lifespan<-length_age12_age4$cyprinids_avg_since_4YearBefore
+length_age12_age4$totCPUE_Mört_avg_lifespan<-length_age12_age4$totCPUE_Mört_avg_since_4YearBefore
+length_age12_age4$all_prey_avg_lifespan<-length_age12_age4$all_prey_avg_since_4YearBefore
+length_age12_age4$totCPUE_Abborre_avg_lifespan<-length_age12_age4$totCPUE_Abborre_avg_since_4YearBefore
+length_age12_age4$CPUE_Abborre_less25_avg_lifespan<-length_age12_age4$CPUE_Abborre_less25_avg_since_4YearBefore
+length_age12_age4$CPUE_Abborre_25andabove_avg_lifespan<-length_age12_age4$CPUE_Abborre_25andabove_avg_since_4YearBefore
+length_age12_age4$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4$CPUE_Abborre_25andabove_avg_since_4YearBefore
+
+length_age12_age5$BIASmean_avg_lifespan<-length_age12_age5$BIASmean_avg_since_5YearBefore
+length_age12_age5$cyprinids_avg_lifespan<-length_age12_age5$cyprinids_avg_since_5YearBefore
+length_age12_age5$totCPUE_Mört_avg_lifespan<-length_age12_age5$totCPUE_Mört_avg_since_5YearBefore
+length_age12_age5$all_prey_avg_lifespan<-length_age12_age5$all_prey_avg_since_5YearBefore
+length_age12_age5$totCPUE_Abborre_avg_lifespan<-length_age12_age5$totCPUE_Abborre_avg_since_5YearBefore
+length_age12_age5$CPUE_Abborre_less25_avg_lifespan<-length_age12_age5$CPUE_Abborre_less25_avg_since_5YearBefore
+length_age12_age5$CPUE_Abborre_25andabove_avg_lifespan<-length_age12_age5$CPUE_Abborre_25andabove_avg_since_5YearBefore
+length_age12_age5$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5$CPUE_Abborre_25andabove_avg_since_5YearBefore
+
+# stack all subsets:
+length_age12_stack<-rbind(length_age12_age2, length_age12_age3, length_age12_age4, length_age12_age5)
+
 
 # distributional properties
-hist(length_age12$total_length)
-hist(length_age12$gobies) # consider log transf
-hist(length_age12$totCPUE_Löja) # consider log transf
-hist(length_age12$competitors) # consider log transf
-hist(length_age12$all_prey)
+hist(length_age12_stack$total_length)
+hist(length_age12_stack$BIASmean_avg_lifespan)
+hist(length_age12_stack$cyprinids_avg_lifespan) # c
+hist(length_age12_stack$totCPUE_Mört_avg_lifespan) # 
+hist(length_age12_stack$all_prey_avg_lifespan) # 
+hist(length_age12_stack$totCPUE_Abborre_avg_lifespan)
+hist(length_age12_stack$CPUE_Abborre_less25_avg_lifespan)
+hist(length_age12_stack$CPUE_Abborre_25andabove_avg_lifespan)
+hist(length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
 
-# check collinearity with vif
-M0<- lm(total_length ~ age +avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
-          totCPUE_Abborre + competitors + #  conspecifics, competitors
-          #totCPUE_Mört + totCPUE_Löja +    # food single spp
-          #clupeids + cyprinids + gobies +  # food pooled spp
-          all_prey +                       # food total
-          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
-          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
-          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
-          #all_prey_1YearBefore +
-          field_temp + # account for different catchability of gillnets with temp (if not collinear, otherwise test on residuals)
-          day_of_month, # account for extra growth in august until catch
-        data = length_age12)
+
+# collinearity: correlation matrix:
+df <- data.frame(length_age12_stack$total_length, length_age12_stack$avg_year_temp, length_age12_stack$BIASmean_avg_lifespan,
+                 length_age12_stack$cyprinids_avg_lifespan,length_age12_stack$totCPUE_Mört_avg_lifespan,
+                 length_age12_stack$all_prey_avg_lifespan,length_age12_stack$age,
+                 length_age12_stack$totCPUE_Abborre_avg_lifespan,length_age12_stack$CPUE_Abborre_less25_avg_lifespan,
+                 length_age12_stack$CPUE_Abborre_25andabove_avg_lifespan,length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
+# plot pariwise scatterplots of covariates: takes forever
+# pairs(df)
+
+
+# collinearity: 
+M0<-lm(total_length ~ age + BIASmean_avg_lifespan +distance +gear_code + day_of_month + avg_year_temp + #year +
+         CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan, 
+       na.action = na.omit, data=length_age12_stack)
 vif(M0)
+# plot stsp vs year:
+plot(length_age12_stack$year, length_age12_stack$BIASmean_avg_lifespan)
+# even though vif is not too bad (2.7 max), scatterplot of stsp and year is worrisome, I'd remove year
 
-# beyond optimal model: M0
-M0<- lm(total_length ~ age*avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
-          age*totCPUE_Abborre + age*competitors + #  conspecifics, competitors
-          #totCPUE_Mört + totCPUE_Löja +    # food single spp
-          #clupeids + cyprinids + gobies +  # food pooled spp
-          age*all_prey +                       # food total
-          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
-          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
-          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
-          #all_prey_1YearBefore +
-          day_of_month, # account for extra growth in august until catch
-        data = length_age12)
-summary(M0)
+# use random str from the best preliminary model from age 2:
+M1<-lme(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_of_month + age*avg_year_temp + #year +
+          age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
 
-# test for temporal corr str: 
-M0<-gls(total_length ~ age*avg_year_temp + # avg_year_temp_1YearBefore + avg_year_temp_2YearBefore +  # temp
-          age*totCPUE_Abborre + age*competitors + #  conspecifics, competitors
-          #totCPUE_Mört + totCPUE_Löja +    # food single spp
-          #clupeids + cyprinids + gobies +  # food pooled spp
-          age*all_prey +                       # food total
-          #totCPUE_Abborre_1YearBefore + competitors_1YearBefore + 
-          #totCPUE_Mört_1YearBefore + totCPUE_Löja_1YearBefore + totCPUE_Storspigg +
-          #clupeids_1YearBefore + cyprinids_1YearBefore + gobies_1YearBefore + 
-          #all_prey_1YearBefore +
-          day_of_month, # account for extra growth in august until catch
-        method="REML",na.action=na.omit, data=length_age12)
+# explore three way interaction:
+ggeffect(M1, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
+  plot() +
+  labs(x = "Age", y = "Total length (cm)", title = "Effect of age and BIASmean_avg_lifespan on total length") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom") 
 
-M1<-lme(total_length~age*avg_year_temp+age*totCPUE_Abborre + age*competitors + age*all_prey + day_of_month,
-        random=~1|location,method="REML",na.action=na.omit, data=length_age12)
-M2<-lme(total_length~~age*avg_year_temp+age*totCPUE_Abborre + age*competitors + age*all_prey + day_of_month,
-        random=~1|location,correlation=corCompSymm(form=~year),method="REML",na.action=na.omit, data=length_age12)
-AIC(M0,M1,M2)
- # not working, check
+pred <- ggpredict(M1, terms = c("BIASmean_avg_lifespan", "distance","age"))
+plot(pred) # doesn't work
+
+
+# plotting intearction with ggpredict from lmer: no convergence
+M2<-lmer(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_of_month + age*avg_year_temp + #year +
+           age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan +
+           (1|location/sub.location),
+         na.action = na.omit,data=length_age12_stack)
+pred <- ggpredict(M2, terms = c("BIASmean_avg_lifespan", "distance","age"))
+plot(pred)
+
+# explore 2 way interaction:
+ggeffect(M1, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  plot() +
+  labs(x = "Age", y = "Total length (cm)", title = "Effect of age and BIASmean_avg_lifespan on total length") +
+  theme_minimal(base_size = 14) +
+  theme(legend.position = "bottom") 
+
+# use LRT tests to text significance of three way interaction:
+M1a<-lme(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_of_month + age*avg_year_temp + #year +
+          age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack)
+M1b<-lme(total_length ~ age*BIASmean_avg_lifespan + BIASmean_avg_lifespan* distance + age* distance +
+           gear_code + day_of_month + age*avg_year_temp + #year +
+           age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack)
+anova(M1a,M1b) # 3 way interaction is very signif
+
+#lmer
