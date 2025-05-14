@@ -1498,6 +1498,7 @@ length_age12_age2_pooled<-length_age12_age2 %>%
 
 summary(length_age12_age2_pooled)
 
+table(length_age12_age2_pooled$n_samples)
 #####
 # show me where I have NAs
 length_age12_age2_pooled %>%
