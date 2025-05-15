@@ -447,6 +447,67 @@ length_age12 %>%
   select(distance) %>%
   unique()
 
+# assign covariates specifically to each fish based on its size and age:
+
+# copy all integrated measurements (avg) of CPUE of spp and conspecifics over the whole life span of that age class:
+# age 2
+length_age12_age2$BIASmean_avg_lifespan<-length_age12_age2$BIASmean_avg_since_2YearBefore
+length_age12_age2$cyprinids_avg_lifespan<-length_age12_age2$cyprinids_avg_since_2YearBefore
+length_age12_age2$totCPUE_Mört_avg_lifespan<-length_age12_age2$totCPUE_Mört_avg_since_2YearBefore
+length_age12_age2$all_prey_avg_lifespan<-length_age12_age2$all_prey_avg_since_2YearBefore
+length_age12_age2$totCPUE_Abborre_avg_lifespan<-length_age12_age2$totCPUE_Abborre_avg_since_2YearBefore
+# to match each fish with conspecific of the same length, split the dataset:
+length_age12_age2_less25<-length_age12_age2 %>%
+  filter(total_length < 250)
+length_age12_age2_25andabove<-length_age12_age2 %>%
+  filter(total_length > 249)
+length_age12_age2_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2_less25$CPUE_Abborre_less25_avg_since_2YearBefore
+length_age12_age2_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2_25andabove$CPUE_Abborre_25andabove_avg_since_2YearBefore
+# age3
+length_age12_age3$BIASmean_avg_lifespan<-length_age12_age3$BIASmean_avg_since_3YearBefore
+length_age12_age3$cyprinids_avg_lifespan<-length_age12_age3$cyprinids_avg_since_3YearBefore
+length_age12_age3$totCPUE_Mört_avg_lifespan<-length_age12_age3$totCPUE_Mört_avg_since_3YearBefore
+length_age12_age3$all_prey_avg_lifespan<-length_age12_age3$all_prey_avg_since_3YearBefore
+length_age12_age3$totCPUE_Abborre_avg_lifespan<-length_age12_age3$totCPUE_Abborre_avg_since_3YearBefore
+# to match each fish with conspecific of the same length, split the dataset:
+length_age12_age3_less25<-length_age12_age3 %>%
+  filter(total_length < 250)
+length_age12_age3_25andabove<-length_age12_age3 %>%
+  filter(total_length > 249)
+length_age12_age3_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3_less25$CPUE_Abborre_less25_avg_since_3YearBefore
+length_age12_age3_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3_25andabove$CPUE_Abborre_25andabove_avg_since_3YearBefore
+# age4
+length_age12_age4$BIASmean_avg_lifespan<-length_age12_age4$BIASmean_avg_since_4YearBefore
+length_age12_age4$cyprinids_avg_lifespan<-length_age12_age4$cyprinids_avg_since_4YearBefore
+length_age12_age4$totCPUE_Mört_avg_lifespan<-length_age12_age4$totCPUE_Mört_avg_since_4YearBefore
+length_age12_age4$all_prey_avg_lifespan<-length_age12_age4$all_prey_avg_since_4YearBefore
+length_age12_age4$totCPUE_Abborre_avg_lifespan<-length_age12_age4$totCPUE_Abborre_avg_since_4YearBefore
+# to match each fish with conspecific of the same length, split the dataset:
+length_age12_age4_less25<-length_age12_age4 %>%
+  filter(total_length < 250)
+length_age12_age4_25andabove<-length_age12_age4 %>%
+  filter(total_length > 249)
+length_age12_age4_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4_less25$CPUE_Abborre_less25_avg_since_4YearBefore
+length_age12_age4_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4_25andabove$CPUE_Abborre_25andabove_avg_since_4YearBefore
+# age 5
+length_age12_age5$BIASmean_avg_lifespan<-length_age12_age5$BIASmean_avg_since_5YearBefore
+length_age12_age5$cyprinids_avg_lifespan<-length_age12_age5$cyprinids_avg_since_5YearBefore
+length_age12_age5$totCPUE_Mört_avg_lifespan<-length_age12_age5$totCPUE_Mört_avg_since_5YearBefore
+length_age12_age5$all_prey_avg_lifespan<-length_age12_age5$all_prey_avg_since_5YearBefore
+length_age12_age5$totCPUE_Abborre_avg_lifespan<-length_age12_age5$totCPUE_Abborre_avg_since_5YearBefore
+# to match each fish with conspecific of the same length, split the dataset:
+length_age12_age5_less25<-length_age12_age5 %>%
+  filter(total_length < 250)
+length_age12_age5_25andabove<-length_age12_age5 %>%
+  filter(total_length > 249)
+length_age12_age5_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5_less25$CPUE_Abborre_less25_avg_since_5YearBefore
+length_age12_age5_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5_25andabove$CPUE_Abborre_25andabove_avg_since_5YearBefore
+
+# stack all subsets:
+length_age12_stack<-rbind(length_age12_age2_less25, length_age12_age2_25andabove, 
+                          length_age12_age3_less25, length_age12_age3_25andabove,
+                          length_age12_age4_less25, length_age12_age4_25andabove,
+                          length_age12_age5_less25, length_age12_age5_25andabove)
 
 length_age12_age2<-length_age12 %>% 
   filter(age == 2)
@@ -1089,6 +1150,7 @@ plot.gam(M1, select=2, shade=TRUE, residuals=F, rug=T,pers=F, all.terms=F,shade.
          seWithMean=T, pages=0) # change scheme and shade.col for different colors
 vis.gam(M1, theta = 120, color = "heat")
 vis.gam(M1, view=c("BIASmean_avg_since_2YearBefore","distance"), plot.type="contour", color="cm", n.grid=60) # color="bw", for no color
+
 
 # try more graphic options here:
 #https://cran.r-project.org/web/packages/tidymv/vignettes/predict-gam.html
@@ -1787,69 +1849,9 @@ plot(pred)
 
 
 #####
-# statistical analysis - all ages
+# statistical analysis - all ages - LINEAR MODEL
 #####
 table(length_age12$age, length_age12$location)
-
-# copy for each subset by age all integrated measurements (avg and sum) of CPUE of spp and conspecifics over the whole life span of that age class:
-# age 2
-length_age12_age2$BIASmean_avg_lifespan<-length_age12_age2$BIASmean_avg_since_2YearBefore
-length_age12_age2$cyprinids_avg_lifespan<-length_age12_age2$cyprinids_avg_since_2YearBefore
-length_age12_age2$totCPUE_Mört_avg_lifespan<-length_age12_age2$totCPUE_Mört_avg_since_2YearBefore
-length_age12_age2$all_prey_avg_lifespan<-length_age12_age2$all_prey_avg_since_2YearBefore
-length_age12_age2$totCPUE_Abborre_avg_lifespan<-length_age12_age2$totCPUE_Abborre_avg_since_2YearBefore
-# to match each fish with conspecific of the same length, split the dataset:
-length_age12_age2_less25<-length_age12_age2 %>%
-  filter(total_length < 250)
-length_age12_age2_25andabove<-length_age12_age2 %>%
-  filter(total_length > 249)
-length_age12_age2_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2_less25$CPUE_Abborre_less25_avg_since_2YearBefore
-length_age12_age2_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2_25andabove$CPUE_Abborre_25andabove_avg_since_2YearBefore
-# age3
-length_age12_age3$BIASmean_avg_lifespan<-length_age12_age3$BIASmean_avg_since_3YearBefore
-length_age12_age3$cyprinids_avg_lifespan<-length_age12_age3$cyprinids_avg_since_3YearBefore
-length_age12_age3$totCPUE_Mört_avg_lifespan<-length_age12_age3$totCPUE_Mört_avg_since_3YearBefore
-length_age12_age3$all_prey_avg_lifespan<-length_age12_age3$all_prey_avg_since_3YearBefore
-length_age12_age3$totCPUE_Abborre_avg_lifespan<-length_age12_age3$totCPUE_Abborre_avg_since_3YearBefore
-# to match each fish with conspecific of the same length, split the dataset:
-length_age12_age3_less25<-length_age12_age3 %>%
-  filter(total_length < 250)
-length_age12_age3_25andabove<-length_age12_age3 %>%
-  filter(total_length > 249)
-length_age12_age3_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3_less25$CPUE_Abborre_less25_avg_since_3YearBefore
-length_age12_age3_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3_25andabove$CPUE_Abborre_25andabove_avg_since_3YearBefore
-# age4
-length_age12_age4$BIASmean_avg_lifespan<-length_age12_age4$BIASmean_avg_since_4YearBefore
-length_age12_age4$cyprinids_avg_lifespan<-length_age12_age4$cyprinids_avg_since_4YearBefore
-length_age12_age4$totCPUE_Mört_avg_lifespan<-length_age12_age4$totCPUE_Mört_avg_since_4YearBefore
-length_age12_age4$all_prey_avg_lifespan<-length_age12_age4$all_prey_avg_since_4YearBefore
-length_age12_age4$totCPUE_Abborre_avg_lifespan<-length_age12_age4$totCPUE_Abborre_avg_since_4YearBefore
-# to match each fish with conspecific of the same length, split the dataset:
-length_age12_age4_less25<-length_age12_age4 %>%
-  filter(total_length < 250)
-length_age12_age4_25andabove<-length_age12_age4 %>%
-  filter(total_length > 249)
-length_age12_age4_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4_less25$CPUE_Abborre_less25_avg_since_4YearBefore
-length_age12_age4_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4_25andabove$CPUE_Abborre_25andabove_avg_since_4YearBefore
-# age 5
-length_age12_age5$BIASmean_avg_lifespan<-length_age12_age5$BIASmean_avg_since_5YearBefore
-length_age12_age5$cyprinids_avg_lifespan<-length_age12_age5$cyprinids_avg_since_5YearBefore
-length_age12_age5$totCPUE_Mört_avg_lifespan<-length_age12_age5$totCPUE_Mört_avg_since_5YearBefore
-length_age12_age5$all_prey_avg_lifespan<-length_age12_age5$all_prey_avg_since_5YearBefore
-length_age12_age5$totCPUE_Abborre_avg_lifespan<-length_age12_age5$totCPUE_Abborre_avg_since_5YearBefore
-# to match each fish with conspecific of the same length, split the dataset:
-length_age12_age5_less25<-length_age12_age5 %>%
-  filter(total_length < 250)
-length_age12_age5_25andabove<-length_age12_age5 %>%
-  filter(total_length > 249)
-length_age12_age5_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5_less25$CPUE_Abborre_less25_avg_since_5YearBefore
-length_age12_age5_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5_25andabove$CPUE_Abborre_25andabove_avg_since_5YearBefore
-
-# stack all subsets:
-length_age12_stack<-rbind(length_age12_age2_less25, length_age12_age2_25andabove, 
-                           length_age12_age3_less25, length_age12_age3_25andabove,
-                           length_age12_age4_less25, length_age12_age4_25andabove,
-                           length_age12_age5_less25, length_age12_age5_25andabove)
 
 # distributional properties
 hist(length_age12_stack$total_length)
@@ -1901,6 +1903,17 @@ ggpredict(M1, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
 ggaverage(M1, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
   plot() # stuck
 
+# exploring different options:
+ggeffect(M1, terms = ~ BIASmean_avg_lifespan:distance:age) %>%
+  plot() # same
+ggeffect(M1, terms = c("BIASmean_avg_lifespan[1:2]", "distance", "age")) %>%
+  plot() # plot for specifcc ranges of focal terms
+
+myp<-ggeffect(M1, terms = c("BIASmean_avg_lifespan", "age","distance"))
+ggplot(myp, aes(x, predicted, colour = group)) +
+  geom_line() +
+  facet_wrap(~facet)
+print(myp, collapse_tables = TRUE)
 
 # plotting interaction with ggpredict from lmer: same
 M2<-lmer(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_of_month + age*avg_year_temp + #year +
@@ -1909,18 +1922,6 @@ M2<-lmer(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_o
          na.action = na.omit,data=length_age12_stack)
 pred <- ggpredict(M2, terms = c("BIASmean_avg_lifespan", "distance","age"))
 plot(pred)
-
-# use LRT tests to text significance of three way interaction:
-M1a<-lme(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_of_month + age*avg_year_temp + #year +
-          age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
-        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
-        na.action = na.omit, method = "ML",data=length_age12_stack)
-M1b<-lme(total_length ~ age*BIASmean_avg_lifespan + BIASmean_avg_lifespan* distance + age* distance +
-           gear_code + day_of_month + age*avg_year_temp + #year +
-           age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
-         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
-         na.action = na.omit, method = "ML",data=length_age12_stack)
-anova(M1a,M1b) # 3 way interaction is very signif
 
 # explore 2 way interactions:
 ggeffect(M1, terms = c("BIASmean_avg_lifespan", "distance")) %>%
@@ -1943,3 +1944,62 @@ ggeffect(M1, terms = c("distance", "age")) %>%
 
 ggeffect(M1, terms = c("BIASmean_avg_lifespan")) %>%
   plot()
+
+
+# use LRT tests to text significance of three way interaction:
+M1a<-lme(total_length ~ age*BIASmean_avg_lifespan * distance + gear_code + day_of_month + age*avg_year_temp + #year +
+           age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack)
+M1b<-lme(total_length ~ age*BIASmean_avg_lifespan + BIASmean_avg_lifespan* distance + age* distance +
+           gear_code + day_of_month + age*avg_year_temp + #year +
+           age*CPUE_Abbo_samesize_avg_lifespan + age*cyprinids_avg_lifespan, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack)
+anova(M1a,M1b) # 3 way interaction is very signif
+
+
+
+#####
+# statistical analysis - all ages - GAMM
+#####
+
+f <- formula(total_length ~ s(age,BIASmean_avg_lifespan, distance) + gear_code + day_of_month + 
+               s(avg_year_temp, by = as.numeric(age == "2"))+
+               s(avg_year_temp, by = as.numeric(age == "3"))+
+               s(avg_year_temp, by = as.numeric(age == "4"))+
+               s(avg_year_temp, by = as.numeric(age == "5"))+
+               s(CPUE_Abbo_samesize_avg_lifespan,fx = FALSE, k = -1, bs = "cr")+
+               s(cyprinids_avg_lifespan, by = as.numeric(age == "2"))+
+               s(cyprinids_avg_lifespan, by = as.numeric(age == "3"))+
+               s(cyprinids_avg_lifespan, by = as.numeric(age == "4"))+
+               s(cyprinids_avg_lifespan, by = as.numeric(age == "5")))
+# doesn't converge. Simplify:
+f <- formula(total_length ~ s(BIASmean_avg_lifespan, distance) + gear_code + day_of_month + 
+               s(avg_year_temp,fx = FALSE, k = -1, bs = "cr")+
+               s(CPUE_Abbo_samesize_avg_lifespan,fx = FALSE, k = -1, bs = "cr")+
+               s(cyprinids_avg_lifespan,fx = FALSE, k = -1, bs = "cr"))
+M10<-gamm(f,random = list(location =~ 1),weights = varIdent(form =~ 1|location),
+          control = lmc, method = "REML",data=length_age12_stack)
+summary(M10$gam) 
+anova(M10$gam)
+plot(M10$gam)
+plot(M10$lme)
+summary(M10$lme)
+plot(M10$lme, resid(., type = "n") ~ fitted(.),abline = 0, col = 1)
+plot(M10$lme, resid(., type = "n") ~ CPUE_Abbo_samesize_avg_lifespan,abline = 0, col = 1)
+plot.gam(M10$gam,  shade=TRUE, residuals=TRUE, rug=T,pers=F, all.terms=T,shade.col = 2,by.resids=T,  scheme=3) 
+plot.gam(M10$gam,  shade=TRUE, residuals=F, rug=T,pers=F, all.terms=T,shade.col = 2, scheme=2)
+plot.gam(M10$gam, select=2, shade=TRUE, residuals=F, rug=T,pers=F, all.terms=F,shade.col=2, scheme=0, 
+         seWithMean=T, pages=0) # change scheme and shade.col for different colors
+vis.gam(M10$gam, theta = 120, color = "heat")
+vis.gam(M10$gam, view=c("BIASmean_avg_lifespan","distance"), plot.type="contour", color="cm", n.grid=60) # color="bw", for no color
+
+# with family gamma instead of variance str:
+M11<-gamm(f,random = list(location =~ 1), family = "Gamma", 
+          control = lmc, method = "REML",data=length_age12_stack)
+summary(M10$gam) 
+anova(M10$gam)
+plot(M10$gam)
+plot(M10$lme)
+
