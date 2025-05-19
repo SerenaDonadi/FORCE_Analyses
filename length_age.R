@@ -1593,19 +1593,7 @@ gillnets_pool %>%
 gillnets_pool %>%
   filter(location == "Forsmark")
 
-##### if I want to remove locations that were sampled only 1 or 2 years: ####
-# run later if needed
-table (length_age12_age2$location, length_age12_age2$year)
 
-length_age12_age2a<-length_age12_age2 %>%
-  group_by(location) %>%
-  mutate(unique_years = n_distinct(year)) %>%
-  ungroup()
-
-table (length_age12_age2a$unique_years)
-
-length_age12_age2a<-length_age12_age2a %>%
-  filter(unique_years > 2)
 #####
 
 # collinearity: correlation matrix:
@@ -2003,4 +1991,319 @@ summary(M11$gam)
 anova(M11$gam)
 plot(M11$lme)
 vis.gam(M11$gam, view=c("BIASmean_avg_lifespan","distance"),color = "heat")
+
+
+#####
+# time series analysis
+#####
+
+# add n of sampled years per sublocation
+length_age12_stack_Nyears<-length_age12_stack %>%
+  group_by(sub.location) %>%
+  mutate(unique_years_sublocat = n_distinct(year)) %>%
+  ungroup()
+
+table(length_age12_stack_Nyears$unique_years_sublocat)
+
+# how many sublocation have unique years >9? 13
+length_age12_stack_Nyears %>%
+  filter(unique_years_sublocat > 9) %>%
+  select(sub.location, unique_years_sublocat) %>%
+  unique()
+
+# add n of sampled years per location
+length_age12_stack_Nyears2<-length_age12_stack_Nyears %>%
+  group_by(location) %>%
+  mutate(unique_years_locat = n_distinct(year)) %>%
+  ungroup()
+
+table(length_age12_stack_Nyears2$unique_years_locat)
+
+# how many location have unique years >9? 13
+length_age12_stack_Nyears2 %>%
+  filter(unique_years_locat > 9) %>%
+  select(location, unique_years_locat) %>%
+  unique()
+
+# It doesn't matter if I choose location or sublocation, they are both 13.
+
+# subset with location/sublocation with at least 10 years of data
+length_age12_stack_time_series<-length_age12_stack_Nyears2 %>%
+  filter(unique_years_sublocat > 9)
+
+# add a variable indicating sublocation and age:
+length_age12_stack_time_series$sub.location_age<-paste(length_age12_stack_time_series$sub.location, length_age12_stack_time_series$age, sep = "_")
+table(length_age12_stack_time_series$sub.location_age)
+table(length_age12_stack_time_series$sub.location_age, length_age12_stack_time_series$gear_code)
+
+# in few cases fishes in the same sublocation have been collected with different gear.
+# Inlcude gear in the temporal trend models or exclude gears other than K064.
+# I go for the 1rst option now, but test maybe later the second option (simpler).
+# update: I go for the first option otherwise I can't use the loop function as some models wouyld not run
+# due to only one level in the factor gear
+
+# select only gera K064:
+length_age12_stack_time_series_K064<-length_age12_stack_time_series %>%
+  filter(gear_code == "K064")
+
+
+##### calculate slopes, SE and p values for length at age for each site ##########
+
+# calculate slopes for length at age and include Julian date (day of month)
+# fish are not the same individuals in different years, hence corAR random str makes no sense,
+# rather consider year as random, to account for non independence of values taken in the same year
+
+# check model for single site
+my_site_age1 <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == "Asköfjärden_2", ]
+M1 <- lme(total_length ~ year+day_of_month, random =~1|year,
+          na.action=na.omit, control = lmc, method = "REML", data=my_site_age1) 
+# determine significance via marginal anova
+anova.lme(M1, type = "marginal", adjustSigma = F)
+summary(M1)
+plot(M1)
+# determine significance via LRT test (model comparison)
+M1a <- lme(total_length ~ year+day_of_month, random =~1|year,
+          na.action=na.omit, control = lmc, method = "ML", data=my_site_age1) 
+M1b <- lme(total_length ~ day_of_month, random =~1|year,
+          na.action=na.omit, control = lmc, method = "ML", data=my_site_age1) 
+anova(M1a, M1b)
+
+output_comparison<-anova(M1a, M1b)
+output_comparison[2,"p-value"]
+M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
+          na.action=na.omit, control = lmc, method = "REML", data=my_site_age1)
+summary(M3)
+coef_value<-summary(M3)$coefficients
+coef_value[["fixed"]][["year"]]
+
+# To extract stand error of slope:
+summary(M3)$tTable[2,2] 
+
+# calculate increase rate for specific site
+# extract fitted values for the first and last year of sampling
+F1<-fitted(M3)
+F1
+(234.8402-163.8301)/163.8301*100 # 43% increase from 2005 to 2022  :0
+# visual check:
+visreg(M3)
+
+# 1)extract LRT test pvalue for all sites*age:
+result_LRT <- vector("list")
+for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+  M1 <- lme(total_length ~ year+day_of_month, random =~1|year,
+            na.action=na.omit, control = lmc, method = "ML", data=my_site_age) 
+  M2 <- lme(total_length ~ day_of_month, random =~1|year,
+            na.action=na.omit, control = lmc, method = "ML", data=my_site_age)
+  anova(M1, M2)
+  output_comparison<-anova(M1, M2)
+  result_LRT[[sub.location_age]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
+}
+
+result_LRT[[1]] #print the first object
+head(result_LRT)
+
+# convert it into a dataframe:
+#head(do.call(rbind, result_LRT))
+library(plyr); library(dplyr)
+#head(rbind.fill(result_LRT))
+#head(rbindlist(result_LRT))
+LRT_matrix<-ldply(result_LRT, rbind)#best way
+# rename variables in columns:
+library(data.table)
+setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location_age','pvalue_LRT'))
+head(LRT_matrix)
+
+# check how many p values are signif
+check<-filter(LRT_matrix,pvalue_LRT<0.05) # 26 out of 52 
+
+# 2) extract slope
+result_slope <- vector("list")
+for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+  M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
+  na.action=na.omit, control = lmc, method = "REML", data=my_site_age)
+  coef_value<-summary(M3)$coefficients
+  result_slope[[sub.location_age]]<-coef_value[["fixed"]][["year"]]
+}
+
+result_slope[[1]] #print the first object
+head(result_slope)
+
+# convert it into a dataframe:
+Slope_matrix<-ldply(result_slope, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix, old = c('.id','1'), new = c('sub.location_age','slope_year'))
+head(Slope_matrix)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+# 3) extract se of the slopes:
+result_SE <- vector("list")
+for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+  M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
+            na.action=na.omit, control = lmc, method = "REML", data=my_site_age)
+  result_SE[[sub.location_age]]<-summary(M3)$tTable[2,2] 
+}
+
+result_SE[[1]] #print the first object
+head(result_SE)
+
+# convert it into a dataframe:
+SE_matrix<-ldply(result_SE, rbind) 
+# rename variables in columns:
+setnames(SE_matrix, old = c('.id','1'), new = c('sub.location_age','SE_slope'))
+head(SE_matrix)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+# sort all as descending by site name:
+detach(package:plyr)
+table_LRT_pvalues<-LRT_matrix %>% arrange(desc(sub.location_age))
+table_coeff<-Slope_matrix %>% arrange(desc(sub.location_age))
+table_SE<-SE_matrix %>% arrange(desc(sub.location_age))
+head(table_LRT_pvalues)
+head(table_coeff)
+head(table_SE)
+
+# 4. merge slopes, pvalues, SE 
+table_final<- inner_join(table_LRT_pvalues,table_coeff, by = "sub.location_age")
+head(table_final)
+
+table_final1<- inner_join(table_final,table_SE, by = "sub.location_age")
+head(table_final1)
+
+# add categorical variable for slope with pos/neg/nonsignif levels:
+attach(table_final1)
+table_final1$trend[pvalue_LRT > 0.05] <- "No trend"
+table_final1$trend[pvalue_LRT < 0.05 & slope_year < 0] <- "Decline"
+table_final1$trend[pvalue_LRT < 0.05 & slope_year > 0] <- "Increase"
+table_final1$all_trends[slope_year < 0] <- "all_declines"
+table_final1$all_trends[slope_year > 0] <- "all_increases"
+detach(table_final1)
+
+table(table_final1$trend)
+table(table_final1$all_trends)
+
+##### calculate avg stsp and conspecifics over time for each site and age #####
+
+avg_time_series<-length_age12_stack_time_series_K064 %>%
+  group_by(sub.location_age) %>%
+  summarise(avg_BIASmean_avg_lifespan = mean(BIASmean_avg_lifespan, na.rm = TRUE),
+            avg_BIASmean = mean(BIASmean, na.rm = TRUE),
+            avg_distance = mean(distance, na.rm = TRUE),
+            avg_avg_year_temp = mean(avg_year_temp, na.rm = TRUE),
+            avg_CPUE_Abbo_samesize_avg_lifespan = mean(CPUE_Abbo_samesize_avg_lifespan, na.rm = TRUE),
+            avg_cyprinids_avg_lifespan = mean(cyprinids_avg_lifespan, na.rm = TRUE))
+
+# merge:
+table_final2<- inner_join(table_final1,avg_time_series, by = "sub.location_age")
+
+##### calculate slopes and p values of temporal trends also for stsp and conspecific and temp:####
+
+# RE DO FROM HERE: AGRREGATE/ DATASET WITH ONLY STSP AND CONSPECIFIC , NOT REPEATED FOR EACH FISH! 
+# check model for single site
+my_site_age1 <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == "Asköfjärden_2", ]
+table(my_site_age1$BIASmean,my_site_age1$year)
+# calculate avg stsp per year:
+avg_site_age1<-my_site_age1 %>%
+  group_by(year) %>%
+  summarise(avg_year_BIASmean = mean(BIASmean, na.rm = TRUE))
+
+table(avg_site_age1$avg_year_BIASmean,avg_site_age1$year)
+
+            
+
+M1<-gls(BIASmean ~ year, correlation=corAR1(form=~year),
+    na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
+M2<-gls(BIASmean ~ 1, correlation=corAR1(form=~year),
+        na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
+# determine significance via LRT test (model comparison)
+anova(M1, M2)
+
+output_comparison<-anova(M1a, M1b)
+output_comparison[2,"p-value"]
+M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
+          na.action=na.omit, control = lmc, method = "REML", data=my_site_age1)
+summary(M3)
+coef_value<-summary(M3)$coefficients
+coef_value[["fixed"]][["year"]]
+
+# To extract stand error of slope:
+summary(M3)$tTable[2,2] 
+
+# calculate increase rate for specific site
+# extract fitted values for the first and last year of sampling
+F1<-fitted(M3)
+F1
+(234.8402-163.8301)/163.8301*100 # 43% increase from 2005 to 2022  :0
+# visual check:
+visreg(M3)
+
+# 1)extract LRT test pvalue for all sites*age:
+result_LRT <- vector("list")
+for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+  M1 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age) 
+  M2 <- gls(BIASmean ~ 1, correlation=corAR1(form=~year),
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age)
+  anova(M1, M2)
+  output_comparison<-anova(M1, M2)
+  result_LRT[[sub.location_age]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
+}
+
+result_LRT[[1]] #print the first object
+head(result_LRT)
+
+# convert it into a dataframe:
+#head(do.call(rbind, result_LRT))
+library(plyr); library(dplyr)
+#head(rbind.fill(result_LRT))
+#head(rbindlist(result_LRT))
+LRT_matrix<-ldply(result_LRT, rbind)#best way
+# rename variables in columns:
+library(data.table)
+setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location_age','pvalue_LRT'))
+head(LRT_matrix)
+
+# check how many p values are signif
+check<-filter(LRT_matrix,pvalue_LRT<0.05) # 26 out of 52 
+
+# 2) extract slope
+result_slope <- vector("list")
+for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+  M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
+            na.action=na.omit, control = lmc, method = "REML", data=my_site_age)
+  coef_value<-summary(M3)$coefficients
+  result_slope[[sub.location_age]]<-coef_value[["fixed"]][["year"]]
+}
+
+result_slope[[1]] #print the first object
+head(result_slope)
+
+# convert it into a dataframe:
+Slope_matrix<-ldply(result_slope, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix, old = c('.id','1'), new = c('sub.location_age','slope_year'))
+head(Slope_matrix)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
 
