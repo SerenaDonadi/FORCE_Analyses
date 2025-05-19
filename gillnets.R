@@ -75,8 +75,8 @@ gillnets <- rename(gillnets, year = 'År')
 
 # avg year temp from satellite
 temp_gillnet_year <- read.csv2("df_gillnet_temp.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".") # year avg temp
-# avg day temp from satellite
-temp_gillnet_day <- read.csv2("temperature-data.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
+# avg day temp from satellite: this is the old data, at locations level (but the new maybe are only a subset, for length-age)
+temp_gillnet_day <- read.csv2("temperature-data-old.csv",encoding="ANSI",  header=TRUE, sep=",", dec=".")  # daily temp
 
 # make column with only year
 head(temp_gillnet_day$date)

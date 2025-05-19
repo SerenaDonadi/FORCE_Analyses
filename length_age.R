@@ -1981,7 +1981,7 @@ f <- formula(total_length ~ s(BIASmean_avg_lifespan, distance) + gear_code + day
                s(cyprinids_avg_lifespan,fx = FALSE, k = -1, bs = "cr"))
 M10<-gamm(f,random = list(location =~ 1),weights = varIdent(form =~ 1|location),
           control = lmc, method = "REML",data=length_age12_stack)
-summary(M10$gam) 
+summary(M10$gam) # R2 is 
 anova(M10$gam)
 plot(M10$gam)
 plot(M10$lme)
@@ -1994,12 +1994,13 @@ plot.gam(M10$gam, select=2, shade=TRUE, residuals=F, rug=T,pers=F, all.terms=F,s
          seWithMean=T, pages=0) # change scheme and shade.col for different colors
 vis.gam(M10$gam, theta = 120, color = "heat")
 vis.gam(M10$gam, view=c("BIASmean_avg_lifespan","distance"), plot.type="contour", color="cm", n.grid=60) # color="bw", for no color
+vis.gam(M10$gam, view=c("BIASmean_avg_lifespan","distance"),color = "heat")
 
 # with family gamma instead of variance str:
 M11<-gamm(f,random = list(location =~ 1), family = "Gamma", 
           control = lmc, method = "REML",data=length_age12_stack)
-summary(M10$gam) 
-anova(M10$gam)
-plot(M10$gam)
-plot(M10$lme)
+summary(M11$gam) 
+anova(M11$gam)
+plot(M11$lme)
+vis.gam(M11$gam, view=c("BIASmean_avg_lifespan","distance"),color = "heat")
 
