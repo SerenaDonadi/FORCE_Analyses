@@ -2199,16 +2199,64 @@ table(table_final1$all_trends)
 ##### calculate avg stsp and conspecifics over time for each site and age #####
 
 avg_time_series<-length_age12_stack_time_series_K064 %>%
-  group_by(sub.location_age) %>%
+  group_by(sub.location_age, age, sub.location) %>%
   summarise(avg_BIASmean_avg_lifespan = mean(BIASmean_avg_lifespan, na.rm = TRUE),
             avg_BIASmean = mean(BIASmean, na.rm = TRUE),
             avg_distance = mean(distance, na.rm = TRUE),
             avg_avg_year_temp = mean(avg_year_temp, na.rm = TRUE),
             avg_CPUE_Abbo_samesize_avg_lifespan = mean(CPUE_Abbo_samesize_avg_lifespan, na.rm = TRUE),
-            avg_cyprinids_avg_lifespan = mean(cyprinids_avg_lifespan, na.rm = TRUE))
+            avg_totCPUE_Abborre = mean(totCPUE_Abborre, na.rm = TRUE),
+            avg_cyprinids_avg_lifespan = mean(cyprinids_avg_lifespan, na.rm = TRUE),
+            avg_cyprinids = mean(cyprinids, na.rm = TRUE))
 
 # merge:
 table_final2<- inner_join(table_final1,avg_time_series, by = "sub.location_age")
+
+# subset with only significant trends:
+table_final2_signif<-table_final2 %>%
+  filter(pvalue_LRT < 0.05)
+
+##### preliminary model with only these covariates:
+
+# little collinearity temp and cyprinids. but results don't change much with or wothout. 
+# to be safe I remove them for now
+# when considering avg of spp over the life span, abbo and age are collinear. Removing either, stsp are always signif
+M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + avg_distance + avg_avg_year_temp,
+        weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
+vif(M1)
+summary(M1)
+anova(M1)
+plot(M1)
+
+# compare to the model with avg current densities of spp as covariates:
+M2<-lm(slope_year ~ age + avg_BIASmean + avg_distance + avg_avg_year_temp +
+         avg_totCPUE_Abborre,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
+vif(M2)
+summary(M2)
+anova(M2)
+plot(M2)
+
+# introducing interactions: low sample size, I test them in alternative models
+# this was the one with best fit
+M2<-lm(slope_year ~ age+avg_BIASmean *avg_distance + avg_avg_year_temp +
+         avg_totCPUE_Abborre,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
+summary(M2)
+anova(M2)
+plot(M2)
+
+# introducing random factor: ns
+M3a<-gls(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
+          avg_totCPUE_Abborre, method = "REML",
+        na.action = na.omit,data=table_final2_signif)
+M3b<-lme(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
+         avg_totCPUE_Abborre, random = ~1|sub.location,method = "REML",
+       na.action = na.omit,data=table_final2_signif)
+anova(M3a,M3b)
+
+
+
 
 ##### calculate slopes and p values of temporal trends also for stsp and conspecific and temp:####
 
