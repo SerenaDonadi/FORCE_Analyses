@@ -429,7 +429,6 @@ length_age10b<-left_join(length_age10a, dist_offshore, by = c("location","sub.lo
 length_age11<-left_join(length_age10b, gillnets_pool_lag, by = c("year","location", "sub.location")) 
 head(length_age11)
 
-
 # remove unnecessary columns:
 length_age12<-length_age11 %>%
   select(-c(species,program,survey, gear, gear.code, ID, aging_method,somatic_weight_type,sex, comments,approved,
@@ -522,6 +521,13 @@ length_age12_age2to4<-length_age12 %>%
 
 unique(sort(length_age12$location))
 table(length_age12$location, length_age12$year)
+
+# plot avg temp per year and sub.location
+ggplot(length_age12_stack, aes(x = year , y = avg_year_temp)) +
+  geom_point()+
+  facet_wrap(~sub.location)+
+  #geom_smooth()+ 
+  theme_classic(base_size=13)
 
 #####
 # exploration plots
@@ -2198,6 +2204,11 @@ table(table_final1$all_trends)
 
 ##### calculate avg stsp and conspecifics over time for each site and age #####
 
+#OBS::: TO REDO! I calculated mean of temp and stsp over the time period from the dataset with individual fish,
+# grouping by sublocation and age, but not year. Hence, the mean vaue depends on the nunber of fish measured
+# for a certain age in a certain year. I better take the stsp from the original dataset, same for abbo (gillnets),
+# using the mean over the years found in the dataset "length_age12_stack_time_series_K064"
+
 avg_time_series<-length_age12_stack_time_series_K064 %>%
   group_by(sub.location_age, age, sub.location) %>%
   summarise(avg_BIASmean_avg_lifespan = mean(BIASmean_avg_lifespan, na.rm = TRUE),
@@ -2215,6 +2226,87 @@ table_final2<- inner_join(table_final1,avg_time_series, by = "sub.location_age")
 # subset with only significant trends:
 table_final2_signif<-table_final2 %>%
   filter(pvalue_LRT < 0.05)
+
+##### exploratory plots #####
+# visualize slope by site
+ggplot(table_final2, aes(x = reorder(sub.location_age, slope_year), y = slope_year)) +
+  geom_bar(stat = "identity", aes(fill = trend)) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Site", y = "Slope of length at age") +
+  scale_fill_manual(values = c("No trend" = "grey", "Decline" = "red", "Increase" = "blue")) +
+  theme(legend.position = "bottom")
+
+# barchart by age:
+library(gplots)
+avg<-tapply(table_final2$slope_year,list(table_final2$age,table_final2$trend),mean)
+sdpl<-tapply(table_final2$slope_year,list(table_final2$age,table_final2$trend),sd)
+l<-tapply(table_final2$slope_year,list(table_final2$age,table_final2$trend),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "slope") 
+
+avg<-tapply(table_final2_signif$slope_year,list(table_final2_signif$age),mean)
+sdpl<-tapply(table_final2_signif$slope_year,list(table_final2_signif$age),sd)
+l<-tapply(table_final2_signif$slope_year,list(table_final2_signif$age),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "slope") 
+
+# barchart by site:
+avg<-tapply(table_final2$slope_year,list(table_final2$sub.location,table_final2$trend),mean)
+sdpl<-tapply(table_final2$slope_year,list(table_final2$sub.location,table_final2$trend),sd)
+l<-tapply(table_final2$slope_year,list(table_final2$sub.location,table_final2$trend),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "slope")
+
+# better plot:
+# Calculate means and standard deviations
+table_final2_avg_slope <- table_final2 %>%
+  group_by(sub.location, trend) %>%
+  summarise(
+    mean_value = mean(slope_year),
+    sd_value = sd(slope_year)
+  )
+# Create the bar chart
+ggplot(table_final2_avg_slope, aes(x = sub.location, y = mean_value, col = trend)) +
+  geom_bar(stat = "identity", position = position_dodge(), width = 0.7) +
+  geom_errorbar(aes(ymin = mean_value - sd_value, ymax = mean_value + sd_value), 
+                width = 0.2, position = position_dodge(0.7)) +
+  #facet_wrap(~location)+
+  labs(title = "Bar Chart with Means and Standard Deviations",
+       x = "sub.location",
+       y = "slope (mean)") +
+  theme(legend.position="bottom")
+
+# scatterplot of slope vs temp :
+ggplot(table_final2_signif, aes(x = avg_avg_year_temp, y = slope_year, col = sub.location)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = FALSE) +
+  labs(title = "Scatterplot of Slope vs Avg Year Temp",
+       x = "Avg Year Temp",
+       y = "Slope") +
+  theme(legend.position="bottom")
+
+ggplot(table_final2, aes(x = avg_avg_year_temp, y = slope_year, col = trend)) +
+  geom_point() +
+  #geom_smooth(method = "loess", se = FALSE) +
+  theme(legend.position="bottom")
+
+# scatterplot of slope vs STSP :
+ggplot(table_final2_signif, aes(x = avg_BIASmean, y = slope_year, col = sub.location)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = FALSE) +
+  theme(legend.position="bottom")
+
+ggplot(table_final2_signif, aes(x = avg_BIASmean, y = slope_year)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme(legend.position="bottom")
+
+ggplot(table_final2, aes(x = avg_BIASmean, y = slope_year, col = trend)) +
+  geom_point() +
+  #geom_smooth(method = "loess", se = FALSE) +
+  theme(legend.position="bottom")
+
 
 ##### preliminary model with only these covariates:
 
@@ -2237,6 +2329,15 @@ summary(M2)
 anova(M2)
 plot(M2)
 
+# introducing random factor (and deleting weight): ns
+M3a<-gls(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
+           avg_totCPUE_Abborre, method = "REML",
+         na.action = na.omit,data=table_final2_signif)
+M3b<-lme(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
+           avg_totCPUE_Abborre, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final2_signif)
+anova(M3a,M3b)
+
 # introducing interactions: low sample size, I test them in alternative models
 # this was the one with best fit
 M2<-lm(slope_year ~ age+avg_BIASmean *avg_distance + avg_avg_year_temp +
@@ -2245,15 +2346,19 @@ M2<-lm(slope_year ~ age+avg_BIASmean *avg_distance + avg_avg_year_temp +
 summary(M2)
 anova(M2)
 plot(M2)
+visreg(M2)
 
-# introducing random factor: ns
-M3a<-gls(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
-          avg_totCPUE_Abborre, method = "REML",
-        na.action = na.omit,data=table_final2_signif)
-M3b<-lme(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
-         avg_totCPUE_Abborre, random = ~1|sub.location,method = "REML",
-       na.action = na.omit,data=table_final2_signif)
-anova(M3a,M3b)
+# removing distance from offshore:
+M2<-lm(slope_year ~ avg_BIASmean +age+ + avg_avg_year_temp +
+        avg_totCPUE_Abborre,
+        weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
+summary(M2)
+anova(M2)
+plot(M2)
+visreg(M2)
+
+
+
 
 
 
