@@ -2003,64 +2003,91 @@ vis.gam(M11$gam, view=c("BIASmean_avg_lifespan","distance"),color = "heat")
 # time series analysis
 #####
 
-# add n of sampled years per sublocation
-length_age12_stack_Nyears<-length_age12_stack %>%
-  group_by(sub.location) %>%
-  mutate(unique_years_sublocat = n_distinct(year)) %>%
-  ungroup()
+# count n of sampled years per sublocation, split by gear_code, and first and last year of sampling
+range_years<-length_age12_stack %>%
+  group_by(location,sub.location,gear_code) %>%
+  summarise(unique_years_sublocat = n_distinct(year),
+            first_year = min(year),
+            last_year = max(year)) %>%
+  print(n=41)
 
-table(length_age12_stack_Nyears$unique_years_sublocat)
+table(range_years$unique_years_sublocat, range_years$gear_code)
+
+# select only sublocation*gear with at least 7 years of sampling and sampled with k064
+range_years_subset7<-range_years %>%
+  filter(unique_years_sublocat > 6, gear_code == "K064")
+
+# select only sublocation*gear with at least 10 years of sampling and sampled with k064
+range_years_subset10<-range_years %>%
+  filter(unique_years_sublocat > 9, gear_code == "K064")
+
+# reason to select only gear K064:
+# in few cases fishes in the same sublocation have been collected with different gear.
+# I tried first to include gear in the temporal trend models but I couldn't use the loop function as some 
+# models would not run due to only one level in the factor gear. Hence I excluded gear others than K064
+
+
+# old script below...revise and delete once fixed
+#####
+  
+length_age12_stack_Nyears<-length_age12_stack %>%
+  group_by(sub.location,gear_code) %>%
+  mutate(unique_years_sublocat = n_distinct(year),
+         unique_years_sublocat_gear = n_distinct(year)) %>%
+  ungroup()  
+
+table(length_age12_stack$sub.location,length_age12_stack$gear_code)
 
 # how many sublocation have unique years >9? 13
 length_age12_stack_Nyears %>%
-  filter(unique_years_sublocat > 9) %>%
-  select(sub.location, unique_years_sublocat) %>%
+  filter(unique_years_sublocat_gear > 9) %>%
+  select(sub.location,gear_code, unique_years_sublocat_gear) %>%
   unique()
 
 # add n of sampled years per location
 length_age12_stack_Nyears2<-length_age12_stack_Nyears %>%
   group_by(location) %>%
-  mutate(unique_years_locat = n_distinct(year)) %>%
+  mutate(unique_years_locat_gear = n_distinct(year)) %>%
   ungroup()
 
-table(length_age12_stack_Nyears2$unique_years_locat)
+table(length_age12_stack_Nyears2$unique_years_locat_gear)
 
 # how many location have unique years >9? 13
 length_age12_stack_Nyears2 %>%
-  filter(unique_years_locat > 9) %>%
-  select(location, unique_years_locat) %>%
+  filter(unique_years_locat_gear > 9) %>%
+  select(location, unique_years_locat_gear) %>%
   unique()
 
 # It doesn't matter if I choose location or sublocation, they are both 13.
+#####
 
-# subset with location/sublocation with at least 10 years of data
-length_age12_stack_time_series<-length_age12_stack_Nyears2 %>%
-  filter(unique_years_sublocat > 9)
+# subset of length dataset with sublocation*gear with at least 10 and 7 years of data
+# select a subset with gear k064, and whose sublocation match those in the range_years_subset10:
+length_age12_stack_time_series7<-length_age12_stack %>%
+  filter(gear_code == "K064") %>%
+  filter(sub.location %in% range_years_subset7$sub.location)
+
+length_age12_stack_time_series10<-length_age12_stack %>%
+  filter(gear_code == "K064") %>%
+  filter(sub.location %in% range_years_subset10$sub.location)
+
 
 # add a variable indicating sublocation and age:
-length_age12_stack_time_series$sub.location_age<-paste(length_age12_stack_time_series$sub.location, length_age12_stack_time_series$age, sep = "_")
-table(length_age12_stack_time_series$sub.location_age)
-table(length_age12_stack_time_series$sub.location_age, length_age12_stack_time_series$gear_code)
-
-# in few cases fishes in the same sublocation have been collected with different gear.
-# Inlcude gear in the temporal trend models or exclude gears other than K064.
-# I go for the 1rst option now, but test maybe later the second option (simpler).
-# update: I go for the first option otherwise I can't use the loop function as some models wouyld not run
-# due to only one level in the factor gear
-
-# select only gera K064:
-length_age12_stack_time_series_K064<-length_age12_stack_time_series %>%
-  filter(gear_code == "K064")
-
+length_age12_stack_time_series10$sub.location_age<-paste(length_age12_stack_time_series10$sub.location, 
+                                                         length_age12_stack_time_series10$age, sep = "_")
+length_age12_stack_time_series7$sub.location_age<-paste(length_age12_stack_time_series7$sub.location, 
+                                                         length_age12_stack_time_series7$age, sep = "_")
+table(length_age12_stack_time_series10$sub.location_age)
 
 ##### calculate slopes, SE and p values for length at age for each site ##########
+#RE RUN WITH THE NEW DATASET (BOTH 7 AND 10 YEARS SUBSETS): i START WITH length_age12_stack_time_series7
 
 # calculate slopes for length at age and include Julian date (day of month)
 # fish are not the same individuals in different years, hence corAR random str makes no sense,
 # rather consider year as random, to account for non independence of values taken in the same year
 
 # check model for single site
-my_site_age1 <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == "Asköfjärden_2", ]
+my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Asköfjärden_2", ]
 M1 <- lme(total_length ~ year+day_of_month, random =~1|year,
           na.action=na.omit, control = lmc, method = "REML", data=my_site_age1) 
 # determine significance via marginal anova
@@ -2095,8 +2122,8 @@ visreg(M3)
 
 # 1)extract LRT test pvalue for all sites*age:
 result_LRT <- vector("list")
-for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
-  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+for (sub.location_age in unique(length_age12_stack_time_series7$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == sub.location_age, ]
   M1 <- lme(total_length ~ year+day_of_month, random =~1|year,
             na.action=na.omit, control = lmc, method = "ML", data=my_site_age) 
   M2 <- lme(total_length ~ day_of_month, random =~1|year,
@@ -2121,12 +2148,12 @@ setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location_age','pvalue_LRT'
 head(LRT_matrix)
 
 # check how many p values are signif
-check<-filter(LRT_matrix,pvalue_LRT<0.05) # 26 out of 52 
+check<-filter(LRT_matrix,pvalue_LRT<0.05) # 30 out of 52 
 
 # 2) extract slope
 result_slope <- vector("list")
-for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
-  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+for (sub.location_age in unique(length_age12_stack_time_series7$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == sub.location_age, ]
   M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
   na.action=na.omit, control = lmc, method = "REML", data=my_site_age)
   coef_value<-summary(M3)$coefficients
@@ -2151,8 +2178,8 @@ head(Slope_matrix)
 
 # 3) extract se of the slopes:
 result_SE <- vector("list")
-for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
-  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+for (sub.location_age in unique(length_age12_stack_time_series7$sub.location_age)) {
+  my_site_age <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == sub.location_age, ]
   M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
             na.action=na.omit, control = lmc, method = "REML", data=my_site_age)
   result_SE[[sub.location_age]]<-summary(M3)$tTable[2,2] 
@@ -2204,24 +2231,34 @@ table(table_final1$all_trends)
 
 ##### calculate avg stsp and conspecifics over time for each site and age #####
 
-#OBS::: TO REDO! I calculated mean of temp and stsp over the time period from the dataset with individual fish,
+# OBS: TO REDO! I calculated mean of temp and stsp over the time period from the dataset with individual fish,
 # grouping by sublocation and age, but not year. Hence, the mean vaue depends on the nunber of fish measured
 # for a certain age in a certain year. I better take the stsp from the original dataset, same for abbo (gillnets),
-# using the mean over the years found in the dataset "length_age12_stack_time_series_K064"
+# using the mean over the same years found in the dataset "length_age12_stack_time_series_K064"
 
-avg_time_series<-length_age12_stack_time_series_K064 %>%
+# Extract here the means for each sublocation and age, of "perceived" stsp and conspecifics 
+# (avg over whole life span) for individual fish:
+avg_time_series<-length_age12_stack_time_series7 %>%
   group_by(sub.location_age, age, sub.location) %>%
   summarise(avg_BIASmean_avg_lifespan = mean(BIASmean_avg_lifespan, na.rm = TRUE),
-            avg_BIASmean = mean(BIASmean, na.rm = TRUE),
-            avg_distance = mean(distance, na.rm = TRUE),
-            avg_avg_year_temp = mean(avg_year_temp, na.rm = TRUE),
+            # avg_BIASmean = mean(BIASmean, na.rm = TRUE), # wrong, delete eventually
+            # avg_distance = mean(distance, na.rm = TRUE),
+            # avg_avg_year_temp = mean(avg_year_temp, na.rm = TRUE),
             avg_CPUE_Abbo_samesize_avg_lifespan = mean(CPUE_Abbo_samesize_avg_lifespan, na.rm = TRUE),
-            avg_totCPUE_Abborre = mean(totCPUE_Abborre, na.rm = TRUE),
-            avg_cyprinids_avg_lifespan = mean(cyprinids_avg_lifespan, na.rm = TRUE),
-            avg_cyprinids = mean(cyprinids, na.rm = TRUE))
+            # avg_totCPUE_Abborre = mean(totCPUE_Abborre, na.rm = TRUE),
+            avg_cyprinids_avg_lifespan = mean(cyprinids_avg_lifespan, na.rm = TRUE))
+            #avg_cyprinids = mean(cyprinids, na.rm = TRUE))
 
 # merge:
 table_final2<- inner_join(table_final1,avg_time_series, by = "sub.location_age")
+
+
+# START FIX FROM HERE
+# Extract mean stsp desnities in each sublocation during the years covered by the time series dataset, shall I
+# choose the same interval fo all (typ 2002-2023), or better tailored for each sublocation, that is, taking
+# the first and last year of data available for each sublocation. see range_years_subsets. 
+
+# samae for conspecifics and temp
 
 # subset with only significant trends:
 table_final2_signif<-table_final2 %>%
@@ -2251,13 +2288,6 @@ l<-tapply(table_final2_signif$slope_year,list(table_final2_signif$age),length)
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "slope") 
 
-# barchart by site:
-avg<-tapply(table_final2$slope_year,list(table_final2$sub.location,table_final2$trend),mean)
-sdpl<-tapply(table_final2$slope_year,list(table_final2$sub.location,table_final2$trend),sd)
-l<-tapply(table_final2$slope_year,list(table_final2$sub.location,table_final2$trend),length)
-ci<-sdpl/sqrt(l)
-barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "slope")
-
 # better plot:
 # Calculate means and standard deviations
 table_final2_avg_slope <- table_final2 %>%
@@ -2277,38 +2307,24 @@ ggplot(table_final2_avg_slope, aes(x = sub.location, y = mean_value, col = trend
        y = "slope (mean)") +
   theme(legend.position="bottom")
 
-# scatterplot of slope vs temp :
-ggplot(table_final2_signif, aes(x = avg_avg_year_temp, y = slope_year, col = sub.location)) +
-  geom_point() +
-  #geom_smooth(method = "lm", se = FALSE) +
-  labs(title = "Scatterplot of Slope vs Avg Year Temp",
-       x = "Avg Year Temp",
-       y = "Slope") +
-  theme(legend.position="bottom")
-
-ggplot(table_final2, aes(x = avg_avg_year_temp, y = slope_year, col = trend)) +
-  geom_point() +
-  #geom_smooth(method = "loess", se = FALSE) +
-  theme(legend.position="bottom")
-
-# scatterplot of slope vs STSP :
-ggplot(table_final2_signif, aes(x = avg_BIASmean, y = slope_year, col = sub.location)) +
+# scatterplot of slope vs experienced STSP :
+ggplot(table_final2_signif, aes(x = avg_BIASmean_avg_lifespan, y = slope_year, col = sub.location)) +
   geom_point() +
   #geom_smooth(method = "lm", se = FALSE) +
   theme(legend.position="bottom")
 
-ggplot(table_final2_signif, aes(x = avg_BIASmean, y = slope_year)) +
+ggplot(table_final2_signif, aes(x = avg_BIASmean_avg_lifespan, y = slope_year)) +
   geom_point() +
   geom_smooth(method = "loess", se = FALSE) +
   theme(legend.position="bottom")
 
-ggplot(table_final2, aes(x = avg_BIASmean, y = slope_year, col = trend)) +
+ggplot(table_final2, aes(x = avg_BIASmean_avg_lifespan, y = slope_year, col = trend)) +
   geom_point() +
-  #geom_smooth(method = "loess", se = FALSE) +
+  geom_smooth(method = "loess", se = FALSE) +
   theme(legend.position="bottom")
 
 
-##### preliminary model with only these covariates:
+##### preliminary model with only these covariates: TO REDO ####
 
 # little collinearity temp and cyprinids. but results don't change much with or wothout. 
 # to be safe I remove them for now
@@ -2365,7 +2381,7 @@ visreg(M2)
 
 ##### calculate slopes and p values of temporal trends also for stsp and conspecific and temp:####
 
-# RE DO FROM HERE: AGRREGATE/ DATASET WITH ONLY STSP AND CONSPECIFIC , NOT REPEATED FOR EACH FISH! 
+# TO RE DO: AGRREGATE/ DATASET WITH ONLY STSP AND CONSPECIFIC , NOT REPEATED FOR EACH FISH! 
 # check model for single site
 my_site_age1 <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == "Asköfjärden_2", ]
 table(my_site_age1$BIASmean,my_site_age1$year)
