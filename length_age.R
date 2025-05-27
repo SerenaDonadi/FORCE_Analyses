@@ -462,6 +462,10 @@ length_age12_age2_25andabove<-length_age12_age2 %>%
   filter(total_length > 249)
 length_age12_age2_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2_less25$CPUE_Abborre_less25_avg_since_2YearBefore
 length_age12_age2_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age2_25andabove$CPUE_Abborre_25andabove_avg_since_2YearBefore
+# later I will need this too:
+length_age12_age2_less25$CPUE_Abbo_samesize<-length_age12_age2_less25$CPUE_Abborre_less25
+length_age12_age2_25andabove$CPUE_Abbo_samesize<-length_age12_age2_25andabove$CPUE_Abborre_25andabove
+
 # age3
 length_age12_age3$BIASmean_avg_lifespan<-length_age12_age3$BIASmean_avg_since_3YearBefore
 length_age12_age3$cyprinids_avg_lifespan<-length_age12_age3$cyprinids_avg_since_3YearBefore
@@ -475,6 +479,10 @@ length_age12_age3_25andabove<-length_age12_age3 %>%
   filter(total_length > 249)
 length_age12_age3_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3_less25$CPUE_Abborre_less25_avg_since_3YearBefore
 length_age12_age3_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age3_25andabove$CPUE_Abborre_25andabove_avg_since_3YearBefore
+# later I will need this too:
+length_age12_age3_less25$CPUE_Abbo_samesize<-length_age12_age3_less25$CPUE_Abborre_less25
+length_age12_age3_25andabove$CPUE_Abbo_samesize<-length_age12_age3_25andabove$CPUE_Abborre_25andabove
+
 # age4
 length_age12_age4$BIASmean_avg_lifespan<-length_age12_age4$BIASmean_avg_since_4YearBefore
 length_age12_age4$cyprinids_avg_lifespan<-length_age12_age4$cyprinids_avg_since_4YearBefore
@@ -488,6 +496,10 @@ length_age12_age4_25andabove<-length_age12_age4 %>%
   filter(total_length > 249)
 length_age12_age4_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4_less25$CPUE_Abborre_less25_avg_since_4YearBefore
 length_age12_age4_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age4_25andabove$CPUE_Abborre_25andabove_avg_since_4YearBefore
+# later I will need this too:
+length_age12_age4_less25$CPUE_Abbo_samesize<-length_age12_age4_less25$CPUE_Abborre_less25
+length_age12_age4_25andabove$CPUE_Abbo_samesize<-length_age12_age4_25andabove$CPUE_Abborre_25andabove
+
 # age 5
 length_age12_age5$BIASmean_avg_lifespan<-length_age12_age5$BIASmean_avg_since_5YearBefore
 length_age12_age5$cyprinids_avg_lifespan<-length_age12_age5$cyprinids_avg_since_5YearBefore
@@ -501,6 +513,9 @@ length_age12_age5_25andabove<-length_age12_age5 %>%
   filter(total_length > 249)
 length_age12_age5_less25$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5_less25$CPUE_Abborre_less25_avg_since_5YearBefore
 length_age12_age5_25andabove$CPUE_Abbo_samesize_avg_lifespan<-length_age12_age5_25andabove$CPUE_Abborre_25andabove_avg_since_5YearBefore
+# later I will need this too:
+length_age12_age5_less25$CPUE_Abbo_samesize<-length_age12_age5_less25$CPUE_Abborre_less25
+length_age12_age5_25andabove$CPUE_Abbo_samesize<-length_age12_age5_25andabove$CPUE_Abborre_25andabove
 
 # stack all subsets:
 length_age12_stack<-rbind(length_age12_age2_less25, length_age12_age2_25andabove, 
@@ -2080,7 +2095,6 @@ length_age12_stack_time_series7$sub.location_age<-paste(length_age12_stack_time_
 table(length_age12_stack_time_series10$sub.location_age)
 
 ##### calculate slopes, SE and p values for length at age for each site ##########
-#RE RUN WITH THE NEW DATASET (BOTH 7 AND 10 YEARS SUBSETS): i START WITH length_age12_stack_time_series7
 
 # calculate slopes for length at age and include Julian date (day of month)
 # fish are not the same individuals in different years, hence corAR random str makes no sense,
@@ -2231,11 +2245,6 @@ table(table_final1$all_trends)
 
 ##### calculate avg stsp and conspecifics over time for each site and age #####
 
-# OBS: TO REDO! I calculated mean of temp and stsp over the time period from the dataset with individual fish,
-# grouping by sublocation and age, but not year. Hence, the mean vaue depends on the nunber of fish measured
-# for a certain age in a certain year. I better take the stsp from the original dataset, same for abbo (gillnets),
-# using the mean over the same years found in the dataset "length_age12_stack_time_series_K064"
-
 # Extract here the means for each sublocation and age, of "perceived" stsp and conspecifics 
 # (avg over whole life span) for individual fish:
 avg_time_series<-length_age12_stack_time_series7 %>%
@@ -2253,16 +2262,58 @@ avg_time_series<-length_age12_stack_time_series7 %>%
 table_final2<- inner_join(table_final1,avg_time_series, by = "sub.location_age")
 
 
-# START FIX FROM HERE
 # Extract mean stsp desnities in each sublocation during the years covered by the time series dataset, shall I
 # choose the same interval fo all (typ 2002-2023), or better tailored for each sublocation, that is, taking
 # the first and last year of data available for each sublocation. see range_years_subsets. 
 
-# samae for conspecifics and temp
+# Step 1: exclude gear k064 and Join the year range info from range_years_subset7 into stsp
+stsp_with_years <- stsp %>%
+  filter(gear_code == "K064") %>%
+  left_join(range_years_subset7 %>% select(sub.location, first_year, last_year), by = c("sub.location","location"))
 
-# subset with only significant trends:
-table_final2_signif<-table_final2 %>%
-  filter(pvalue_LRT < 0.05)
+# Step 2: Filter stsp based on the year range for each sub.location. Sublocation not included in the 
+# range_years_subset7 are automatically excluded
+filtered_stsp <- stsp_with_years %>%
+  filter(year >= first_year & year <= last_year)
+
+# Step 3: Calculate the average for each sub.location
+stsp_time_series <- filtered_stsp %>%
+  group_by(sub.location) %>%
+  summarise(stsp_avg_time_series = mean(BIASmean, na.rm = TRUE))
+
+# merge:
+table_final3<- left_join(table_final2,stsp_time_series, by = "sub.location")
+
+# same for conspecifics and other spp:
+# Step 1: exclude gear k064 and Join the year range info from range_years_subset7 into stsp
+length_age12_stack_with_years <- length_age12_stack %>%
+  filter(gear_code == "K064") %>%
+  left_join(range_years_subset7 %>% select(sub.location, first_year, last_year), by = c("sub.location","location"))
+
+# Step 2: Filter  based on the year range for each sub.location. Sublocations not included in the 
+# range_years_subset7 are automatically excluded
+filtered_length_age12_stack <- length_age12_stack_with_years %>%
+  filter(year >= first_year & year <= last_year)
+
+# Step 3: Calculate the average for each sub.location
+ABBOsamesize_time_series <- filtered_length_age12_stack %>%
+  group_by(sub.location) %>%
+  summarise(Abbo_samesize_avg_time_series = mean(CPUE_Abbo_samesize, na.rm = TRUE),
+            cyprinids_avg_time_series = mean(cyprinids, na.rm = TRUE),
+            all_prey_avg_time_series = mean(all_prey, na.rm = TRUE),
+            clupeids_avg_time_series = mean(clupeids, na.rm = TRUE),
+            year_temp_avg_time_series = mean(avg_year_temp, na.rm = TRUE))
+
+# merge:
+table_final4<- left_join(table_final3,ABBOsamesize_time_series, by = "sub.location")
+
+# merge dist from offshore after excluding gear k064 (no need to select years here)
+dist_offshore_K064<- dist_offshore %>%
+  filter(gear_code == "K064") %>%
+  select(sub.location, distance)
+
+table_final5<- left_join(table_final4,dist_offshore_K064, by = "sub.location")
+
 
 ##### exploratory plots #####
 # visualize slope by site
@@ -2319,6 +2370,39 @@ ggplot(table_final2_signif, aes(x = avg_BIASmean_avg_lifespan, y = slope_year)) 
   theme(legend.position="bottom")
 
 ggplot(table_final2, aes(x = avg_BIASmean_avg_lifespan, y = slope_year, col = trend)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme(legend.position="bottom")
+
+# scatterplot of slope vs experienced conspecifics :
+ggplot(table_final2_signif, aes(x = avg_CPUE_Abbo_samesize_avg_lifespan, y = slope_year, col = sub.location)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = FALSE) +
+  theme(legend.position="bottom")
+
+ggplot(table_final2, aes(x = avg_CPUE_Abbo_samesize_avg_lifespan, y = slope_year, col = trend)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme(legend.position="bottom")
+
+# scatterplot of slope vs experienced cyprinids :
+ggplot(table_final2_signif, aes(x = avg_cyprinids_avg_lifespan, y = slope_year, col = sub.location)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = FALSE) +
+  theme(legend.position="bottom")
+
+ggplot(table_final2, aes(x = avg_cyprinids_avg_lifespan, y = slope_year, col = trend)) +
+  geom_point() +
+  geom_smooth(method = "loess", se = FALSE) +
+  theme(legend.position="bottom")
+
+# scatterplot of slope vs ..:
+ggplot(table_final5_signif, aes(x = stsp_avg_time_series, y = slope_year, col = sub.location)) +
+  geom_point() +
+  #geom_smooth(method = "lm", se = FALSE) +
+  theme(legend.position="bottom")
+
+ggplot(table_final5, aes(x = stsp_avg_time_series, y = slope_year, col = trend)) +
   geom_point() +
   geom_smooth(method = "loess", se = FALSE) +
   theme(legend.position="bottom")
@@ -2381,33 +2465,31 @@ visreg(M2)
 
 ##### calculate slopes and p values of temporal trends also for stsp and conspecific and temp:####
 
-# TO RE DO: AGRREGATE/ DATASET WITH ONLY STSP AND CONSPECIFIC , NOT REPEATED FOR EACH FISH! 
+# check if I need to remove gear other than k064: no need if I use stsp_with_years and filtered_stsp
+table(stsp$sub.location,stsp$gear_code)
+table(stsp_with_years$sub.location,stsp_with_years$gear_code)
+table(filtered_stsp$sub.location,filtered_stsp$gear_code)
+# I can use the dataset stsp_with_years if I want the slope over the whole period, while filtered_stsp if I 
+# want the to calculate the slope only for those specifc years for which I have time series
+
+### FOR SLOPES OVER THE WHOLE PERIOD (2002-2023): to do
+
+### FOR SLOPES OVER THE YEARS OF EACH TIME SERIE:
 # check model for single site
-my_site_age1 <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == "Asköfjärden_2", ]
-table(my_site_age1$BIASmean,my_site_age1$year)
-# calculate avg stsp per year:
-avg_site_age1<-my_site_age1 %>%
-  group_by(year) %>%
-  summarise(avg_year_BIASmean = mean(BIASmean, na.rm = TRUE))
-
-table(avg_site_age1$avg_year_BIASmean,avg_site_age1$year)
-
-            
-
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Asköfjärden", ]
 M1<-gls(BIASmean ~ year, correlation=corAR1(form=~year),
     na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
 M2<-gls(BIASmean ~ 1, correlation=corAR1(form=~year),
         na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
 # determine significance via LRT test (model comparison)
 anova(M1, M2)
-
-output_comparison<-anova(M1a, M1b)
+output_comparison<-anova(M1, M2)
 output_comparison[2,"p-value"]
-M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
-          na.action=na.omit, control = lmc, method = "REML", data=my_site_age1)
+M3 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
+          na.action=na.omit,control = list(singular.ok = TRUE),method = "REML", data=my_site_age1) 
 summary(M3)
 coef_value<-summary(M3)$coefficients
-coef_value[["fixed"]][["year"]]
+coef_value[["year"]]
 
 # To extract stand error of slope:
 summary(M3)$tTable[2,2] 
@@ -2416,21 +2498,25 @@ summary(M3)$tTable[2,2]
 # extract fitted values for the first and last year of sampling
 F1<-fitted(M3)
 F1
-(234.8402-163.8301)/163.8301*100 # 43% increase from 2005 to 2022  :0
+(3.1472869-0.3086581 )/0.3086581 *100 # 920% increase from 2005 to 2022  :0
 # visual check:
 visreg(M3)
+plot(M3)
 
-# 1)extract LRT test pvalue for all sites*age:
+# to avoid lack of convergence I have to remove NA:
+filtered_stsp_NA<-na.omit(filtered_stsp) 
+
+# 1)extract LRT test pvalue for all sites:
 result_LRT <- vector("list")
-for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
-  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
+for (sub.location in unique(filtered_stsp_NA$sub.location)) {
+  my_site <- filtered_stsp_NA[filtered_stsp_NA$sub.location == sub.location, ]
   M1 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
-            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age) 
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site) 
   M2 <- gls(BIASmean ~ 1, correlation=corAR1(form=~year),
-            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age)
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site)
   anova(M1, M2)
   output_comparison<-anova(M1, M2)
-  result_LRT[[sub.location_age]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
+  result_LRT[[sub.location]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
 }
 
 result_LRT[[1]] #print the first object
@@ -2444,20 +2530,20 @@ library(plyr); library(dplyr)
 LRT_matrix<-ldply(result_LRT, rbind)#best way
 # rename variables in columns:
 library(data.table)
-setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location_age','pvalue_LRT'))
+setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location','pvalue_LRT_stsp'))
 head(LRT_matrix)
 
 # check how many p values are signif
-check<-filter(LRT_matrix,pvalue_LRT<0.05) # 26 out of 52 
+check<-filter(LRT_matrix,pvalue_LRT_stsp<0.05) # 9 out of 11
 
 # 2) extract slope
 result_slope <- vector("list")
-for (sub.location_age in unique(length_age12_stack_time_series_K064$sub.location_age)) {
-  my_site_age <- length_age12_stack_time_series_K064[length_age12_stack_time_series_K064$sub.location_age == sub.location_age, ]
-  M3 <- lme(total_length ~ year+day_of_month, random =~1|year,
-            na.action=na.omit, control = lmc, method = "REML", data=my_site_age)
+for (sub.location in unique(filtered_stsp_NA$sub.location)) {
+  my_site <- filtered_stsp_NA[filtered_stsp_NA$sub.location == sub.location, ]
+  M3 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "REML", data=my_site)
   coef_value<-summary(M3)$coefficients
-  result_slope[[sub.location_age]]<-coef_value[["fixed"]][["year"]]
+  result_slope[[sub.location]]<-coef_value[["year"]]
 }
 
 result_slope[[1]] #print the first object
@@ -2466,7 +2552,7 @@ head(result_slope)
 # convert it into a dataframe:
 Slope_matrix<-ldply(result_slope, rbind) 
 # rename variables in columns:
-setnames(Slope_matrix, old = c('.id','1'), new = c('sub.location_age','slope_year'))
+setnames(Slope_matrix, old = c('.id','1'), new = c('sub.location','slope_year_stsp'))
 head(Slope_matrix)
 # if ERROR, use:
 #Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
@@ -2476,3 +2562,164 @@ head(Slope_matrix)
 #table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
 #head(table_slopes) # halleluja
 
+# sort all as descending by site name:
+detach(package:plyr)
+table_LRT_pvalues<-LRT_matrix %>% arrange(desc(sub.location))
+table_coeff<-Slope_matrix %>% arrange(desc(sub.location))
+head(table_LRT_pvalues)
+head(table_coeff)
+
+# 4. merge slopes, pvalues, SE 
+table_final_stsp<- inner_join(table_LRT_pvalues,table_coeff, by = "sub.location")
+head(table_final_stsp)
+
+
+# add categorical variable for slope with pos/neg/nonsignif levels:
+attach(table_final_stsp)
+table_final_stsp$trend_stsp[pvalue_LRT_stsp > 0.05] <- "No trend stsp"
+table_final_stsp$trend_stsp[pvalue_LRT_stsp < 0.05 & slope_year_stsp < 0] <- "Decline stsp"
+table_final_stsp$trend_stsp[pvalue_LRT_stsp < 0.05 & slope_year_stsp > 0] <- "Increase stsp"
+table_final_stsp$all_trends_stsp[slope_year_stsp < 0] <- "all_declines stsp"
+table_final_stsp$all_trends_stsp[slope_year_stsp > 0] <- "all_increases stsp"
+detach(table_final_stsp)
+
+table(table_final_stsp$trend_stsp)
+table(table_final_stsp$all_trends_stsp)
+
+ggplot(table_final_stsp, aes(x = reorder(sub.location, slope_year_stsp), y = slope_year_stsp)) +
+  geom_bar(stat = "identity", aes(fill = trend_stsp)) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Site", y = "Slope of stsp") +
+  scale_fill_manual(values = c("No trend stsp" = "grey", "Decline stsp" = "red", "Increase stsp" = "blue")) +
+  theme(legend.position = "bottom")
+
+
+### FOR SLOPES OVER THE WHOLE PERIOD (2002-2023): 
+# check model for single site
+my_site_age1 <- stsp_with_years[stsp_with_years$sub.location == "Asköfjärden", ]
+M1<-gls(BIASmean ~ year, correlation=corAR1(form=~year),
+        na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
+M2<-gls(BIASmean ~ 1, correlation=corAR1(form=~year),
+        na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
+# determine significance via LRT test (model comparison)
+anova(M1, M2)
+output_comparison<-anova(M1, M2)
+output_comparison[2,"p-value"]
+M3 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
+          na.action=na.omit,control = list(singular.ok = TRUE),method = "REML", data=my_site_age1) 
+summary(M3)
+coef_value<-summary(M3)$coefficients
+coef_value[["year"]]
+
+# To extract stand error of slope:
+summary(M3)$tTable[2,2] 
+
+# calculate increase rate for specific site
+# extract fitted values for the first and last year of sampling
+F1<-fitted(M3)
+F1
+(2.7808249-0.2481430 )/0.2481430 *100 # 1021% increase from 2002 to 2023  :0
+# visual check:
+visreg(M3)
+plot(M3)
+
+# to avoid lack of convergence I have to remove NA: (no matters if I have NA in first_year, as I won't need those locations)
+stsp_with_years_NA<-na.omit(stsp_with_years) 
+
+# 1)extract LRT test pvalue for all sites:
+result_LRT <- vector("list")
+for (sub.location in unique(stsp_with_years_NA$sub.location)) {
+  my_site <- stsp_with_years_NA[stsp_with_years_NA$sub.location == sub.location, ]
+  M1 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site) 
+  M2 <- gls(BIASmean ~ 1, correlation=corAR1(form=~year),
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site)
+  anova(M1, M2)
+  output_comparison<-anova(M1, M2)
+  result_LRT[[sub.location]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
+}
+
+result_LRT[[1]] #print the first object
+head(result_LRT)
+
+# convert it into a dataframe:
+#head(do.call(rbind, result_LRT))
+library(plyr); library(dplyr)
+#head(rbind.fill(result_LRT))
+#head(rbindlist(result_LRT))
+LRT_matrix<-ldply(result_LRT, rbind)#best way
+# rename variables in columns:
+library(data.table)
+setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location','pvalue_LRT_stsp_whole_period'))
+head(LRT_matrix)
+
+# check how many p values are signif
+check<-filter(LRT_matrix,pvalue_LRT_stsp_whole_period<0.05) # 7 out of 11
+
+# 2) extract slope
+result_slope <- vector("list")
+for (sub.location in unique(stsp_with_years_NA$sub.location)) {
+  my_site <- stsp_with_years_NA[stsp_with_years_NA$sub.location == sub.location, ]
+  M3 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
+            na.action=na.omit,control = list(singular.ok = TRUE),method = "REML", data=my_site)
+  coef_value<-summary(M3)$coefficients
+  result_slope[[sub.location]]<-coef_value[["year"]]
+}
+
+result_slope[[1]] #print the first object
+head(result_slope)
+
+# convert it into a dataframe:
+Slope_matrix<-ldply(result_slope, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix, old = c('.id','1'), new = c('sub.location','slope_year_stsp_whole_period'))
+head(Slope_matrix)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+# sort all as descending by site name:
+detach(package:plyr)
+table_LRT_pvalues<-LRT_matrix %>% arrange(desc(sub.location))
+table_coeff<-Slope_matrix %>% arrange(desc(sub.location))
+head(table_LRT_pvalues)
+head(table_coeff)
+
+# 4. merge slopes, pvalues, SE 
+table_final_stsp_whole_period<- inner_join(table_LRT_pvalues,table_coeff, by = "sub.location")
+head(table_final_stsp_whole_period)
+
+# add categorical variable for slope with pos/neg/nonsignif levels:
+attach(table_final_stsp_whole_period)
+table_final_stsp_whole_period$trend_stsp_whole_period[pvalue_LRT_stsp_whole_period > 0.05] <- "No trend stsp whole period"
+table_final_stsp_whole_period$trend_stsp_whole_period[pvalue_LRT_stsp_whole_period < 0.05 & slope_year_stsp_whole_period < 0] <- "Decline stsp whole period"
+table_final_stsp_whole_period$trend_stsp_whole_period[pvalue_LRT_stsp_whole_period < 0.05 & slope_year_stsp_whole_period > 0] <- "Increase stsp whole period"
+table_final_stsp_whole_period$all_trends_stsp_whole_period[slope_year_stsp_whole_period < 0] <- "all_declines stsp whole period"
+table_final_stsp_whole_period$all_trends_stsp_whole_period[slope_year_stsp_whole_period > 0] <- "all_increases stsp whole period"
+detach(table_final_stsp_whole_period)
+
+table(table_final_stsp_whole_period$trend_stsp_whole_period)
+table(table_final_stsp_whole_period$all_trends_stsp_whole_period)
+
+ggplot(table_final_stsp_whole_period, aes(x = reorder(sub.location, slope_year_stsp_whole_period), y = slope_year_stsp_whole_period)) +
+  geom_bar(stat = "identity", aes(fill = trend_stsp_whole_period)) +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Site", y = "Slope of stsp whole period") +
+  scale_fill_manual(values = c("No trend stsp whole period" = "grey", "Decline stsp whole period" = "red", "Increase stsp whole period" = "blue")) +
+  theme(legend.position = "bottom")
+
+# merge
+table_final6<- left_join(table_final5,table_final_stsp, by = "sub.location")
+table_final7<- left_join(table_final6,table_final_stsp_whole_period, by = "sub.location")
+
+# subset with only significant trends:
+table_final7_signif<-table_final7 %>%
+  filter(pvalue_LRT < 0.05)
+
+colnames(table_final7)
