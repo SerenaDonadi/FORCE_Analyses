@@ -2042,40 +2042,6 @@ range_years_subset10<-range_years %>%
 # models would not run due to only one level in the factor gear. Hence I excluded gear others than K064
 
 
-# old script below...revise and delete once fixed
-#####
-  
-length_age12_stack_Nyears<-length_age12_stack %>%
-  group_by(sub.location,gear_code) %>%
-  mutate(unique_years_sublocat = n_distinct(year),
-         unique_years_sublocat_gear = n_distinct(year)) %>%
-  ungroup()  
-
-table(length_age12_stack$sub.location,length_age12_stack$gear_code)
-
-# how many sublocation have unique years >9? 13
-length_age12_stack_Nyears %>%
-  filter(unique_years_sublocat_gear > 9) %>%
-  select(sub.location,gear_code, unique_years_sublocat_gear) %>%
-  unique()
-
-# add n of sampled years per location
-length_age12_stack_Nyears2<-length_age12_stack_Nyears %>%
-  group_by(location) %>%
-  mutate(unique_years_locat_gear = n_distinct(year)) %>%
-  ungroup()
-
-table(length_age12_stack_Nyears2$unique_years_locat_gear)
-
-# how many location have unique years >9? 13
-length_age12_stack_Nyears2 %>%
-  filter(unique_years_locat_gear > 9) %>%
-  select(location, unique_years_locat_gear) %>%
-  unique()
-
-# It doesn't matter if I choose location or sublocation, they are both 13.
-#####
-
 # subset of length dataset with sublocation*gear with at least 10 and 7 years of data
 # select a subset with gear k064, and whose sublocation match those in the range_years_subset10:
 length_age12_stack_time_series7<-length_age12_stack %>%
@@ -2093,6 +2059,14 @@ length_age12_stack_time_series10$sub.location_age<-paste(length_age12_stack_time
 length_age12_stack_time_series7$sub.location_age<-paste(length_age12_stack_time_series7$sub.location, 
                                                          length_age12_stack_time_series7$age, sep = "_")
 table(length_age12_stack_time_series10$sub.location_age)
+
+# plot times series of stsp for each sublocation*age
+ggplot(length_age12_stack_time_series7, aes(x = year, y = total_length, colour = age)) +
+  geom_point(size=2)+ 
+  facet_wrap(~sub.location)+
+  geom_smooth(aes(group = age), method = "loess")
+  theme_bw(base_size=15)
+
 
 ##### calculate slopes, SE and p values for length at age for each site ##########
 
