@@ -158,9 +158,7 @@ table(length_age6$aging_method) # 5 levels
 # YH suggests to exclude samples were no method is reported:
 length_age7 = subset(length_age6, !(aging_method == ""))
 
-#####
-# check frozen samples: revise after Noora answers - skip
-#####
+##### check frozen samples - skip #####
 # some is unclear whether freezing occurred after length measures
 length_age3 %>% 
   filter(comments == "fryst") #ca 538 obs. Asköfjärden 2005, Norrbyn 2004 and 2006
@@ -226,8 +224,7 @@ length_age10<-length_age9 %>%
 # set the format for date: may not be right, I saw a mismatch between "year" and "catch date" after transformation of the layout
 # length_age10$catch_date<-as.Date(length_age10$catch_date, "%d/%m/%y")
 
-# extract datasets for Ingrid and for Agnes
-#####
+##### extract datasets for Ingrid and for Agnes ####
 # extrcat only date*location (lat and long) and export for Ingrid to extract temperature data from loggers
 length_age10_to_Ingrid<-length_age10 %>%
   select(c(year,catch_date ,location,long, lat,sub.location)) 
@@ -258,11 +255,7 @@ write.xlsx(length_age10, file="G:/My Drive/FORCE/Output/length_age10.xlsx",
            sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
 
-#####
-# merge now as soon as I get the data from Ingrid, before next steps - WAITING TO KNOW WHAT TO DO WITH TEMP DATA    
-
-# check differences in F vs M:
-#####
+##### check differences in F vs M####
 ggplot(length_age5, aes(x = age , y = total_length)) +
   geom_point()+
   facet_wrap(~sex)+
@@ -447,6 +440,15 @@ length_age12 %>%
   unique()
 
 # assign covariates specifically to each fish based on its size and age:
+# create subsets for each age class, work out the covariates, and then stack them:
+length_age12_age2<-length_age12 %>% 
+  filter(age == 2)
+length_age12_age3<-length_age12 %>% 
+  filter(age == 3)
+length_age12_age4<-length_age12 %>% 
+  filter(age == 4)
+length_age12_age5<-length_age12 %>% 
+  filter(age == 5)
 
 # copy all integrated measurements (avg) of CPUE of spp and conspecifics over the whole life span of that age class:
 # age 2
@@ -523,16 +525,7 @@ length_age12_stack<-rbind(length_age12_age2_less25, length_age12_age2_25andabove
                           length_age12_age4_less25, length_age12_age4_25andabove,
                           length_age12_age5_less25, length_age12_age5_25andabove)
 
-length_age12_age2<-length_age12 %>% 
-  filter(age == 2)
-length_age12_age3<-length_age12 %>% 
-  filter(age == 3)
-length_age12_age4<-length_age12 %>% 
-  filter(age == 4)
-length_age12_age5<-length_age12 %>% 
-  filter(age == 5)
-length_age12_age2to4<-length_age12 %>% 
-  filter(age < 5 & age >1)
+
 
 unique(sort(length_age12$location))
 table(length_age12$location, length_age12$year)
