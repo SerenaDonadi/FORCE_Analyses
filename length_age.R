@@ -270,7 +270,7 @@ ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5,main = "total_length") 
 
 #####
-# merge with gillnets data with temp and CPUE of spp
+# merge with stsp, distance from offshore, temp (from satellite) and CPUE of spp (from gillnet data)
 # are there any locations in the length dataset that are not in the gillnets dataset? Mönsterås - 1 location will have no CPUE and population data 
 #####
 unique(length_age10$location) # 28
@@ -352,7 +352,7 @@ stsp_lag<-stsp %>%
   arrange(location,sub.location,gear_code,year) 
 head(stsp_lag)
 
-stsp_lag <- stsp %>%
+stsp_lag <- stsp_lag %>%
   group_by(location, sub.location,gear_code) %>%
   mutate(BIASmean_1YearBefore = dplyr::lag(BIASmean, n = 1, default = NA)) %>%
   mutate(BIASmean_2YearBefore = dplyr::lag(BIASmean, n = 2, default = NA)) %>%
@@ -418,8 +418,255 @@ dist_offshore$gear <- NULL
 # merge with dist from offshore data:
 length_age10b<-left_join(length_age10a, dist_offshore, by = c("location","sub.location","gear_code")) 
 
+
+# merge with satellite temp data:
+# calculate lag and cumulative estimates for temp
+# sort, if needed, by consecutive years per location
+temp_satellite_all_lag<-temp_satellite_all %>% 
+  arrange(location,sub.location,gear_code,year) 
+head(temp_satellite_all_lag)
+
+temp_satellite_all_lag <- temp_satellite_all_lag %>%
+  group_by(location, sub.location,gear_code) %>%
+  mutate(avg_temp_year_1YearBefore = dplyr::lag(avg_temp_year, n = 1, default = NA)) %>%
+  mutate(avg_temp_year_2YearBefore = dplyr::lag(avg_temp_year, n = 2, default = NA)) %>%
+  mutate(avg_temp_year_3YearBefore = dplyr::lag(avg_temp_year, n = 3, default = NA)) %>%
+  mutate(avg_temp_year_4YearBefore = dplyr::lag(avg_temp_year, n = 4, default = NA)) %>%
+  mutate(avg_temp_year_5YearBefore = dplyr::lag(avg_temp_year, n = 5, default = NA)) %>%
+  
+  mutate(dd_year_1YearBefore = dplyr::lag(dd_year, n = 1, default = NA)) %>%
+  mutate(dd_year_2YearBefore = dplyr::lag(dd_year, n = 2, default = NA)) %>%
+  mutate(dd_year_3YearBefore = dplyr::lag(dd_year, n = 3, default = NA)) %>%
+  mutate(dd_year_4YearBefore = dplyr::lag(dd_year, n = 4, default = NA)) %>%
+  mutate(dd_year_5YearBefore = dplyr::lag(dd_year, n = 5, default = NA)) %>%
+  
+  mutate(avg_temp_summer_1YearBefore = dplyr::lag(avg_temp_summer, n = 1, default = NA)) %>%
+  mutate(avg_temp_summer_2YearBefore = dplyr::lag(avg_temp_summer, n = 2, default = NA)) %>%
+  mutate(avg_temp_summer_3YearBefore = dplyr::lag(avg_temp_summer, n = 3, default = NA)) %>%
+  mutate(avg_temp_summer_4YearBefore = dplyr::lag(avg_temp_summer, n = 4, default = NA)) %>%
+  mutate(avg_temp_summer_5YearBefore = dplyr::lag(avg_temp_summer, n = 5, default = NA)) %>%
+  
+  mutate(avg_temp_winter_1YearBefore = dplyr::lag(avg_temp_winter, n = 1, default = NA)) %>%
+  mutate(avg_temp_winter_2YearBefore = dplyr::lag(avg_temp_winter, n = 2, default = NA)) %>%
+  mutate(avg_temp_winter_3YearBefore = dplyr::lag(avg_temp_winter, n = 3, default = NA)) %>%
+  mutate(avg_temp_winter_4YearBefore = dplyr::lag(avg_temp_winter, n = 4, default = NA)) %>%
+  mutate(avg_temp_winter_5YearBefore = dplyr::lag(avg_temp_winter, n = 5, default = NA)) %>%
+  
+  mutate(avg_temp_exceeding_10_year_1YearBefore = dplyr::lag(avg_temp_exceeding_10_year, n = 1, default = NA)) %>%
+  mutate(avg_temp_exceeding_10_year_2YearBefore = dplyr::lag(avg_temp_exceeding_10_year, n = 2, default = NA)) %>%
+  mutate(avg_temp_exceeding_10_year_3YearBefore = dplyr::lag(avg_temp_exceeding_10_year, n = 3, default = NA)) %>%
+  mutate(avg_temp_exceeding_10_year_4YearBefore = dplyr::lag(avg_temp_exceeding_10_year, n = 4, default = NA)) %>%
+  mutate(avg_temp_exceeding_10_year_5YearBefore = dplyr::lag(avg_temp_exceeding_10_year, n = 5, default = NA)) %>%
+
+  mutate(n_days_exceeding_10_year_1YearBefore = dplyr::lag(n_days_exceeding_10_year, n = 1, default = NA)) %>%
+  mutate(n_days_exceeding_10_year_2YearBefore = dplyr::lag(n_days_exceeding_10_year, n = 2, default = NA)) %>%
+  mutate(n_days_exceeding_10_year_3YearBefore = dplyr::lag(n_days_exceeding_10_year, n = 3, default = NA)) %>%
+  mutate(n_days_exceeding_10_year_4YearBefore = dplyr::lag(n_days_exceeding_10_year, n = 4, default = NA)) %>%
+  mutate(n_days_exceeding_10_year_5YearBefore = dplyr::lag(n_days_exceeding_10_year, n = 5, default = NA)) %>%
+
+  mutate(first_day_exceeding_10_julian_1YearBefore = dplyr::lag(first_day_exceeding_10_julian, n = 1, default = NA)) %>%
+  mutate(first_day_exceeding_10_julian_2YearBefore = dplyr::lag(first_day_exceeding_10_julian, n = 2, default = NA)) %>%
+  mutate(first_day_exceeding_10_julian_3YearBefore = dplyr::lag(first_day_exceeding_10_julian, n = 3, default = NA)) %>%
+  mutate(first_day_exceeding_10_julian_4YearBefore = dplyr::lag(first_day_exceeding_10_julian, n = 4, default = NA)) %>%
+  mutate(first_day_exceeding_10_julian_5YearBefore = dplyr::lag(first_day_exceeding_10_julian, n = 5, default = NA))
+
+    
+temp_satellite_all_lag$temp_year_avg_since_1YearBefore<-(temp_satellite_all_lag$avg_temp_jan_jul+
+                                                          temp_satellite_all_lag$avg_temp_year_1YearBefore)/2
+temp_satellite_all_lag$temp_year_avg_since_2YearBefore<-(temp_satellite_all_lag$avg_temp_jan_jul+
+                                                      temp_satellite_all_lag$avg_temp_year_1YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_2YearBefore)/3
+temp_satellite_all_lag$temp_year_avg_since_3YearBefore<-(temp_satellite_all_lag$avg_temp_jan_jul+
+                                                      temp_satellite_all_lag$avg_temp_year_1YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_2YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_3YearBefore)/4
+temp_satellite_all_lag$temp_year_avg_since_4YearBefore<-(temp_satellite_all_lag$avg_temp_jan_jul+
+                                                      temp_satellite_all_lag$avg_temp_year_1YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_2YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_3YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_4YearBefore)/5
+temp_satellite_all_lag$temp_year_avg_since_5YearBefore<-(temp_satellite_all_lag$avg_temp_jan_jul+
+                                                      temp_satellite_all_lag$avg_temp_year_1YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_2YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_3YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_4YearBefore+
+                                                      temp_satellite_all_lag$avg_temp_year_5YearBefore)/6
+
+temp_satellite_all_lag$temp_summer_avg_since_1YearBefore<-(temp_satellite_all_lag$avg_temp_april_jul+
+                                                           temp_satellite_all_lag$avg_temp_summer_1YearBefore)/2
+temp_satellite_all_lag$temp_summer_avg_since_2YearBefore<-(temp_satellite_all_lag$avg_temp_april_jul+
+                                                           temp_satellite_all_lag$avg_temp_summer_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_2YearBefore)/3
+temp_satellite_all_lag$temp_summer_avg_since_3YearBefore<-(temp_satellite_all_lag$avg_temp_april_jul+
+                                                           temp_satellite_all_lag$avg_temp_summer_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_2YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_3YearBefore)/4
+temp_satellite_all_lag$temp_summer_avg_since_4YearBefore<-(temp_satellite_all_lag$avg_temp_april_jul+
+                                                           temp_satellite_all_lag$avg_temp_summer_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_2YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_3YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_4YearBefore)/5
+temp_satellite_all_lag$temp_summer_avg_since_5YearBefore<-(temp_satellite_all_lag$avg_temp_april_jul+
+                                                           temp_satellite_all_lag$avg_temp_summer_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_2YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_3YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_4YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_summer_5YearBefore)/6
+
+temp_satellite_all_lag$temp_winter_avg_since_1YearBefore<-(temp_satellite_all_lag$avg_temp_jan_mar+
+                                                             temp_satellite_all_lag$avg_temp_winter_1YearBefore)/2
+temp_satellite_all_lag$temp_winter_avg_since_2YearBefore<-(temp_satellite_all_lag$avg_temp_jan_mar+
+                                                             temp_satellite_all_lag$avg_temp_winter_1YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_2YearBefore)/3
+temp_satellite_all_lag$temp_winter_avg_since_3YearBefore<-(temp_satellite_all_lag$avg_temp_jan_mar+
+                                                             temp_satellite_all_lag$avg_temp_winter_1YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_2YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_3YearBefore)/4
+temp_satellite_all_lag$temp_winter_avg_since_4YearBefore<-(temp_satellite_all_lag$avg_temp_jan_mar+
+                                                             temp_satellite_all_lag$avg_temp_winter_1YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_2YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_3YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_4YearBefore)/5
+temp_satellite_all_lag$temp_winter_avg_since_5YearBefore<-(temp_satellite_all_lag$avg_temp_jan_mar+
+                                                             temp_satellite_all_lag$avg_temp_winter_1YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_2YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_3YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_4YearBefore+
+                                                             temp_satellite_all_lag$avg_temp_winter_5YearBefore)/6
+
+temp_satellite_all_lag$temp_exceeding_10_year_avg_since_1YearBefore<-(temp_satellite_all_lag$avg_temp_exceeding_10_jan_jul+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_1YearBefore)/2
+temp_satellite_all_lag$temp_exceeding_10_year_avg_since_2YearBefore<-(temp_satellite_all_lag$avg_temp_exceeding_10_jan_jul+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_2YearBefore)/3
+temp_satellite_all_lag$temp_exceeding_10_year_avg_since_3YearBefore<-(temp_satellite_all_lag$avg_temp_exceeding_10_jan_jul+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_2YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_3YearBefore)/4
+temp_satellite_all_lag$temp_exceeding_10_year_avg_since_4YearBefore<-(temp_satellite_all_lag$avg_temp_exceeding_10_jan_jul+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_2YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_3YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_4YearBefore)/5
+temp_satellite_all_lag$temp_exceeding_10_year_avg_since_5YearBefore<-(temp_satellite_all_lag$avg_temp_exceeding_10_jan_jul+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_1YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_2YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_3YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_4YearBefore+
+                                                           temp_satellite_all_lag$avg_temp_exceeding_10_year_5YearBefore)/6
+
+temp_satellite_all_lag$dd_year_sum_since_1YearBefore<-temp_satellite_all_lag$dd_jan_jul+
+                                                           temp_satellite_all_lag$dd_year_1YearBefore
+temp_satellite_all_lag$dd_year_sum_since_2YearBefore<-temp_satellite_all_lag$dd_jan_jul+
+                                                           temp_satellite_all_lag$dd_year_1YearBefore+
+                                                           temp_satellite_all_lag$dd_year_2YearBefore
+temp_satellite_all_lag$dd_year_sum_since_3YearBefore<-temp_satellite_all_lag$dd_jan_jul+
+                                                           temp_satellite_all_lag$dd_year_1YearBefore+
+                                                           temp_satellite_all_lag$dd_year_2YearBefore+
+                                                           temp_satellite_all_lag$dd_year_3YearBefore
+temp_satellite_all_lag$dd_year_sum_since_4YearBefore<-temp_satellite_all_lag$dd_jan_jul+
+                                                           temp_satellite_all_lag$dd_year_1YearBefore+
+                                                           temp_satellite_all_lag$dd_year_2YearBefore+
+                                                           temp_satellite_all_lag$dd_year_3YearBefore+
+                                                           temp_satellite_all_lag$dd_year_4YearBefore
+temp_satellite_all_lag$dd_year_sum_since_5YearBefore<-temp_satellite_all_lag$dd_jan_jul+
+                                                           temp_satellite_all_lag$dd_year_1YearBefore+
+                                                           temp_satellite_all_lag$dd_year_2YearBefore+
+                                                           temp_satellite_all_lag$dd_year_3YearBefore+
+                                                           temp_satellite_all_lag$dd_year_4YearBefore+
+                                                           temp_satellite_all_lag$dd_year_5YearBefore
+
+temp_satellite_all_lag$dd_year_avg_since_1YearBefore<-(temp_satellite_all_lag$dd_jan_jul+
+                                                         temp_satellite_all_lag$dd_year_1YearBefore)/2
+temp_satellite_all_lag$dd_year_avg_since_2YearBefore<-(temp_satellite_all_lag$dd_jan_jul+
+                                                         temp_satellite_all_lag$dd_year_1YearBefore+
+                                                         temp_satellite_all_lag$dd_year_2YearBefore)/3
+temp_satellite_all_lag$dd_year_avg_since_3YearBefore<-(temp_satellite_all_lag$dd_jan_jul+
+                                                         temp_satellite_all_lag$dd_year_1YearBefore+
+                                                         temp_satellite_all_lag$dd_year_2YearBefore+
+                                                         temp_satellite_all_lag$dd_year_3YearBefore)/4
+temp_satellite_all_lag$dd_year_avg_since_4YearBefore<-(temp_satellite_all_lag$dd_jan_jul+
+                                                         temp_satellite_all_lag$dd_year_1YearBefore+
+                                                         temp_satellite_all_lag$dd_year_2YearBefore+
+                                                         temp_satellite_all_lag$dd_year_3YearBefore+
+                                                         temp_satellite_all_lag$dd_year_4YearBefore)/5
+temp_satellite_all_lag$dd_year_avg_since_5YearBefore<-(temp_satellite_all_lag$dd_jan_jul+
+                                                         temp_satellite_all_lag$dd_year_1YearBefore+
+                                                         temp_satellite_all_lag$dd_year_2YearBefore+
+                                                         temp_satellite_all_lag$dd_year_3YearBefore+
+                                                         temp_satellite_all_lag$dd_year_4YearBefore+
+                                                         temp_satellite_all_lag$dd_year_5YearBefore)/6
+
+temp_satellite_all_lag$n_days_exceeding_10_year_avg_since_1YearBefore<-(temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore)/2
+temp_satellite_all_lag$n_days_exceeding_10_year_avg_since_2YearBefore<-(temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore)/3
+temp_satellite_all_lag$n_days_exceeding_10_year_avg_since_3YearBefore<-(temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_3YearBefore)/4
+temp_satellite_all_lag$n_days_exceeding_10_year_avg_since_4YearBefore<-(temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_3YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_4YearBefore)/5
+temp_satellite_all_lag$n_days_exceeding_10_year_avg_since_5YearBefore<-(temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_3YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_4YearBefore+
+                                                                        temp_satellite_all_lag$n_days_exceeding_10_year_5YearBefore)/6
+
+temp_satellite_all_lag$n_days_exceeding_10_year_sum_since_1YearBefore<-temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore
+temp_satellite_all_lag$n_days_exceeding_10_year_sum_since_2YearBefore<-temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore
+temp_satellite_all_lag$n_days_exceeding_10_year_sum_since_3YearBefore<-temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_3YearBefore
+temp_satellite_all_lag$n_days_exceeding_10_year_sum_since_4YearBefore<-temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_3YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_4YearBefore
+temp_satellite_all_lag$n_days_exceeding_10_year_sum_since_5YearBefore<-temp_satellite_all_lag$n_days_exceeding_10_jan_jul+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_1YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_2YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_3YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_4YearBefore+
+                                                                          temp_satellite_all_lag$n_days_exceeding_10_year_5YearBefore
+
+temp_satellite_all_lag$first_day_exceeding_10_julian_avg_since_1YearBefore<-(temp_satellite_all_lag$first_day_exceeding_10_julian+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_1YearBefore)/2
+temp_satellite_all_lag$first_day_exceeding_10_julian_avg_since_2YearBefore<-(temp_satellite_all_lag$first_day_exceeding_10_julian+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_1YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_2YearBefore)/3
+temp_satellite_all_lag$first_day_exceeding_10_julian_avg_since_3YearBefore<-(temp_satellite_all_lag$first_day_exceeding_10_julian+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_1YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_2YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_3YearBefore)/4
+temp_satellite_all_lag$first_day_exceeding_10_julian_avg_since_4YearBefore<-(temp_satellite_all_lag$first_day_exceeding_10_julian+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_1YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_2YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_3YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_4YearBefore)/5
+temp_satellite_all_lag$first_day_exceeding_10_julian_avg_since_5YearBefore<-(temp_satellite_all_lag$first_day_exceeding_10_julian+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_1YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_2YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_3YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_4YearBefore+
+                                                                          temp_satellite_all_lag$first_day_exceeding_10_julian_5YearBefore)/6
+
+
+# merge with temp data:  merge and keep all records in left dataset, and only matching record in right dataset
+length_age10c<-left_join(length_age10b, temp_satellite_all_lag, by = c("year","location","sub.location","gear_code")) 
+
+
 # merge with gillnets data:   group by sublocation!
-length_age11<-left_join(length_age10b, gillnets_pool_lag, by = c("year","location", "sub.location")) 
+length_age11<-left_join(length_age10c, gillnets_pool_lag, by = c("year","location", "sub.location")) 
 head(length_age11)
 
 # remove unnecessary columns:
@@ -430,8 +677,8 @@ length_age12<-length_age11 %>%
 summary(length_age12)
 
 # convert negative values of dist from offshore to zeros:
-length_age12$distance[length_age12$distance < 0] <- 0
 hist(length_age12$distance)
+length_age12$distance[length_age12$distance < 0] <- 0
 # check dist from offshore for Gotland: ok
 unique(length_age12$sub.location)
 length_age12 %>%
@@ -457,6 +704,17 @@ length_age12_age2$cyprinids_avg_lifespan<-length_age12_age2$cyprinids_avg_since_
 length_age12_age2$totCPUE_Mört_avg_lifespan<-length_age12_age2$totCPUE_Mört_avg_since_2YearBefore
 length_age12_age2$all_prey_avg_lifespan<-length_age12_age2$all_prey_avg_since_2YearBefore
 length_age12_age2$totCPUE_Abborre_avg_lifespan<-length_age12_age2$totCPUE_Abborre_avg_since_2YearBefore
+
+length_age12_age2$temp_year_avg_lifespan<-length_age12_age2$temp_year_avg_since_2YearBefore
+length_age12_age2$temp_summer_avg_lifespan<-length_age12_age2$temp_summer_avg_since_2YearBefore
+length_age12_age2$temp_winter_avg_lifespan<-length_age12_age2$temp_winter_avg_since_2YearBefore
+length_age12_age2$temp_exceeding_10_year_avg_lifespan<-length_age12_age2$temp_exceeding_10_year_avg_since_2YearBefore
+length_age12_age2$dd_year_sum_lifespan<-length_age12_age2$dd_year_sum_since_2YearBefore
+length_age12_age2$dd_year_avg_lifespan<-length_age12_age2$dd_year_avg_since_2YearBefore
+length_age12_age2$n_days_exceeding_10_year_avg_lifespan<-length_age12_age2$n_days_exceeding_10_year_avg_since_2YearBefore
+length_age12_age2$n_days_exceeding_10_year_sum_lifespan<-length_age12_age2$n_days_exceeding_10_year_sum_since_2YearBefore
+length_age12_age2$first_day_exceeding_10_julian_avg_lifespan<-length_age12_age2$first_day_exceeding_10_julian_avg_since_2YearBefore
+
 # to match each fish with conspecific of the same length, split the dataset:
 length_age12_age2_less25<-length_age12_age2 %>%
   filter(total_length < 250)
@@ -474,6 +732,17 @@ length_age12_age3$cyprinids_avg_lifespan<-length_age12_age3$cyprinids_avg_since_
 length_age12_age3$totCPUE_Mört_avg_lifespan<-length_age12_age3$totCPUE_Mört_avg_since_3YearBefore
 length_age12_age3$all_prey_avg_lifespan<-length_age12_age3$all_prey_avg_since_3YearBefore
 length_age12_age3$totCPUE_Abborre_avg_lifespan<-length_age12_age3$totCPUE_Abborre_avg_since_3YearBefore
+
+length_age12_age3$temp_year_avg_lifespan<-length_age12_age3$temp_year_avg_since_3YearBefore
+length_age12_age3$temp_summer_avg_lifespan<-length_age12_age3$temp_summer_avg_since_3YearBefore
+length_age12_age3$temp_winter_avg_lifespan<-length_age12_age3$temp_winter_avg_since_3YearBefore
+length_age12_age3$temp_exceeding_10_year_avg_lifespan<-length_age12_age3$temp_exceeding_10_year_avg_since_3YearBefore
+length_age12_age3$dd_year_sum_lifespan<-length_age12_age3$dd_year_sum_since_3YearBefore
+length_age12_age3$dd_year_avg_lifespan<-length_age12_age3$dd_year_avg_since_3YearBefore
+length_age12_age3$n_days_exceeding_10_year_avg_lifespan<-length_age12_age3$n_days_exceeding_10_year_avg_since_3YearBefore
+length_age12_age3$n_days_exceeding_10_year_sum_lifespan<-length_age12_age3$n_days_exceeding_10_year_sum_since_3YearBefore
+length_age12_age3$first_day_exceeding_10_julian_avg_lifespan<-length_age12_age3$first_day_exceeding_10_julian_avg_since_3YearBefore
+
 # to match each fish with conspecific of the same length, split the dataset:
 length_age12_age3_less25<-length_age12_age3 %>%
   filter(total_length < 250)
@@ -491,6 +760,17 @@ length_age12_age4$cyprinids_avg_lifespan<-length_age12_age4$cyprinids_avg_since_
 length_age12_age4$totCPUE_Mört_avg_lifespan<-length_age12_age4$totCPUE_Mört_avg_since_4YearBefore
 length_age12_age4$all_prey_avg_lifespan<-length_age12_age4$all_prey_avg_since_4YearBefore
 length_age12_age4$totCPUE_Abborre_avg_lifespan<-length_age12_age4$totCPUE_Abborre_avg_since_4YearBefore
+
+length_age12_age4$temp_year_avg_lifespan<-length_age12_age4$temp_year_avg_since_4YearBefore
+length_age12_age4$temp_summer_avg_lifespan<-length_age12_age4$temp_summer_avg_since_4YearBefore
+length_age12_age4$temp_winter_avg_lifespan<-length_age12_age4$temp_winter_avg_since_4YearBefore
+length_age12_age4$temp_exceeding_10_year_avg_lifespan<-length_age12_age4$temp_exceeding_10_year_avg_since_4YearBefore
+length_age12_age4$dd_year_sum_lifespan<-length_age12_age4$dd_year_sum_since_4YearBefore
+length_age12_age4$dd_year_avg_lifespan<-length_age12_age4$dd_year_avg_since_4YearBefore
+length_age12_age4$n_days_exceeding_10_year_avg_lifespan<-length_age12_age4$n_days_exceeding_10_year_avg_since_4YearBefore
+length_age12_age4$n_days_exceeding_10_year_sum_lifespan<-length_age12_age4$n_days_exceeding_10_year_sum_since_4YearBefore
+length_age12_age4$first_day_exceeding_10_julian_avg_lifespan<-length_age12_age4$first_day_exceeding_10_julian_avg_since_4YearBefore
+
 # to match each fish with conspecific of the same length, split the dataset:
 length_age12_age4_less25<-length_age12_age4 %>%
   filter(total_length < 250)
@@ -508,6 +788,17 @@ length_age12_age5$cyprinids_avg_lifespan<-length_age12_age5$cyprinids_avg_since_
 length_age12_age5$totCPUE_Mört_avg_lifespan<-length_age12_age5$totCPUE_Mört_avg_since_5YearBefore
 length_age12_age5$all_prey_avg_lifespan<-length_age12_age5$all_prey_avg_since_5YearBefore
 length_age12_age5$totCPUE_Abborre_avg_lifespan<-length_age12_age5$totCPUE_Abborre_avg_since_5YearBefore
+
+length_age12_age5$temp_year_avg_lifespan<-length_age12_age5$temp_year_avg_since_5YearBefore
+length_age12_age5$temp_summer_avg_lifespan<-length_age12_age5$temp_summer_avg_since_5YearBefore
+length_age12_age5$temp_winter_avg_lifespan<-length_age12_age5$temp_winter_avg_since_5YearBefore
+length_age12_age5$temp_exceeding_10_year_avg_lifespan<-length_age12_age5$temp_exceeding_10_year_avg_since_5YearBefore
+length_age12_age5$dd_year_sum_lifespan<-length_age12_age5$dd_year_sum_since_5YearBefore
+length_age12_age5$dd_year_avg_lifespan<-length_age12_age5$dd_year_avg_since_5YearBefore
+length_age12_age5$n_days_exceeding_10_year_avg_lifespan<-length_age12_age5$n_days_exceeding_10_year_avg_since_5YearBefore
+length_age12_age5$n_days_exceeding_10_year_sum_lifespan<-length_age12_age5$n_days_exceeding_10_year_sum_since_5YearBefore
+length_age12_age5$first_day_exceeding_10_julian_avg_lifespan<-length_age12_age5$first_day_exceeding_10_julian_avg_since_5YearBefore
+
 # to match each fish with conspecific of the same length, split the dataset:
 length_age12_age5_less25<-length_age12_age5 %>%
   filter(total_length < 250)
