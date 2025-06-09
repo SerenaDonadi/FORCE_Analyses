@@ -821,17 +821,40 @@ length_age12_stack<-rbind(length_age12_age2_less25, length_age12_age2_25andabove
 unique(sort(length_age12$location))
 table(length_age12$location, length_age12$year)
 
-# plot avg temp per year and sub.location
+#####
+# exploration plots
+#####
+
+# temp variables vs length split by age
+ggplot(length_age12_stack, aes(x = first_day_exceeding_10_julian_avg_lifespan , y = total_length)) +
+  geom_point()+
+  facet_wrap(~age)+
+  geom_smooth(method ="lm")+ 
+  theme_classic(base_size=13)
+
+# temp variables vs length split by sublocation
+ggplot(length_age12_stack, aes(x = first_day_exceeding_10_julian_avg_lifespan , y = total_length)) +
+  geom_point()+
+  facet_wrap(~sub.location)+
+  geom_smooth(method ="lm")+ 
+  theme_classic(base_size=13)
+
+df <- data.frame(temp_satellite_all[,c("temp_year_avg_lifespan","temp_summer_avg_lifespan",
+                                       "temp_winter_avg_lifespan","temp_exceeding_10_year_avg_lifespan",
+                                       "dd_year_sum_lifespan","dd_year_avg_lifespan",
+                                       "n_days_exceeding_10_year_avg_lifespan", "n_days_exceeding_10_year_sum_lifespan",
+                                       "first_day_exceeding_10_julian_avg_lifespan")])
+# plot pairwise scatterplots of covariates:
+pairs(df)
+
+# plot avg year temp per year and sub.location
 ggplot(length_age12_stack, aes(x = year , y = avg_year_temp)) +
   geom_point()+
   facet_wrap(~sub.location)+
   #geom_smooth()+ 
   theme_classic(base_size=13)
 
-#####
-# exploration plots
-#####
-# length at age vs temp:
+# length at age vs ..:
 ggplot(subset(length_age12, age %in% "2"), aes(x = BIASmean , y = total_length)) +
   geom_point()+
   #facet_wrap(~year)+
@@ -862,7 +885,7 @@ ggplot(length_age12_age2, aes(x = all_prey , y = total_length)) +
   theme_classic(base_size=13)
 
 # length at age vs  lat: but probably collinear with temp
-ggplot(length_age7, aes(x = avg_year_temp , y = lat)) +
+ggplot(length_age12_age2, aes(x = avg_year_temp , y = lat)) +
   geom_point()
 
 # length at age vs year
