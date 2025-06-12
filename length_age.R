@@ -2493,11 +2493,84 @@ rsquared(M9)
 # check if any temp var can coestist: nope
 cor.test(length_age12_stack$dd_year_avg_lifespan, length_age12_stack$first_day_exceeding_10_julian_avg_lifespan)
 
-###### standardized variables: TO DO #####
+### one of the final three best models (now including three way interaction)
+M6a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age*distance +
+          cyprinids_avg_lifespan*age*distance, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M6a, type = "marginal", adjustSigma = F) 
+rsquared(M6a)
+summary(M6a)
+plot(M6a)
+
+ggemmeans(M6a, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
+  plot() 
+ggemmeans(M6a, terms = c("cyprinids_avg_lifespan", "distance", "age")) %>%
+  plot() 
+ggemmeans(M6a, terms = c("dd_year_avg_lifespan", "age")) %>%
+  plot()
+ggemmeans(M6a, terms = c("CPUE_Abbo_samesize_avg_lifespan", "distance", "age")) %>%
+  plot() 
+
+myp<-ggeffect(M6a, terms = c("BIASmean_avg_lifespan", "age","distance"))
+ggplot(myp, aes(x, predicted, colour = group)) +
+  geom_line() +
+  facet_wrap(~facet)
+print(myp, collapse_tables = TRUE)
+
+summary(length_age12_stack$dd_year_avg_lifespan)
+
+# test if extreme warm temp have more (positive) effect on older perch
+M6a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+           dd_year_sum_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age*distance +
+           cyprinids_avg_lifespan*age*distance, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M6a, type = "marginal", adjustSigma = F) 
+rsquared(M6a)
+summary(M6a)
+plot(M6a)
+
+ggemmeans(M6a, terms = c("dd_year_sum_lifespan", "age")) %>%
+  plot()
+
+
+###### exploring relationship between distance and spp:
+# are abbo and cyprinids varying with distance?
+plot(length_age12_stack$distance, length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
+plot(length_age12_stack$distance, length_age12_stack$cyprinids_avg_lifespan)
+
+cor.test(length_age12_stack$distance, length_age12_stack$CPUE_Abbo_samesize_avg_lifespan, method ="spearman")
+cor.test(length_age12_stack$distance, length_age12_stack$cyprinids_avg_lifespan, method ="spearman")
+
+ggplot(length_age12_stack, aes(x = distance, y = CPUE_Abbo_samesize_avg_lifespan)) +
+  geom_point(size=3)+
+  geom_smooth(method = "loess")
+
+plot(length_age12_stack$distance, length_age12_stack$CPUE_Abborre_25andabove)
+
+
+summary(length_age12_stack_f$cyprinids_avg_lifespan)
+
+length_age12_stack$distance_f<-as.factor(length_age12_stack$distance)
+# remove NA from CPUE_Abbo_samesize_avg_lifespan:
+length_age12_stack_f <- length_age12_stack %>%
+  filter(!is.na(CPUE_Abbo_samesize_avg_lifespan))
+
+avg<-tapply(length_age12_stack_f$CPUE_Abborre_25andabove,list(length_age12_stack_f$distance_f),mean)
+sdpl<-tapply(length_age12_stack_f$CPUE_Abborre_25andabove,list(length_age12_stack_f$distance_f),sd)
+l<-tapply(length_age12_stack_f$CPUE_Abborre_25andabove,list(length_age12_stack_f$distance_f),length)
+ci<-sdpl/sqrt(l)
+barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5) 
+
+###### standardized variables: #####
 
 # standardize variables:
 length_age12_stack_std <- length_age12_stack %>%
-  mutate(across(c(BIASmean_avg_lifespan, distance, age, gear_code, CPUE_Abbo_samesize_avg_lifespan, 
+  mutate(across(c(BIASmean_avg_lifespan, distance, age, CPUE_Abbo_samesize_avg_lifespan, 
                   cyprinids_avg_lifespan, day_of_month, dd_year_avg_lifespan), 
                 ~ scale(.) %>% as.vector()))
 
@@ -2545,7 +2618,7 @@ ggemmeans(M6a, terms = c("dd_year_avg_lifespan", "age")) %>%
   plot()
 
 
-# and
+# and 3 three way interactions 
 M6b<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month + 
            dd_year_avg_lifespan*age+
            CPUE_Abbo_samesize_avg_lifespan*age*distance + 
@@ -2566,6 +2639,15 @@ ggemmeans(M6b, terms = c("CPUE_Abbo_samesize_avg_lifespan", "distance", "age")) 
 ggemmeans(M6b, terms = c("dd_year_avg_lifespan", "age")) %>%
   plot()
 
+myp<-ggeffect(M6b, terms = c("BIASmean_avg_lifespan", "age","distance"))
+ggplot(myp, aes(x, predicted, colour = group)) +
+  geom_line() +
+  facet_wrap(~facet)
+print(myp, collapse_tables = TRUE)
+
+
+plot(length_age12_stack_std$distance, length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan)
+plot(length_age12_stack_std$distance, length_age12_stack_std$cyprinids_avg_lifespan)
 
 #####
 # statistical analysis - all ages - GAMM
