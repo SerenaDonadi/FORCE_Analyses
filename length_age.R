@@ -2566,6 +2566,96 @@ l<-tapply(length_age12_stack_f$CPUE_Abborre_25andabove,list(length_age12_stack_f
 ci<-sdpl/sqrt(l)
 barplot2(avg, beside=T,legend=F,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.axis=1.5) 
 
+# model with 1 three way interaction:
+M1<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+
+ggemmeans(M1, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
+  plot() 
+ggemmeans(M1, terms = c("cyprinids_avg_lifespan", "age")) %>%
+  plot() 
+ggemmeans(M1, terms = c("dd_year_avg_lifespan", "age")) %>%
+  plot()
+ggemmeans(M1, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age")) %>%
+  plot() 
+
+myp<-ggeffect(M1, terms = c("BIASmean_avg_lifespan", "age","distance"))
+ggplot(myp, aes(x, predicted, colour = group)) +
+  geom_line() +
+  facet_wrap(~facet)
+print(myp, collapse_tables = TRUE)
+
+# the interaction abbo*age doesn't seem very strong. I f i remove it: higher R2!
+M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M1a, type = "marginal", adjustSigma = F) 
+rsquared(M1a)
+summary(M1a)
+plot(M1a)
+
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
+  plot() 
+
+# use LRT tests to text significance of terms: all signif
+M2<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack)
+M3<-lme(total_length ~ BIASmean_avg_lifespan*distance+ BIASmean_avg_lifespan*age+distance*age
+        +gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack)
+anova(M2,M3)
+
+M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack)
+anova(M2,M4)
+
+
+# checking a 4 way interaction: TO DO, run for the standardized variables
+M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M4, type = "marginal", adjustSigma = F) 
+rsquared(M4)
+summary(M4)
+plot(M4)
+# with LRT
+M4a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
+         CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+       random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+       na.action = na.omit, method = "ML",data=length_age12_stack)
+M4b<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + 
+           BIASmean_avg_lifespan*distance*age +
+           BIASmean_avg_lifespan*distance*dd_year_avg_lifespan+
+           BIASmean_avg_lifespan*age*dd_year_avg_lifespan+
+           distance*age*dd_year_avg_lifespan+
+           gear_code + day_of_month +
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack)
+
+
+
+
+
 ###### standardized variables: #####
 
 # standardize variables:
