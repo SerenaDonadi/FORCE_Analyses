@@ -2603,6 +2603,8 @@ rsquared(M1a)
 summary(M1a)
 plot(M1a)
 
+vif(M1a)
+
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
   plot() 
 
@@ -2626,35 +2628,6 @@ M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_m
         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
         na.action = na.omit, method = "ML",data=length_age12_stack)
 anova(M2,M4)
-
-
-# checking a 4 way interaction: TO DO, run for the standardized variables
-M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
-          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
-        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
-        na.action = na.omit, method = "REML",data=length_age12_stack)
-anova.lme(M4, type = "marginal", adjustSigma = F) 
-rsquared(M4)
-summary(M4)
-plot(M4)
-# with LRT
-M4a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
-         CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
-       random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
-       na.action = na.omit, method = "ML",data=length_age12_stack)
-M4b<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + 
-           BIASmean_avg_lifespan*distance*age +
-           BIASmean_avg_lifespan*distance*dd_year_avg_lifespan+
-           BIASmean_avg_lifespan*age*dd_year_avg_lifespan+
-           distance*age*dd_year_avg_lifespan+
-           gear_code + day_of_month +
-           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
-         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
-         na.action = na.omit, method = "ML",data=length_age12_stack)
-
-
-
-
 
 ###### standardized variables: #####
 
@@ -2688,7 +2661,7 @@ ggemmeans(M6, terms = c("cyprinids_avg_lifespan", "age")) %>%
 ggemmeans(M6, terms = c("BIASmean_avg_lifespan", "distance")) %>%
   plot() 
 
-# testing three way interactions
+# testing 2 three way interactions
 M6a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month + 
           dd_year_avg_lifespan*age+
           CPUE_Abbo_samesize_avg_lifespan*age + 
@@ -2738,6 +2711,113 @@ print(myp, collapse_tables = TRUE)
 
 plot(length_age12_stack_std$distance, length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan)
 plot(length_age12_stack_std$distance, length_age12_stack_std$cyprinids_avg_lifespan)
+
+
+
+##### comparing models using cross-validated RMSE or MAE:
+
+# I am doing this bc, at least for the model with non standardized variables, the R2 seem to increase slightly despite both F and LRT
+# test were significant. May it be a problem of overfitting? Run cross-validation
+
+# Load required libraries
+library(nlme)
+library(rsample)
+library(purrr)
+library(yardstick)
+library(dplyr)
+
+# Set seed for reproducibility
+set.seed(123)
+
+# Remove missing values
+data_std <- data.frame(length_age12_stack_std[,c("sub.location", "location", "year", "total_length", "BIASmean_avg_lifespan",
+                                                 "distance", "age","gear_code","CPUE_Abbo_samesize_avg_lifespan",
+                                                 "cyprinids_avg_lifespan", "day_of_month","dd_year_avg_lifespan")])
+data_std_clean <- na.omit(data_std)
+
+# Create 10-fold cross-validation splits
+folds <- vfold_cv(data_std_clean, v = 10)
+
+# Define model fitting and prediction function
+fit_lme_model <- function(split, formula) {
+  train_data <- analysis(split)
+  test_data <- assessment(split)
+  
+  model <- lme(
+    fixed = formula,
+    random = ~1 | location/sub.location,
+    weights = varIdent(form = ~1 | sub.location),
+    control = lmc,
+    na.action = na.omit,
+    method = "REML",
+    data = train_data
+  )
+  
+  preds <- predict(model, newdata = test_data, allow.new.levels = TRUE)
+  
+  tibble(
+    truth = test_data$total_length,
+    estimate = preds
+  )
+}
+
+# Define formulas
+formula_full <- total_length ~ BIASmean_avg_lifespan * distance * age + gear_code + day_of_month +
+  dd_year_avg_lifespan * age + CPUE_Abbo_samesize_avg_lifespan * age + cyprinids_avg_lifespan * age
+formula_reduced <- total_length ~ BIASmean_avg_lifespan * distance * age + gear_code + day_of_month +
+  dd_year_avg_lifespan * age + CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan * age
+
+# Run cross-validation for full model
+library(tidyr)
+results_full <- folds %>%
+  mutate(metrics = map(splits, ~fit_lme_model(.x, formula_full))) %>%
+  unnest(metrics)
+
+# Run cross-validation for reduced model
+results_reduced <- folds %>%
+  mutate(metrics = map(splits, ~fit_lme_model(.x, formula_reduced))) %>%
+  unnest(metrics)
+
+# Compare RMSE and MAE
+cat("Full Model:\n")
+print(rmse(results_full, truth = truth, estimate = estimate))
+print(mae(results_full, truth = truth, estimate = estimate))
+
+cat("\nReduced Model:\n")
+print(rmse(results_reduced, truth = truth, estimate = estimate))
+print(mae(results_reduced, truth = truth, estimate = estimate))
+
+
+
+###### checking a 4 way interaction: TO DO ######
+M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack)
+anova.lme(M4, type = "marginal", adjustSigma = F) 
+rsquared(M4)
+summary(M4)
+plot(M4)
+# with LRT
+M4a<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack)
+M4b<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + 
+           BIASmean_avg_lifespan*distance*age +
+           BIASmean_avg_lifespan*distance*dd_year_avg_lifespan+
+           BIASmean_avg_lifespan*age*dd_year_avg_lifespan+
+           distance*age*dd_year_avg_lifespan+
+           gear_code + day_of_month +
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack)
+
+
+
+
+
+
 
 #####
 # statistical analysis - all ages - GAMM
