@@ -2764,7 +2764,8 @@ fit_lme_model <- function(split, formula) {
 # Define formulas
 formula_full <- total_length ~ BIASmean_avg_lifespan * distance * age + gear_code + day_of_month +
   dd_year_avg_lifespan * age + CPUE_Abbo_samesize_avg_lifespan * age + cyprinids_avg_lifespan * age
-formula_reduced <- total_length ~ BIASmean_avg_lifespan * distance * age + gear_code + day_of_month +
+formula_reduced <- total_length ~ BIASmean_avg_lifespan * distance + BIASmean_avg_lifespan * age + 
+  distance * age + gear_code + day_of_month +
   dd_year_avg_lifespan * age + CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan * age
 
 # Run cross-validation for full model
@@ -2786,6 +2787,246 @@ print(mae(results_full, truth = truth, estimate = estimate))
 cat("\nReduced Model:\n")
 print(rmse(results_reduced, truth = truth, estimate = estimate))
 print(mae(results_reduced, truth = truth, estimate = estimate))
+
+### similar values. look deeper:
+
+# model with 1 three way interaction
+M1<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
+summary(M1)
+plot(M1)
+
+# model with no three way interaction (but no dist*age)
+M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1a, type = "marginal", adjustSigma = F) 
+rsquared(M1a)
+summary(M1a)
+plot(M1a)
+
+AIC(M1,M1a)
+
+ggemmeans(M1, terms = c("BIASmean_avg_lifespan", "distance", "age")) %>%
+  plot() 
+ggemmeans(M1, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  plot() 
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  plot() 
+ggemmeans(M1, terms = c("BIASmean_avg_lifespan", "age")) %>%
+  plot() 
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
+  plot() 
+
+# Compare predictions directly: Look at the predicted values from both models on the same validation sets.
+# Check model coefficients: Are they different between the full and reduced models?
+# Consider R² or adjusted R² for more insight.
+# Visualize residuals: Plot residuals for both models to see if there's any pattern or difference.
+
+
+# check signif using LRT:
+#####
+M2<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M3<-lme(total_length ~ BIASmean_avg_lifespan*distance+ BIASmean_avg_lifespan*age+distance*age
+        +gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M2,M3)
+
+M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan +
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M2,M4)
+
+M5<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan + 
+          cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M2,M5)
+
+M6<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + 
+          cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M2,M6)
+
+M7<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M2,M7)
+
+M8<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + 
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M2,M8)
+#####
+
+# and the two way interactions?
+M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1a, type = "marginal", adjustSigma = F) 
+rsquared(M1a)
+summary(M1a)
+plot(M1a)
+
+M1b<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+M1c<-lme(total_length ~ BIASmean_avg_lifespan*distance + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+
+M1d<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+M1e<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan+cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+M1f<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age+cyprinids_avg_lifespan,
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+
+rsquared(M1a)
+rsquared(M1b)
+rsquared(M1c)
+rsquared(M1d)
+rsquared(M1e)
+rsquared(M1f)
+
+AIC(M1,M1a,M1b,M1c,M1d,M1e,M1f)
+
+plot(M1a)
+plot(M1b)
+plot(M1c)
+plot(M1d)
+plot(M1e)
+plot(M1f)
+
+# if I remove distance
+M1g<-lme(total_length ~ BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1g)
+
+# if I remove stsp
+M1h<-lme(total_length ~ distance+ gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+
+# if I remove temp
+M1i<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+
+# if I remove abbo
+M1l<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+# if I remove cypr
+M1m<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+# if I remove gear code
+M1n<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+# if I remove  day
+M1o<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + 
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+
+rsquared(M1b)
+rsquared(M1g)
+rsquared(M1h)
+rsquared(M1i)
+rsquared(M1l)
+rsquared(M1m)
+rsquared(M1n)
+rsquared(M1o)
+
+# check outliers:
+dotchart(length_age12_stack_std$BIASmean_avg_lifespan) # ok
+dotchart(length_age12_stack_std$distance)
+dotchart(length_age12_stack_std$dd_year_avg_lifespan)
+dotchart(length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan)
+dotchart(length_age12_stack_std$cyprinids_avg_lifespan)
+dotchart(length_age12_stack_std$distance)
+
+
+# remove outliers, i.e. all values above 3 for the predictors: 400 obs less
+length_age12_stack_std_outliers <- length_age12_stack_std %>%
+  filter(BIASmean_avg_lifespan < 3, distance < 3, dd_year_avg_lifespan < 3,
+         CPUE_Abbo_samesize_avg_lifespan < 3, cyprinids_avg_lifespan < 3)
+
+M1_out<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack_std_outliers)
+anova.lme(M1_out, type = "marginal", adjustSigma = F) 
+rsquared(M1_out)
+summary(M1_out)
+plot(M1_out)
+
+# after looking at all R2, model that could be the most conservative:
+M<-lme(total_length ~ distance+BIASmean_avg_lifespan+age + gear_code + 
+           dd_year_avg_lifespan+
+           CPUE_Abbo_samesize_avg_lifespan, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova(M)
+rsquared(M)
+summary(M)
+plot(M)
 
 
 
