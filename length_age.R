@@ -2883,7 +2883,6 @@ M8<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code +
         na.action = na.omit, method = "ML",data=length_age12_stack_std)
 anova(M2,M8)
 #####
-
 # and the two way interactions?
 M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
            dd_year_avg_lifespan*age+
@@ -2945,6 +2944,17 @@ M1g<-lme(total_length ~ BIASmean_avg_lifespan*age + gear_code + day_of_month +
          random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
          na.action = na.omit, method = "REML",data=length_age12_stack_std)
 rsquared(M1g)
+
+# If I delete distance, are cyprinids gaining more explanatory power 
+# (meaning that distance affect the amount of cyprinids)?
+anova.lme(M1g, type = "marginal", adjustSigma = F)
+M1gg<-lme(total_length ~ BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1gg)
+
 
 # if I remove stsp
 M1h<-lme(total_length ~ distance+ gear_code + day_of_month +
@@ -3030,7 +3040,7 @@ plot(M)
 
 
 
-###### checking a 4 way interaction: TO DO ######
+###### checking a 4 way interaction: TO DO or skip ######
 M4<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan + gear_code + day_of_month +
           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
@@ -3053,10 +3063,6 @@ M4b<-lme(total_length ~ BIASmean_avg_lifespan*distance*age*dd_year_avg_lifespan 
            CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
          random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
          na.action = na.omit, method = "ML",data=length_age12_stack)
-
-
-
-
 
 
 
@@ -3151,7 +3157,7 @@ length_age12_stack_time_series7$sub.location_age<-paste(length_age12_stack_time_
                                                          length_age12_stack_time_series7$age, sep = "_")
 table(length_age12_stack_time_series10$sub.location_age)
 
-# plot times series of stsp for each sublocation*age
+# plot times series  for each sublocation*age
 ggplot(length_age12_stack_time_series7, aes(x = year, y = total_length, colour = age)) +
   geom_point(size=2)+ 
   facet_wrap(~sub.location)+
@@ -3308,6 +3314,8 @@ detach(table_final1)
 table(table_final1$trend)
 table(table_final1$all_trends)
 
+table(length_age12_stack_time_series7$sub.location,length_age12_stack_time_series7$distance)
+
 ##### calculate avg stsp and conspecifics over time for each site and age #####
 
 # Extract here the means for each sublocation and age, of "perceived" stsp and conspecifics 
@@ -3316,8 +3324,15 @@ avg_time_series<-length_age12_stack_time_series7 %>%
   group_by(sub.location_age, age, sub.location) %>%
   summarise(avg_BIASmean_avg_lifespan = mean(BIASmean_avg_lifespan, na.rm = TRUE),
             # avg_BIASmean = mean(BIASmean, na.rm = TRUE), # wrong, delete eventually
-            # avg_distance = mean(distance, na.rm = TRUE),
-            # avg_avg_year_temp = mean(avg_year_temp, na.rm = TRUE),
+            distance = mean(distance, na.rm = TRUE),
+            avg_temp_year_avg_lifespan = mean(temp_year_avg_lifespan, na.rm = TRUE),
+            avg_temp_summer_avg_lifespan = mean(temp_summer_avg_lifespan, na.rm = TRUE),
+            avg_temp_winter_avg_lifespan = mean(temp_winter_avg_lifespan, na.rm = TRUE),
+            avg_temp_exceeding_10_year_avg_lifespan = mean(temp_exceeding_10_year_avg_lifespan, na.rm = TRUE),
+            avg_dd_year_sum_lifespan = mean(dd_year_sum_lifespan, na.rm = TRUE),
+            avg_dd_year_avg_lifespan = mean(dd_year_avg_lifespan, na.rm = TRUE),
+            avg_n_days_exceeding_10_year_avg_lifespan = mean(n_days_exceeding_10_year_avg_lifespan, na.rm = TRUE),
+            avg_first_day_exceeding_10_julian_avg_lifespan = mean(first_day_exceeding_10_julian_avg_lifespan, na.rm = TRUE),
             avg_CPUE_Abbo_samesize_avg_lifespan = mean(CPUE_Abbo_samesize_avg_lifespan, na.rm = TRUE),
             # avg_totCPUE_Abborre = mean(totCPUE_Abborre, na.rm = TRUE),
             avg_cyprinids_avg_lifespan = mean(cyprinids_avg_lifespan, na.rm = TRUE))
@@ -3367,22 +3382,22 @@ ABBOsamesize_time_series <- filtered_length_age12_stack %>%
             cyprinids_avg_time_series = mean(cyprinids, na.rm = TRUE),
             all_prey_avg_time_series = mean(all_prey, na.rm = TRUE),
             clupeids_avg_time_series = mean(clupeids, na.rm = TRUE),
-            year_temp_avg_time_series = mean(avg_year_temp, na.rm = TRUE))
+            year_temp_avg_time_series = mean(avg_temp_year, na.rm = TRUE),
+            dd_year_avg_time_series = mean(dd_year, na.rm = TRUE),
+            summer_temp_avg_time_series = mean(avg_temp_summer, na.rm = TRUE),
+            winter_temp_avg_time_series = mean(avg_temp_winter, na.rm = TRUE),
+            year_temp_exceeding_10_avg_time_series = mean(avg_temp_exceeding_10_year, na.rm = TRUE),
+            n_days_exceeding_10_year_avg_time_series = mean(n_days_exceeding_10_year, na.rm = TRUE),
+            first_day_exceeding_10_julian_avg_time_series = mean(first_day_exceeding_10_julian, na.rm = TRUE))
 
 # merge:
 table_final4<- left_join(table_final3,ABBOsamesize_time_series, by = "sub.location")
-
-# merge dist from offshore after excluding gear k064 (no need to select years here)
-dist_offshore_K064<- dist_offshore %>%
-  filter(gear_code == "K064") %>%
-  select(sub.location, distance)
-
-table_final5<- left_join(table_final4,dist_offshore_K064, by = "sub.location")
-
+# and only signif trend:
+table_final4_signif<- filter(table_final4, trend != "No trend")
 
 ##### exploratory plots #####
 # visualize slope by site
-ggplot(table_final2, aes(x = reorder(sub.location_age, slope_year), y = slope_year)) +
+ggplot(table_final4, aes(x = reorder(sub.location_age, slope_year), y = slope_year)) +
   geom_bar(stat = "identity", aes(fill = trend)) +
   coord_flip() +
   theme_minimal() +
@@ -3475,52 +3490,126 @@ ggplot(table_final5, aes(x = stsp_avg_time_series, y = slope_year, col = trend))
 
 ##### preliminary model with only these covariates: TO REDO ####
 
-# little collinearity temp and cyprinids. but results don't change much with or wothout. 
-# to be safe I remove them for now
-# when considering avg of spp over the life span, abbo and age are collinear. Removing either, stsp are always signif
-M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + avg_distance + avg_avg_year_temp,
-        weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
+
+# when considering avg of spp and temp over the life span: full model
+M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + avg_dd_year_avg_lifespan +
+         avg_CPUE_Abbo_samesize_avg_lifespan +
+         avg_cyprinids_avg_lifespan+
+         distance,
+        weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
 vif(M1)
 summary(M1)
 anova(M1)
 plot(M1)
 
+# reducing explanatory variables due to low sample size: however I reduce, stsp is the only signif
+M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + avg_dd_year_avg_lifespan+
+         avg_CPUE_Abbo_samesize_avg_lifespan,
+         #avg_cyprinids_avg_lifespan+
+         #distance,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
+vif(M1)
+summary(M1)
+anova(M1)
+plot(M1)
+visreg(M1)
+
+# delete cyprinid and distance. include an interaction: 
+M1<-lm(slope_year ~ age * avg_BIASmean_avg_lifespan + 
+         avg_dd_year_avg_lifespan +
+         avg_CPUE_Abbo_samesize_avg_lifespan,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
+summary(M1)
+anova(M1)
+visreg(M1, xvar = "avg_BIASmean_avg_lifespan", by = "age")
+
+# try different temp variables
+colnames(table_final4_signif)
+M1<-lm(slope_year ~ age * avg_BIASmean_avg_lifespan + 
+         avg_dd_year_avg_lifespan +
+         avg_CPUE_Abbo_samesize_avg_lifespan,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
+summary(M1)
+anova(M1)
+
+# avg_dd_year_avg_lifespan: Radj = 0.63. temp ns - BEST
+# avg_temp_year_avg_lifespan: Radj = 0.62. temp ns
+# avg_temp_summer_avg_lifespan: Radj = 0.63. temp ns - BEST
+# avg_temp_winter_avg_lifespan: Radj = 0.62. temp ns
+# avg_temp_exceeding_10_year_avg_lifespan: Radj = 0.62. temp ns
+# avg_dd_year_sum_lifespan: Radj = 0.62. temp ns
+# avg_n_days_exceeding_10_year_avg_lifespan: Radj = 0.62. temp ns
+# avg_first_day_exceeding_10_julian_avg_lifespan: Radj = 0.64. temp ns - BEST
+
+# introducing random factor (and deleting weight): ns
+M3a<-gls(slope_year ~ age + avg_BIASmean_avg_lifespan + 
+           avg_dd_year_avg_lifespan +
+           avg_CPUE_Abbo_samesize_avg_lifespan, method = "REML",
+         na.action = na.omit,data=table_final4_signif)
+M3b<-lme(slope_year ~ age + avg_BIASmean_avg_lifespan + 
+           avg_dd_year_avg_lifespan +
+           avg_CPUE_Abbo_samesize_avg_lifespan, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final4_signif)
+anova(M3a,M3b)
+
+### final:
+M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + 
+         avg_dd_year_avg_lifespan +
+         avg_CPUE_Abbo_samesize_avg_lifespan,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
+summary(M1)
+anova(M1)
+# with or without interaction:  r is 0.63 vs 0.49!
+
+
 # compare to the model with avg current densities of spp as covariates:
-M2<-lm(slope_year ~ age + avg_BIASmean + avg_distance + avg_avg_year_temp +
-         avg_totCPUE_Abborre,
-       weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
+# however I reduce, stsp and abbo are the only signif.  CLUPEIDS  COLLINEAR WITH TEMP    
+M2<-lm(slope_year ~ age + stsp_avg_time_series + 
+         # cyprinids_avg_time_series +
+         # clupeids_avg_time_series +
+         dd_year_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
 vif(M2)
 summary(M2)
 anova(M2)
 plot(M2)
+# with or without interaction:  r is 0.53 vs 0.52. reduce
+
+
+
+# try different temp variables
+colnames(table_final4_signif)
+M2<-lm(slope_year ~ age + stsp_avg_time_series + 
+         first_day_exceeding_10_julian_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
+summary(M2)
+anova(M2)
+plot(M2)
+
+# dd_year_avg_time_series: Radj = 0.52. temp ns - 
+# year_temp_avg_time_series: Radj = 0.53. temp ns - 
+# summer_temp_avg_time_series: Radj = 0.52. temp ns
+# winter_temp_avg_time_series: Radj = 0.53. temp ns
+# year_temp_exceeding_10_avg_time_series: Radj = 0.49. temp ns
+# n_days_exceeding_10_year_avg_time_series: Radj = 0.53. temp ns
+# first_day_exceeding_10_julian_avg_time_series: Radj = 0.52. temp ns - 
+
+# quite similar
 
 # introducing random factor (and deleting weight): ns
-M3a<-gls(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
-           avg_totCPUE_Abborre, method = "REML",
-         na.action = na.omit,data=table_final2_signif)
-M3b<-lme(slope_year ~ age + avg_BIASmean * avg_distance + avg_avg_year_temp +
-           avg_totCPUE_Abborre, random = ~1|sub.location,method = "REML",
-         na.action = na.omit,data=table_final2_signif)
+M3a<-gls(slope_year ~ age + stsp_avg_time_series + 
+           first_day_exceeding_10_julian_avg_time_series +
+           Abbo_samesize_avg_time_series, method = "REML",
+         na.action = na.omit,data=table_final4_signif)
+M3b<-lme(slope_year ~ age + stsp_avg_time_series + 
+           first_day_exceeding_10_julian_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final4_signif)
 anova(M3a,M3b)
 
-# introducing interactions: low sample size, I test them in alternative models
-# this was the one with best fit
-M2<-lm(slope_year ~ age+avg_BIASmean *avg_distance + avg_avg_year_temp +
-         avg_totCPUE_Abborre,
-       weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
-summary(M2)
-anova(M2)
-plot(M2)
-visreg(M2)
 
-# removing distance from offshore:
-M2<-lm(slope_year ~ avg_BIASmean +age+ + avg_avg_year_temp +
-        avg_totCPUE_Abborre,
-        weights = 1/SE_slope, na.action = na.omit,data=table_final2_signif)
-summary(M2)
-anova(M2)
-plot(M2)
-visreg(M2)
 
 
 
