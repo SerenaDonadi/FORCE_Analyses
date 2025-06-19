@@ -3488,10 +3488,10 @@ ggplot(table_final5, aes(x = stsp_avg_time_series, y = slope_year, col = trend))
   theme(legend.position="bottom")
 
 
-##### preliminary model with only these covariates: TO REDO ####
+##### models with only these covariates (no slopes of covariates) ####
 
-
-# when considering avg of spp and temp over the life span: full model
+# when considering avg of spp and temp over the life span: 
+# full model
 M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + avg_dd_year_avg_lifespan +
          avg_CPUE_Abbo_samesize_avg_lifespan +
          avg_cyprinids_avg_lifespan+
@@ -3553,16 +3553,18 @@ M3b<-lme(slope_year ~ age + avg_BIASmean_avg_lifespan +
 anova(M3a,M3b)
 
 ### final:
-M1<-lm(slope_year ~ age + avg_BIASmean_avg_lifespan + 
+M1<-lm(slope_year ~ age * avg_BIASmean_avg_lifespan + 
          avg_dd_year_avg_lifespan +
          avg_CPUE_Abbo_samesize_avg_lifespan,
        weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
 summary(M1)
 anova(M1)
+plot(M1)
 # with or without interaction:  r is 0.63 vs 0.49!
+visreg(M1, xvar = "avg_BIASmean_avg_lifespan", by = "age")
 
 
-# compare to the model with avg current densities of spp as covariates:
+# compare to the model with avg current densities of spp and temp in each year range for sublocatiob:
 # however I reduce, stsp and abbo are the only signif.  CLUPEIDS  COLLINEAR WITH TEMP    
 M2<-lm(slope_year ~ age + stsp_avg_time_series + 
          # cyprinids_avg_time_series +
@@ -3575,8 +3577,6 @@ summary(M2)
 anova(M2)
 plot(M2)
 # with or without interaction:  r is 0.53 vs 0.52. reduce
-
-
 
 # try different temp variables
 colnames(table_final4_signif)
@@ -3595,7 +3595,6 @@ plot(M2)
 # year_temp_exceeding_10_avg_time_series: Radj = 0.49. temp ns
 # n_days_exceeding_10_year_avg_time_series: Radj = 0.53. temp ns
 # first_day_exceeding_10_julian_avg_time_series: Radj = 0.52. temp ns - 
-
 # quite similar
 
 # introducing random factor (and deleting weight): ns
@@ -3609,11 +3608,26 @@ M3b<-lme(slope_year ~ age + stsp_avg_time_series +
          na.action = na.omit,data=table_final4_signif)
 anova(M3a,M3b)
 
+### final
+M2<-lm(slope_year ~ age + stsp_avg_time_series + 
+         dd_year_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final4_signif)
+summary(M2)
+anova(M2)
+plot(M2)
+visreg(M2)
 
+summary(table_final4_signif)
+# show me where I have NA: Råneå
+table_final4_signif[is.na(table_final4_signif$avg_BIASmean_avg_lifespan), ]
+# so number of actual replicates used by models running on table_final4_signif is 30-1=29
 
-
-
-
+# I am not using this one
+summary(table_final4)
+# show me where I have NA: Råneå and Kinnbäcksfjärden
+table_final4[is.na(table_final4$avg_BIASmean_avg_lifespan), ]
+# so number of actual replicates used by models running on table_final4 is 52-8=44
 
 
 
@@ -3661,7 +3675,7 @@ plot(M3)
 filtered_stsp_NA<-na.omit(filtered_stsp) 
 
 # 1)extract LRT test pvalue for all sites:
-result_LRT <- vector("list")
+result_LRT_stsp <- vector("list")
 for (sub.location in unique(filtered_stsp_NA$sub.location)) {
   my_site <- filtered_stsp_NA[filtered_stsp_NA$sub.location == sub.location, ]
   M1 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
@@ -3670,61 +3684,55 @@ for (sub.location in unique(filtered_stsp_NA$sub.location)) {
             na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site)
   anova(M1, M2)
   output_comparison<-anova(M1, M2)
-  result_LRT[[sub.location]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
+  result_LRT_stsp[[sub.location]] <-output_comparison[2,"p-value"] # I need to index whatever object I m storing the value 
 }
 
-result_LRT[[1]] #print the first object
-head(result_LRT)
+result_LRT_stsp[[1]] #print the first object
+head(result_LRT_stsp)
 
 # convert it into a dataframe:
-#head(do.call(rbind, result_LRT))
+#head(do.call(rbind, result_LRT_stsp))
 library(plyr); library(dplyr)
-#head(rbind.fill(result_LRT))
-#head(rbindlist(result_LRT))
-LRT_matrix<-ldply(result_LRT, rbind)#best way
+#head(rbind.fill(result_LRT_stsp))
+#head(rbindlist(result_LRT_stsp))
+LRT_matrix_stsp<-ldply(result_LRT_stsp, rbind)#best way
 # rename variables in columns:
 library(data.table)
-setnames(LRT_matrix, old = c('.id','1'), new = c('sub.location','pvalue_LRT_stsp'))
-head(LRT_matrix)
+setnames(LRT_matrix_stsp, old = c('.id','1'), new = c('sub.location','pvalue_LRT_stsp'))
+head(LRT_matrix_stsp)
 
 # check how many p values are signif
-check<-filter(LRT_matrix,pvalue_LRT_stsp<0.05) # 9 out of 11
+check<-filter(LRT_matrix_stsp,pvalue_LRT_stsp<0.05) # 9 out of 11
 
 # 2) extract slope
-result_slope <- vector("list")
+result_slope_stsp <- vector("list")
 for (sub.location in unique(filtered_stsp_NA$sub.location)) {
   my_site <- filtered_stsp_NA[filtered_stsp_NA$sub.location == sub.location, ]
   M3 <- gls(BIASmean ~ year, correlation=corAR1(form=~year),
             na.action=na.omit,control = list(singular.ok = TRUE),method = "REML", data=my_site)
   coef_value<-summary(M3)$coefficients
-  result_slope[[sub.location]]<-coef_value[["year"]]
+  result_slope_stsp[[sub.location]]<-coef_value[["year"]]
 }
 
-result_slope[[1]] #print the first object
-head(result_slope)
+result_slope_stsp[[1]] #print the first object
+head(result_slope_stsp)
 
 # convert it into a dataframe:
-Slope_matrix<-ldply(result_slope, rbind) 
+Slope_matrix_stsp<-ldply(result_slope_stsp, rbind) 
 # rename variables in columns:
-setnames(Slope_matrix, old = c('.id','1'), new = c('sub.location','slope_year_stsp'))
-head(Slope_matrix)
-# if ERROR, use:
-#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
-#slope_year<-as.numeric(Slope_matrix[1:268])
-#Site_ID_COORD<-names(result_slope)
-#head(Site_ID_COORD)
-#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
-#head(table_slopes) # halleluja
+setnames(Slope_matrix_stsp, old = c('.id','1'), new = c('sub.location','slope_year_stsp'))
+head(Slope_matrix_stsp)
+
 
 # sort all as descending by site name:
 detach(package:plyr)
-table_LRT_pvalues<-LRT_matrix %>% arrange(desc(sub.location))
-table_coeff<-Slope_matrix %>% arrange(desc(sub.location))
-head(table_LRT_pvalues)
-head(table_coeff)
+table_LRT_pvalues_stsp<-LRT_matrix_stsp %>% arrange(desc(sub.location))
+table_coeff_stsp<-Slope_matrix_stsp %>% arrange(desc(sub.location))
+head(table_LRT_pvalues_stsp)
+head(table_coeff_stsp)
 
-# 4. merge slopes, pvalues, SE 
-table_final_stsp<- inner_join(table_LRT_pvalues,table_coeff, by = "sub.location")
+# 4. merge slopes, pvalues
+table_final_stsp<- inner_join(table_LRT_pvalues_stsp,table_coeff_stsp, by = "sub.location")
 head(table_final_stsp)
 
 
@@ -3844,7 +3852,7 @@ table_coeff<-Slope_matrix %>% arrange(desc(sub.location))
 head(table_LRT_pvalues)
 head(table_coeff)
 
-# 4. merge slopes, pvalues, SE 
+# 4. merge slopes, pvalues
 table_final_stsp_whole_period<- inner_join(table_LRT_pvalues,table_coeff, by = "sub.location")
 head(table_final_stsp_whole_period)
 
@@ -3869,11 +3877,138 @@ ggplot(table_final_stsp_whole_period, aes(x = reorder(sub.location, slope_year_s
   theme(legend.position = "bottom")
 
 # merge
-table_final6<- left_join(table_final5,table_final_stsp, by = "sub.location")
-table_final7<- left_join(table_final6,table_final_stsp_whole_period, by = "sub.location")
+table_final5<- left_join(table_final4,table_final_stsp, by = "sub.location")
+table_final6<- left_join(table_final5,table_final_stsp_whole_period, by = "sub.location")
 
 # subset with only significant trends:
-table_final7_signif<-table_final7 %>%
+table_final6_signif<-table_final6 %>%
   filter(pvalue_LRT < 0.05)
 
-colnames(table_final7)
+colnames(table_final6)
+
+##### model with stsp slopes as covariate ####
+
+### select only the significant slope of stsp: 26 obs
+table_final6_signif_stsp <- table_final6_signif %>%
+  filter(pvalue_LRT_stsp < 0.05)
+
+# N=26
+# dd collinear with stsp
+M1<-lm(slope_year ~ age * slope_year_stsp + 
+         # dd_year_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final6_signif_stsp)
+#vif(M1)
+summary(M1)
+anova(M1)
+plot(M1)
+visreg(M1)
+
+# random factor: ns
+M3a<-gls(slope_year ~ age * slope_year_stsp + 
+           # dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, method = "REML",
+         na.action = na.omit,data=table_final6_signif_stsp)
+M3b<-lme(slope_year ~ age * slope_year_stsp + 
+           # dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final6_signif_stsp)
+anova(M3a,M3b)
+
+### cobsider also ns slopes of stsp:table_final6_signif dataset, N=30
+M1<-lm(slope_year ~ age * slope_year_stsp + 
+         dd_year_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final6_signif)
+vif(M1)
+summary(M1)
+anova(M1)
+plot(M1)
+visreg(M1)
+
+# random factor: ns
+M3a<-gls(slope_year ~ age * slope_year_stsp + 
+           dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, method = "REML",
+         na.action = na.omit,data=table_final6_signif)
+M3b<-lme(slope_year ~ age * slope_year_stsp + 
+           dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final6_signif)
+anova(M3a,M3b)
+
+# when considering as covariates slopes of stsp over the whole period (2002-2023)
+### only signif:
+table_final6_signif_stsp_whole_period <- table_final6_signif %>%
+  filter(pvalue_LRT_stsp_whole_period < 0.05)
+
+M1<-lm(slope_year ~ age *slope_year_stsp_whole_period + 
+         #dd_year_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final6_signif_stsp_whole_period)
+vif(M1)
+summary(M1)
+anova(M1)
+plot(M1)
+visreg(M1)
+
+# random factor: signif
+M3a<-gls(slope_year ~ age * slope_year_stsp_whole_period + 
+           #dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, method = "REML",
+         na.action = na.omit,data=table_final6_signif_stsp_whole_period)
+M3b<-lme(slope_year ~ age * slope_year_stsp_whole_period + 
+           #dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final6_signif_stsp_whole_period)
+anova(M3a,M3b)
+
+# final:
+M3b<-lme(slope_year ~ age * slope_year_stsp_whole_period + 
+           #dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final6_signif_stsp_whole_period)
+# marginal anova:
+anova.lme(M3b, type = "marginal") 
+summary(M3b)
+rsquared(M3b) 
+
+# when considering as covariates slopes of stsp over the whole period (2002-2023)
+### also not signif:
+M1<-lm(slope_year ~ age * slope_year_stsp_whole_period + 
+         dd_year_avg_time_series +
+         Abbo_samesize_avg_time_series,
+       weights = 1/SE_slope, na.action = na.omit,data=table_final6_signif)
+vif(M1)
+summary(M1)
+anova(M1)
+plot(M1)
+visreg(M1)
+
+# random factor:signif
+M3a<-gls(slope_year ~ age * slope_year_stsp_whole_period + 
+           dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, method = "REML",
+         na.action = na.omit,data=table_final6_signif)
+M3b<-lme(slope_year ~ age * slope_year_stsp_whole_period + 
+           dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final6_signif)
+anova(M3a,M3b)
+
+
+# final:
+M3b<-lme(slope_year ~ age * slope_year_stsp_whole_period + 
+           dd_year_avg_time_series +
+           Abbo_samesize_avg_time_series, random = ~1|sub.location,method = "REML",
+         na.action = na.omit,data=table_final6_signif)
+# marginal anova:
+anova.lme(M3b, type = "marginal") 
+summary(M3b)
+rsquared(M3b) 
+
+
+summary(table_final6_signif_stsp)
+# show me where I have NA: Råneå
+table_final6_signif_stsp[is.na(table_final6_signif_stsp$slope_year_stsp), ]
+# so number of actual replicates used by models running on table_final4_signif is 30-1=29
