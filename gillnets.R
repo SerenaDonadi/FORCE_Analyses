@@ -5,7 +5,7 @@ setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
 # Libraries ---------------------------------------------------------------
 
-library(tidyverse)
+#library(tidyverse)
 library(ggplot2)
 library(dplyr)
 #library(tidyr)
@@ -200,6 +200,9 @@ unique(gillnets2$Behörighet) # none is "Restriktion".Not in the most recent ver
 table(gillnets2$Behörighet) 
 gillnets2a = subset(gillnets2, !(Behörighet %in% "Restriktion")) 
 
+# count how many unique stations "StationsNr" per location
+table(gillnets2a$location, gillnets2a$StationsNr) # ok, 1-3 stations per location
+
 # intern may have something odd, check them: boh
 subset(gillnets2a, Behörighet == "Intern")
 
@@ -219,6 +222,8 @@ unique(gillnets2b$Fisketid)
 unique(gillnets2b$station)
 unique(gillnets2b$StationsNr)
 unique(gillnets2b$Information)
+
+table(gillnets2b$location,gillnets2b$Fångstområde)
 
 # check comments and remove possibly weird samples:
 unique(gillnets2b$Info_publik)
@@ -298,6 +303,12 @@ unique(gillnets7$FISKE)
 #unique(svartmunnad_dataset$Info_publik)
 #unique(svartmunnad_dataset$Information)
 
+# count how many station per site:
+gillnets7a<-gillnets7 %>%
+  group_by(location, Fångstområde, year, gear) %>%
+  summarise(n_station=n_distinct(StationsNr))
+min(gillnets7a$n_station)
+max(gillnets7a$n_station)
 
 #####
 # Grouping

@@ -274,8 +274,9 @@ barplot2(avg, beside=T,legend=T,plot.ci=T,ci.l=avg-ci,ci.u=avg+ci, ci.lwd=1,cex.
 
 #####
 # merge with stsp, distance from offshore, temp (from satellite) and CPUE of spp (from gillnet data)
-# are there any locations in the length dataset that are not in the gillnets dataset? Mönsterås - 1 location will have no CPUE and population data 
 #####
+# are there any locations in the length dataset that are not in the gillnets dataset? Mönsterås - 1 location will have no CPUE and population data 
+
 unique(length_age10$location) # 28
 unique(gillnets_pool$location) # 51
 length_age10 %>%
@@ -2637,6 +2638,20 @@ length_age12_stack_std <- length_age12_stack %>%
                   cyprinids_avg_lifespan, day_of_month, dd_year_avg_lifespan), 
                 ~ scale(.) %>% as.vector()))
 
+# how many replicates:
+summary(length_age12_stack_std$total_length)
+summary(length_age12_stack$BIASmean)
+summary(length_age12_stack_std$cyprinids_avg_lifespan)
+
+unique(length_age12_stack_std$location)
+
+table(length_age12_stack_std$sub.location, length_age12_stack_std$BIASmean)
+# show me where I have NAs
+Na_dataset<-length_age12_stack %>%
+  filter(is.na(CPUE_Abbo_samesize)) 
+unique(Na_dataset$sub.location)
+
+
 # best two-way interactions model from above:
 M6<-lme(total_length ~ age*BIASmean_avg_lifespan +BIASmean_avg_lifespan*distance + gear_code + day_of_month + 
           age*dd_year_avg_lifespan + #year +
@@ -2712,10 +2727,7 @@ print(myp, collapse_tables = TRUE)
 plot(length_age12_stack_std$distance, length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan)
 plot(length_age12_stack_std$distance, length_age12_stack_std$cyprinids_avg_lifespan)
 
-
-
-##### comparing models using cross-validated RMSE or MAE:
-
+#####comparing models using cross-validated RMSE or MAE:
 # I am doing this bc, at least for the model with non standardized variables, the R2 seem to increase slightly despite both F and LRT
 # test were significant. May it be a problem of overfitting? Run cross-validation
 
@@ -2831,8 +2843,7 @@ ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
 # Visualize residuals: Plot residuals for both models to see if there's any pattern or difference.
 
 
-# check signif using LRT:
-#####
+###### check signif using LRT:
 M2<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code + day_of_month +
           dd_year_avg_lifespan*age+
           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
@@ -2883,7 +2894,8 @@ M8<-lme(total_length ~ BIASmean_avg_lifespan*distance*age + gear_code +
         na.action = na.omit, method = "ML",data=length_age12_stack_std)
 anova(M2,M8)
 #####
-# and the two way interactions?
+# FINAL MODEL (with standardized variabbles): two way interactions
+#####
 M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
            dd_year_avg_lifespan*age+
            CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
@@ -2894,6 +2906,114 @@ rsquared(M1a)
 summary(M1a)
 plot(M1a)
 
+# intraclass correlation is σα2/ (σα2 + σε2):
+9.651484 /(9.651484 +19.89818)
+
+# export results in excel
+
+# plots:
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
+  plot() 
+ggemmeans(M1a, terms = c("dd_year_avg_lifespan", "age")) %>%
+  plot()
+ggemmeans(M1a, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age")) %>%
+  plot()
+ggemmeans(M1a, terms = c("cyprinids_avg_lifespan", "age")) %>%
+  plot()
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  plot() 
+ggemmeans(M1a, terms = c("gear_code")) %>%
+  plot() 
+ggemmeans(M1a, terms = c("day_of_month")) %>%
+  plot() 
+
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
+  print(n = Inf)
+249.07-292.27
+(249.07-292.27)/292.27*100
+196.48-174.20
+
+summary(length_age12_stack_std$BIASmean_avg_lifespan)
+sd(length_age12_stack$BIASmean_avg_lifespan, na.rm = T)
+0.6525926*6
+
+ggemmeans(M1a, terms = c("dd_year_avg_lifespan", "age")) %>%
+  print(n = Inf)
+
+ggemmeans(M1a, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age")) %>%
+  print(n = Inf)
+205.05 -302.23 
+136.26-211.84
+summary(length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
+
+ggemmeans(M1a, terms = c("cyprinids_avg_lifespan", "age")) %>%
+  print(n = Inf)
+(187.33 -170.35)/187.33*100
+(256.25-276.54)/276.54*100
+
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  print(n = Inf)
+(229.95-212.01)/ 212.01*100
+(184.86 -225.10)/184.86*100
+
+ggemmeans(M1a, terms = c("gear_code"))
+ggemmeans(M1a, terms = c("day_of_month"))%>%
+  print(n = Inf)
+
+# check model fit when using different temp variables:temp_year_avg_lifespan,temp_summer_avg_lifespan,temp_winter_avg_lifespan,
+# dd_year_avg_lifespan, n_days_exceeding_10_year_avg_lifespan, first_day_exceeding_10_julian_avg_lifespan.
+# that is: (i) the year degree days (DD, the integral of time above a certain temperature threshold) above 10°C,
+# (ii) the average annual temperature, (iii) the average summer temperature, (iv) the average winter temperature, 
+# (v) the number of days with temperature exceeding 10°C, and (vi) the Julian day of the first observation of 10°C.
+M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1a)
+anova.lme(M1a, type = "marginal", adjustSigma = F) 
+
+M1b<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month + 
+           temp_year_avg_lifespan*age+            CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,      
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1b)
+anova.lme(M1b, type = "marginal", adjustSigma = F) 
+
+M1c<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +  
+           temp_summer_avg_lifespan*age+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age,
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,      
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1c)
+anova.lme(M1c, type = "marginal", adjustSigma = F) 
+
+M1d<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month + 
+           temp_winter_avg_lifespan*age+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age,    
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,       
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1d)
+anova.lme(M1d, type = "marginal", adjustSigma = F) 
+
+M1e<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +    
+           first_day_exceeding_10_julian_avg_lifespan*age+           CPUE_Abbo_samesize_avg_lifespan*age + 
+           cyprinids_avg_lifespan*age,          random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), 
+         control = lmc,         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1e)
+anova.lme(M1e, type = "marginal", adjustSigma = F) 
+
+M1f<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +    
+           n_days_exceeding_10_year_avg_lifespan*age+           CPUE_Abbo_samesize_avg_lifespan*age + 
+           cyprinids_avg_lifespan*age,          random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), 
+         control = lmc,         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+rsquared(M1f)
+anova.lme(M1f, type = "marginal", adjustSigma = F) 
+
+AIC(M1a,M1b,M1c,M1d,M1e,M1f)
+AICc(M1a,M1b,M1c,M1d,M1e,M1f)
+
+
+
+# check signif using LRT
 M1b<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
            dd_year_avg_lifespan*age+
            CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
@@ -3173,6 +3293,7 @@ ggplot(length_age12_stack_time_series7, aes(x = year, y = total_length, colour =
 
 # check model for single site
 my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Asköfjärden_2", ]
+my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Vaxholm_3", ]
 M1 <- lme(total_length ~ year+day_of_month, random =~1|year,
           na.action=na.omit, control = lmc, method = "REML", data=my_site_age1) 
 # determine significance via marginal anova
@@ -3201,7 +3322,8 @@ summary(M3)$tTable[2,2]
 # extract fitted values for the first and last year of sampling
 F1<-fitted(M3)
 F1
-(234.8402-163.8301)/163.8301*100 # 43% increase from 2005 to 2022  :0
+#(234.8402-163.8301)/163.8301*100 # 43% increase from 2005 to 2022  :0
+(208.8240 - 169.4361)/169.4361*100 # 23% increase from 2016 to 2022 Vaxholm age 3
 # visual check:
 visreg(M3)
 
