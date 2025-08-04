@@ -2904,12 +2904,19 @@ M1a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age
 anova.lme(M1a, type = "marginal", adjustSigma = F) 
 rsquared(M1a)
 summary(M1a)
+summary(M1a)$tTable
 plot(M1a)
 
 # intraclass correlation is σα2/ (σα2 + σε2):
 9.651484 /(9.651484 +19.89818)
 
 # export results in excel
+anovaM1a<-anova.lme(M1a, type = "marginal", adjustSigma = F) 
+write.xlsx(anovaM1a, file="G:/My Drive/anovaM1a.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+summaryM1a<-summary(M1a)$tTable
+write.xlsx(summaryM1a, file="G:/My Drive/summaryM1a.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
 # plots:
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
