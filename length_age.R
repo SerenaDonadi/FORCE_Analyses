@@ -2932,8 +2932,34 @@ ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance")) %>%
 ggemmeans(M1a, terms = c("gear_code")) %>%
   plot() 
 ggemmeans(M1a, terms = c("day_of_month")) %>%
+  plot()
+
+
+# default colors:
+ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
   plot() 
 
+# try to customize the fig:
+# change the colors:
+gg_data <- ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Stickleback density",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 14)
+  )
+
+# check predictions:
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
   print(n = Inf)
 249.07-292.27
@@ -3529,10 +3555,14 @@ table_final4_signif<- filter(table_final4, trend != "No trend")
 ggplot(table_final4, aes(x = reorder(sub.location_age, slope_year), y = slope_year)) +
   geom_bar(stat = "identity", aes(fill = trend)) +
   coord_flip() +
-  theme_minimal() +
+  theme_minimal(base_size = 15) +
   labs(x = "Site", y = "Slope of length at age") +
   scale_fill_manual(values = c("No trend" = "grey", "Decline" = "red", "Increase" = "blue")) +
   theme(legend.position = "bottom")
+
+# nice fig for printing:
+tiff(filename = "G:/My Drive/Cross-system trout/Output//Fig.tiff",
+     units="in", width=7, height=5, res=600)
 
 # barchart by age:
 library(gplots)
