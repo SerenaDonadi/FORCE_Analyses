@@ -2906,6 +2906,16 @@ rsquared(M1a)
 summary(M1a)
 summary(M1a)$tTable
 plot(M1a)
+qqplot(M1a) # check residuals
+
+E <- resid(MFinal, type = "normalized")
+> Fit <- fitted(MFinal)
+
+> op <- par(mfrow = c(1, 2)) 
+> plot(x = Fit,y = E,xlab = "Fitted values", ylab = "Residuals",main = "Residuals versus fitted values") 
+> identify(Fit, E)  # The identify command allows us to identify the observa- tion with the large residual.
+> hist(E, nclass = 15) 
+
 
 # intraclass correlation is σα2/ (σα2 + σε2):
 9.651484 /(9.651484 +19.89818)
@@ -2939,7 +2949,10 @@ ggemmeans(M1a, terms = c("day_of_month")) %>%
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
   plot() 
 
-# try to customize the fig:
+##### NICE FIG FOR PRINTING####
+dev.off()
+tiff(filename = "G:/My Drive/FORCE_Analyses//Fig.tiff",
+     units="in", width=8, height=4, res=600)
 # change the colors:
 gg_data <- ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age"))
 ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
@@ -2956,7 +2969,81 @@ ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
   theme_minimal() +
   theme(
     legend.position = "right",
-    text = element_text(size = 14)
+    text = element_text(size = 15)
+  )
+
+gg_data <- ggemmeans(M1a, terms = c("dd_year_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Year DD",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+gg_data <- ggemmeans(M1a, terms = c("cyprinids_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Cyprinids CPUE",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+gg_data <- ggemmeans(M1a, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Conspecific of similar size CPUE",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+tiff(filename = "G:/My Drive/FORCE_Analyses//Fig.tiff",
+     units="in", width=7, height=4, res=600)
+gg_data <- ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Distance from open sea",
+    y = "Total length",
+    color = "Distance",
+    fill = "Distance"
+  ) +
+  scale_color_manual(values = c("purple","violet", "pink" )) + # change colors here
+  scale_fill_manual(values = c("purple","violet", "pink")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
   )
 
 # check predictions:
@@ -2992,6 +3079,35 @@ ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance")) %>%
 ggemmeans(M1a, terms = c("gear_code"))
 ggemmeans(M1a, terms = c("day_of_month"))%>%
   print(n = Inf)
+
+# mean and SD used for starndardization of variables:
+BIASmean_avg_lifespan_NA<-na.omit(length_age12_stack$BIASmean_avg_lifespan)
+mean(BIASmean_avg_lifespan_NA)
+sd(BIASmean_avg_lifespan_NA)
+
+distancen_NA<-na.omit(length_age12_stack$distance)
+mean(distancen_NA)
+sd(distancen_NA)
+
+age_NA<-na.omit(length_age12_stack$age)
+mean(age_NA)
+sd(age_NA)
+
+day_of_month_NA<-na.omit(length_age12_stack$day_of_month)
+mean(day_of_month_NA)
+sd(day_of_month_NA)
+
+dd_year_avg_lifespan_NA<-na.omit(length_age12_stack$dd_year_avg_lifespan)
+mean(dd_year_avg_lifespan_NA)
+sd(dd_year_avg_lifespan_NA)
+
+CPUE_Abbo_samesize_avg_lifespan_NA<-na.omit(length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
+mean(CPUE_Abbo_samesize_avg_lifespan_NA)
+sd(CPUE_Abbo_samesize_avg_lifespan_NA)
+
+cyprinids_avg_lifespan_NA<-na.omit(length_age12_stack$cyprinids_avg_lifespan)
+mean(cyprinids_avg_lifespan_NA)
+sd(cyprinids_avg_lifespan_NA)
 
 # check model fit when using different temp variables:temp_year_avg_lifespan,temp_summer_avg_lifespan,temp_winter_avg_lifespan,
 # dd_year_avg_lifespan, n_days_exceeding_10_year_avg_lifespan, first_day_exceeding_10_julian_avg_lifespan.
@@ -3561,8 +3677,9 @@ ggplot(table_final4, aes(x = reorder(sub.location_age, slope_year), y = slope_ye
   theme(legend.position = "bottom")
 
 # nice fig for printing:
-tiff(filename = "G:/My Drive/Cross-system trout/Output//Fig.tiff",
-     units="in", width=7, height=5, res=600)
+dev.off()
+tiff(filename = "G:/My Drive/FORCE_Analyses/Fig.tiff",
+     units="in", width=12, height=9, res=600)
 
 # barchart by age:
 library(gplots)
@@ -3721,7 +3838,14 @@ anova(M1)
 plot(M1)
 # with or without interaction:  r is 0.63 vs 0.49!
 visreg(M1, xvar = "avg_BIASmean_avg_lifespan", by = "age")
-
+visreg(M1, "avg_BIASmean_avg_lifespan", by = "age", overlay = F, partial = T,
+       strip.names=c("age: 2y", "age: 3y", "age:5y"),
+       line=list(col="red"), points=list(cex=1, pch=16),
+       ylab = "Slope coefficient of length at age", xlab = "Stickleback density")
+#NICE FIG
+dev.off()
+tiff(filename = "G:/My Drive/FORCE_Analyses//Fig.tiff",
+     units="in", width=8, height=5, res=600)
 
 # compare to the model with avg current densities of spp and temp in each year range for sublocatiob:
 # however I reduce, stsp and abbo are the only signif.  CLUPEIDS  COLLINEAR WITH TEMP    
