@@ -2913,7 +2913,7 @@ Fit <- fitted(M1a)
 op <- par(mfrow = c(1, 2)) 
 plot(x = Fit,y = E,xlab = "Fitted values", ylab = "Residuals",main = "Residuals versus fitted values") 
 #identify(Fit, E)  # The identify command allows us to identify the observation with the large residual.
-hist(E, nclass = 15) 
+hist(E, nclass = 15,main = "Histogram of residuals", xlab = "Residuals") 
 
 
 # intraclass correlation is σα2/ (σα2 + σε2):
