@@ -1,11 +1,14 @@
 rm(list=ls())
-setwd("G:/My Drive/FORCE/Data")
-setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
+
+dir.exists("//storage-dh.slu.se/home$/sedi0002/My Documents/Job/FORCE/Data")
+setwd("//storage-dh.slu.se/home$/sedi0002/My Documents/Job/FORCE/Data")
+# setwd("G:/My Drive/FORCE/Data")
+# setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
 
 # Libraries ---------------------------------------------------------------
 
-#library(tidyverse)
+library(tidyverse)
 library(ggplot2)
 library(dplyr)
 #library(tidyr)
@@ -131,7 +134,9 @@ gillnets1 <- rename(gillnets1, avg_year_temp = 'temp')
 head(gillnets1)
 
 # merge and keep all records in left dataset, and only matching record in right dataset
+library(lubridate)
 is.Date(temp_gillnet_day$date)
+temp_gillnet_day$date <- as.Date(temp_gillnet_day$date)
 gillnets1a<-left_join(gillnets1, temp_gillnet_day, by = c("date","month","year","location")) # 
 
 # rename temp to be more specific: we don't know whether is daily avg or one time, how many time the satellite passed by, and at what time
@@ -354,6 +359,8 @@ gillnets7 %>%
   filter(Art=="_ingen fångst")
 
 # rename sublocations for merging later:
+# detattch package plyr, if I used it:
+detach("package:plyr", unload=TRUE)
 gillnets7 <- rename(gillnets7, sub.location = 'Fångstområde')
 
 

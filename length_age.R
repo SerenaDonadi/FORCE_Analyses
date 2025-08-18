@@ -1,11 +1,11 @@
 rm(list=ls())
-setwd("G:/My Drive/FORCE/Data")
-setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
+dir.exists("//storage-dh.slu.se/home$/sedi0002/My Documents/Job/FORCE/Data")
+setwd("//storage-dh.slu.se/home$/sedi0002/My Documents/Job/FORCE/Data")
+# setwd("G:/My Drive/FORCE/Data")
+# setwd("C:/Users/sedi0002/Google Drive/FORCE/Data")
 
 
 # Libraries ---------------------------------------------------------------
-
-#library(tidyverse)
 library(ggplot2)
 library(dplyr)
 #library(tidyr)
@@ -2906,15 +2906,14 @@ rsquared(M1a)
 summary(M1a)
 summary(M1a)$tTable
 plot(M1a)
-qqplot(M1a) # check residuals
 
-E <- resid(MFinal, type = "normalized")
-> Fit <- fitted(MFinal)
+E <- resid(M1a, type = "normalized")
+Fit <- fitted(M1a)
 
-> op <- par(mfrow = c(1, 2)) 
-> plot(x = Fit,y = E,xlab = "Fitted values", ylab = "Residuals",main = "Residuals versus fitted values") 
-> identify(Fit, E)  # The identify command allows us to identify the observa- tion with the large residual.
-> hist(E, nclass = 15) 
+op <- par(mfrow = c(1, 2)) 
+plot(x = Fit,y = E,xlab = "Fitted values", ylab = "Residuals",main = "Residuals versus fitted values") 
+#identify(Fit, E)  # The identify command allows us to identify the observation with the large residual.
+hist(E, nclass = 15) 
 
 
 # intraclass correlation is σα2/ (σα2 + σε2):
