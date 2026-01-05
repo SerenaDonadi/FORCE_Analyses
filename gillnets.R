@@ -423,6 +423,7 @@ gillnets_indiv %>%
 
 # calulate mean, median and L90 and skewenss, kurtosis for Abborre, for each location, sublocation? and year:
 is.Date(gillnets_indiv$date)
+library(datawizard)
 gillnets_length_indexes<- gillnets_indiv %>%
   filter(Art=="Abborre") %>%
   group_by(location, sub.location, year) %>%

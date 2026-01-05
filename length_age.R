@@ -2943,6 +2943,15 @@ ggemmeans(M1a, terms = c("gear_code")) %>%
 ggemmeans(M1a, terms = c("day_of_month")) %>%
   plot()
 
+quantile(length_age12_stack$distance, probs = c(0.10, 0.25, 0.5, 0.75,0.90))
+quantile(length_age12_stack_std$distance, probs = c(0.10, 0.25, 0.5, 0.75,0.90))
+mean(length_age12_stack_std$distance)
+sd(length_age12_stack_std$distance)
+mean(length_age12_stack$distance)
+sd(length_age12_stack$distance)
+13331-895
+25768-13331
+summary(length_age12_stack$distance)
 
 # default colors:
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
@@ -3429,7 +3438,7 @@ table(length_age12_stack_time_series10$sub.location_age)
 ggplot(length_age12_stack_time_series7, aes(x = year, y = total_length, colour = age)) +
   geom_point(size=2)+ 
   facet_wrap(~sub.location)+
-  geom_smooth(aes(group = age), method = "loess")
+  geom_smooth(aes(group = age), method = "loess")+
   theme_bw(base_size=15)
 
 
@@ -3439,9 +3448,42 @@ ggplot(length_age12_stack_time_series7, aes(x = year, y = total_length, colour =
 # fish are not the same individuals in different years, hence corAR random str makes no sense,
 # rather consider year as random, to account for non independence of values taken in the same year
 
+# test if there is autocorrelation: there is, so I include year as random
+#####
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without year as random and see how much difference there is: slope quite similars, SE reduced 
+# for model without random factor, as expected
+
+# check model for single site
+my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Vaxholm_3", ]
+my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Asköfjärden_2", ]
+M1 <- lm(total_length ~ year+day_of_month, 
+          na.action=na.omit, data=my_site_age1) 
+summary(M1)
+plot(M1)
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+# there is autocorrelation
+#####
+
+# with year as random:
 # check model for single site
 my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Asköfjärden_2", ]
 my_site_age1 <- length_age12_stack_time_series7[length_age12_stack_time_series7$sub.location_age == "Vaxholm_3", ]
+lmc <- lmeControl(niterEM = 5000,msMaxIter = 1000)
 M1 <- lme(total_length ~ year+day_of_month, random =~1|year,
           na.action=na.omit, control = lmc, method = "REML", data=my_site_age1) 
 # determine significance via marginal anova
