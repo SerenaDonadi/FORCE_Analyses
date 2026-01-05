@@ -3628,7 +3628,7 @@ table(table_final1$all_trends)
 
 table(length_age12_stack_time_series7$sub.location,length_age12_stack_time_series7$distance)
 
-##### calculate avg stsp and conspecifics over time for each site and age #####
+##### calculate avg stsp and conspecifics over time for each site and age: old, no need now #####
 
 # Extract here the means for each sublocation and age, of "perceived" stsp and conspecifics 
 # (avg over whole life span) for individual fish:
@@ -3805,7 +3805,7 @@ ggplot(table_final5, aes(x = stsp_avg_time_series, y = slope_year, col = trend))
   theme(legend.position="bottom")
 
 
-##### models with only these covariates (no slopes of covariates) ####
+##### models with only these covariates (no slopes of covariates):  old ####
 
 # when considering avg of spp and temp over the life span: 
 # full model
@@ -3955,7 +3955,7 @@ table_final4[is.na(table_final4$avg_BIASmean_avg_lifespan), ]
 
 
 
-##### calculate slopes and p values of temporal trends also for stsp and conspecific and temp:####
+##### calculate slopes and p values of temporal trends also for stsp ####
 
 # check if I need to remove gear other than k064: no need if I use stsp_with_years and filtered_stsp
 table(stsp$sub.location,stsp$gear_code)
@@ -3968,7 +3968,7 @@ table(filtered_stsp$sub.location,filtered_stsp$gear_code)
 
 ### FOR SLOPES OVER THE YEARS OF EACH TIME SERIE:
 
-# check if there is autocorrelation, to know whether to include year as random or not:
+# check if there is autocorrelation, to know whether to include year as random or not: nope
 #####
 # new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
 # run models without year as random and see how much difference there is: slope quite similars, SE reduced 
@@ -4012,9 +4012,85 @@ durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
 bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
 # Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
 Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
-# there is autocorrelation
 #####
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
 # check model for single site
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Vaxholm", ] # ok, no autocorr
+M1<-lm(BIASmean ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+filtered_stsp_NA<-na.omit(filtered_stsp) 
+
+result_slope_stsp <- vector("list")
+for (sub.location in unique(filtered_stsp_NA$sub.location)) {
+  my_site <- filtered_stsp_NA[filtered_stsp_NA$sub.location == sub.location, ]
+  M3 <- lm(BIASmean ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_stsp[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_stsp[[1]] #print the first object
+head(result_slope_stsp)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_stsp<-ldply(result_slope_stsp, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_stsp, old = c('.id','1'), new = c('sub.location','slope_year_stsp'))
+head(Slope_matrix_stsp)
+
+# 2) extract SE:
+result_SE_stsp <- vector("list")
+for (sub.location in unique(filtered_stsp_NA$sub.location)) {
+  my_site <- filtered_stsp_NA[filtered_stsp_NA$sub.location == sub.location, ]
+  M3 <- lm(BIASmean ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_stsp[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_stsp[[1]] #print the first object
+head(result_SE_stsp)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+SE_matrix<-ldply(result_SE_stsp, rbind) 
+# rename variables in columns:
+setnames(SE_matrix, old = c('.id','1'), new = c('sub.location','SE_slope_stsp'))
+head(SE_matrix)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+# sort all as descending by site name:
+detach(package:plyr)
+table_coeff_stsp<-Slope_matrix_stsp %>% arrange(desc(sub.location))
+table_SE_stsp<-SE_matrix %>% arrange(desc(sub.location))
+head(table_coeff_stsp)
+head(table_SE_stsp)
+
+# 4. merge slopes, pvalues, SE 
+table_final_stsp<- inner_join(table_coeff_stsp,table_SE_stsp, by = "sub.location")
+head(table_final_stsp)
+
+ggplot(table_final_stsp, aes(x = reorder(sub.location, slope_year_stsp), y = slope_year_stsp)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  theme_minimal() +
+  labs(x = "Site", y = "Slope of stsp") +
+  #scale_fill_manual(values = c("No trend stsp" = "grey", "Decline stsp" = "red", "Increase stsp" = "blue")) +
+  theme(legend.position = "bottom")
+
+### old, with correlation str####
 my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Asköfjärden", ]
 M1<-gls(BIASmean ~ year, correlation=corAR1(form=~year),
     na.action=na.omit,control = list(singular.ok = TRUE),method = "ML", data=my_site_age1) 
@@ -4118,15 +4194,6 @@ detach(table_final_stsp)
 
 table(table_final_stsp$trend_stsp)
 table(table_final_stsp$all_trends_stsp)
-
-ggplot(table_final_stsp, aes(x = reorder(sub.location, slope_year_stsp), y = slope_year_stsp)) +
-  geom_bar(stat = "identity", aes(fill = trend_stsp)) +
-  coord_flip() +
-  theme_minimal() +
-  labs(x = "Site", y = "Slope of stsp") +
-  scale_fill_manual(values = c("No trend stsp" = "grey", "Decline stsp" = "red", "Increase stsp" = "blue")) +
-  theme(legend.position = "bottom")
-
 
 ### FOR SLOPES OVER THE WHOLE PERIOD (2002-2023): 
 # check model for single site
@@ -4257,8 +4324,374 @@ table_final6_signif<-table_final6 %>%
 
 colnames(table_final6)
 
-##### model with stsp slopes as covariate ####
 
+
+
+##### calculate slopes and p values of temporal trends also for conspecifics and cyprininds ####
+
+### FOR SLOPES OVER THE WHOLE PERIOD (2002-2023): to do
+
+### FOR SLOPES OVER THE YEARS OF EACH TIME SERIE:
+
+# WHERE TO FIND TIME SERIES OF CONSPECIFICS and cyprininds: gillnets_pool_lag_time 
+# WHICH are THE VARIABLES? CPUE_Abborre_less25 and CPUE_Abborre_25andabove and cyprinids
+
+# Step 1: make a subset with conspeicfics and cypriningds time series and Join the year range info from range_years_subset7 
+CPUE_Abborre_with_years <- gillnets_pool_lag_time %>%
+  select(location, sub.location, year,CPUE_Abborre_less25, CPUE_Abborre_25andabove, totCPUE_Abborre, avg_year_temp,
+         cyprinids) %>%
+  left_join(range_years_subset7 %>% select(location,sub.location, first_year, last_year), by = c("sub.location","location"))
+
+# Step 2: Filter this based on the year range for each sub.location. Sublocation not included in the 
+# range_years_subset7 are automatically excluded
+filtered_CPUE_Abborre <- CPUE_Abborre_with_years %>%
+  filter(year >= first_year & year <= last_year)
+
+#### calculate slopes and SE for CPUE_Abborre_less25 in the time range of (perch) time series:####
+
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_CPUE_Abborre$sub.location)
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(CPUE_Abborre_less25 ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Vaxholm", ] #
+M1<-lm(CPUE_Abborre_less25 ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_abbo_less25 <- vector("list")
+for (sub.location in unique(filtered_CPUE_Abborre$sub.location)) {
+  my_site <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == sub.location, ]
+  M3 <- lm(CPUE_Abborre_less25 ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_abbo_less25[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_abbo_less25[[1]] #print the first object
+head(result_slope_abbo_less25)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_abbo_less25<-ldply(result_slope_abbo_less25, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_abbo_less25, old = c('.id','1'), new = c('sub.location','slope_abbo_less25'))
+head(Slope_matrix_abbo_less25)
+
+# 2) extract SE:
+result_SE_abbo_less25 <- vector("list")
+for (sub.location in unique(filtered_CPUE_Abborre$sub.location)) {
+  my_site <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == sub.location, ]
+  M3 <- lm(CPUE_Abborre_less25 ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_abbo_less25[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_abbo_less25[[1]] #print the first object
+head(result_SE_abbo_less25)
+
+# convert it into a dataframe:
+SE_matrix_abbo_less25<-ldply(result_SE_abbo_less25, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_abbo_less25, old = c('.id','1'), new = c('sub.location','SE_abbo_less25'))
+head(SE_matrix_abbo_less25)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+#### calculate slopes and SE for CPUE_Abborre_25andabove in the time range of (perch) time series:####
+
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_CPUE_Abborre$sub.location)
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(CPUE_Abborre_25andabove ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Vaxholm", ] #
+M1<-lm(CPUE_Abborre_25andabove ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_abbo_25andabove <- vector("list")
+for (sub.location in unique(filtered_CPUE_Abborre$sub.location)) {
+  my_site <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == sub.location, ]
+  M3 <- lm(CPUE_Abborre_25andabove ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_abbo_25andabove[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_abbo_25andabove[[1]] #print the first object
+head(result_slope_abbo_25andabove)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_abbo_25andabove<-ldply(result_slope_abbo_25andabove, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_abbo_25andabove, old = c('.id','1'), new = c('sub.location','slope_abbo_25andabove'))
+head(Slope_matrix_abbo_25andabove)
+
+# 2) extract SE:
+result_SE_abbo_25andabove <- vector("list")
+for (sub.location in unique(filtered_CPUE_Abborre$sub.location)) {
+  my_site <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == sub.location, ]
+  M3 <- lm(CPUE_Abborre_25andabove ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_abbo_25andabove[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_abbo_25andabove[[1]] #print the first object
+head(result_SE_abbo_25andabove)
+
+# convert it into a dataframe:
+SE_matrix_abbo_25andabove<-ldply(result_SE_abbo_25andabove, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_abbo_25andabove, old = c('.id','1'), new = c('sub.location','SE_abbo_25andabove'))
+head(SE_matrix_abbo_25andabove)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+#### calculate slopes and SE for ciprinids in the time range of (perch) time series:####
+
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_CPUE_Abborre$sub.location)
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(cyprinids ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == "Vaxholm", ] #
+M1<-lm(cyprinids ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_cyprinids <- vector("list")
+for (sub.location in unique(filtered_CPUE_Abborre$sub.location)) {
+  my_site <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == sub.location, ]
+  M3 <- lm(cyprinids ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_cyprinids[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_cyprinids[[1]] #print the first object
+head(result_slope_cyprinids)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_cyprinids<-ldply(result_slope_cyprinids, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_cyprinids, old = c('.id','1'), new = c('sub.location','slope_cyprinids'))
+head(Slope_matrix_cyprinids)
+
+# 2) extract SE:
+result_SE_cyprinids <- vector("list")
+for (sub.location in unique(filtered_CPUE_Abborre$sub.location)) {
+  my_site <- filtered_CPUE_Abborre[filtered_CPUE_Abborre$sub.location == sub.location, ]
+  M3 <- lm(cyprinids ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_cyprinids[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_cyprinids[[1]] #print the first object
+head(result_SE_cyprinids)
+
+# convert it into a dataframe:
+SE_matrix_cyprinids<-ldply(result_SE_cyprinids, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_cyprinids, old = c('.id','1'), new = c('sub.location','SE_cyprinids'))
+head(SE_matrix_cyprinids)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+
+# sort all as descending by site name:
+detach(package:plyr)
+table_coeff_abbo_less25<-Slope_matrix_abbo_less25 %>% arrange(desc(sub.location))
+table_SE_abbo_less25<-SE_matrix_abbo_less25 %>% arrange(desc(sub.location))
+table_coeff_abbo_25andabove<-Slope_matrix_abbo_25andabove %>% arrange(desc(sub.location))
+table_SE_abbo_25andabove<-SE_matrix_abbo_25andabove %>% arrange(desc(sub.location))
+table_coeff_cyprinids<-Slope_matrix_cyprinids %>% arrange(desc(sub.location))
+table_SE_cyprinids<-SE_matrix_cyprinids %>% arrange(desc(sub.location))
+head(table_coeff_abbo_less25)
+head(table_SE_abbo_less25)
+head(table_coeff_abbo_25andabove)
+head(table_SE_abbo_25andabove)
+head(table_coeff_cyprinids)
+head(table_SE_cyprinids)
+
+# merge all
+table_final_abbo_less25<- inner_join(table_coeff_abbo_less25,table_SE_abbo_less25, by = "sub.location")
+table_final_abbo_25andabove<- inner_join(table_coeff_abbo_25andabove,table_SE_abbo_25andabove, by = "sub.location")
+table_final_cyprinids<- inner_join(table_coeff_cyprinids,table_SE_cyprinids, by = "sub.location")
+table_final_abbo_cyprinids<- inner_join(table_final_abbo_less25,table_final_abbo_25andabove, by = "sub.location")
+table_final_abbo_cyprinids1<- inner_join(table_final_abbo_cyprinids,table_final_cyprinids, by = "sub.location")
+
+
+#### do the same for temp, once you understand what and where the variable is :D
+
+
+
+
+##### model with slopes of covariates as explanatory  ####
+
+# merge table_final1 with table_final_stsp and ...
+# you need to add a variable in table_final1 that is "sub.location", it got lost after skipping the computations of 
+# covariate means over the time
+
+##### old ####
 ### select only the significant slope of stsp: 26 obs
 table_final6_signif_stsp <- table_final6_signif %>%
   filter(pvalue_LRT_stsp < 0.05)
