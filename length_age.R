@@ -3967,6 +3967,53 @@ table(filtered_stsp$sub.location,filtered_stsp$gear_code)
 ### FOR SLOPES OVER THE WHOLE PERIOD (2002-2023): to do
 
 ### FOR SLOPES OVER THE YEARS OF EACH TIME SERIE:
+
+# check if there is autocorrelation, to know whether to include year as random or not:
+#####
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without year as random and see how much difference there is: slope quite similars, SE reduced 
+# for model without random factor, as expected
+
+# check model for single site
+unique(filtered_stsp$sub.location)
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Kinnbäcksfjärden", ] # no stsp values
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Kumlinge, Åland", ] # very little autocorre
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Lagnö", ]  # no stsp values
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Norrbyn", ]# very little autocorre
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Råneå", ] # no stsp values
+my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(BIASmean ~ year, 
+        na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+# there is autocorrelation
+#####
 # check model for single site
 my_site_age1 <- filtered_stsp[filtered_stsp$sub.location == "Asköfjärden", ]
 M1<-gls(BIASmean ~ year, correlation=corAR1(form=~year),
