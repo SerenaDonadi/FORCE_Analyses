@@ -3623,6 +3623,11 @@ table_final1$all_trends[slope_year < 0] <- "all_declines"
 table_final1$all_trends[slope_year > 0] <- "all_increases"
 detach(table_final1)
 
+# export table for Agnes to make the map:
+library(openxlsx)
+write.xlsx(table_final1, file="G:\\My Drive\\table_final1.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
 table(table_final1$trend)
 table(table_final1$all_trends)
 
@@ -4678,18 +4683,1173 @@ table_final_abbo_25andabove<- inner_join(table_coeff_abbo_25andabove,table_SE_ab
 table_final_cyprinids<- inner_join(table_coeff_cyprinids,table_SE_cyprinids, by = "sub.location")
 table_final_abbo_cyprinids<- inner_join(table_final_abbo_less25,table_final_abbo_25andabove, by = "sub.location")
 table_final_abbo_cyprinids1<- inner_join(table_final_abbo_cyprinids,table_final_cyprinids, by = "sub.location")
+table_final_abbo_cyprinids1
 
 
-#### do the same for temp, once you understand what and where the variable is :D
+##### calculate slopes and p values of temporal trends also for temp variables ####
+
+### FOR SLOPES OVER THE YEARS OF EACH TIME SERIE: 
+
+# WHERE TO FIND TIME SERIES OF temp var: temp_satellite_all
+# WHICH are THE VARIABLES? 
+# dd_year
+# avg_temp_year
+# avg_temp_summer
+# avg_temp_winter
+# n_days_exceeding_10_year
+# first_day_exceeding_10_julian
+
+# Step 1: make a subset with temp time series and Join the year range info from range_years_subset7 
+temp_satellite_all_with_years <- temp_satellite_all %>%
+  left_join(range_years_subset7 %>% select(location,sub.location, first_year, last_year), by = c("sub.location","location"))
+
+# Step 2: Filter this based on the year range for each sub.location. Sublocation not included in the 
+# range_years_subset7 are automatically excluded
+filtered_temp_satellite_all <- temp_satellite_all_with_years %>%
+  filter(year >= first_year & year <= last_year)
+
+#### calculate slopes and SE for avg_dd_year in the time range of (perch) time series:####
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_temp_satellite_all$sub.location)
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(dd_year ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] #
+M1<-lm(dd_year ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_dd_year <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(dd_year ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_dd_year[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_dd_year[[1]] #print the first object
+head(result_slope_dd_year)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_dd_year<-ldply(result_slope_dd_year, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_dd_year, old = c('.id','1'), new = c('sub.location','slope_dd_year'))
+head(Slope_matrix_dd_year)
+
+# 2) extract SE:
+result_SE_dd_year <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(dd_year ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_dd_year[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_dd_year[[1]] #print the first object
+head(result_SE_dd_year)
+
+# convert it into a dataframe:
+SE_matrix_dd_year<-ldply(result_SE_dd_year, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_dd_year, old = c('.id','1'), new = c('sub.location','SE_dd_year'))
+head(SE_matrix_dd_year)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
 
 
+#### calculate slopes and SE for avg_temp_year in the time range of (perch) time series:####
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_temp_satellite_all$sub.location)
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(avg_temp_year ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] #
+M1<-lm(avg_temp_year ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_avg_temp_year <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(avg_temp_year ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_avg_temp_year[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_avg_temp_year[[1]] #print the first object
+head(result_slope_avg_temp_year)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_avg_temp_year<-ldply(result_slope_avg_temp_year, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_avg_temp_year, old = c('.id','1'), new = c('sub.location','slope_avg_temp_year'))
+head(Slope_matrix_avg_temp_year)
+
+# 2) extract SE:
+result_SE_avg_temp_year <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(avg_temp_year ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_avg_temp_year[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_avg_temp_year[[1]] #print the first object
+head(result_SE_avg_temp_year)
+
+# convert it into a dataframe:
+SE_matrix_avg_temp_year<-ldply(result_SE_avg_temp_year, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_avg_temp_year, old = c('.id','1'), new = c('sub.location','SE_avg_temp_year'))
+head(SE_matrix_avg_temp_year)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+
+
+
+
+
+#### calculate slopes and SE for avg_temp_summer in the time range of (perch) time series:####
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_temp_satellite_all$sub.location)
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(avg_temp_summer ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] #
+M1<-lm(avg_temp_summer ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_avg_temp_summer <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(avg_temp_summer ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_avg_temp_summer[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_avg_temp_summer[[1]] #print the first object
+head(result_slope_avg_temp_summer)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_avg_temp_summer<-ldply(result_slope_avg_temp_summer, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_avg_temp_summer, old = c('.id','1'), new = c('sub.location','slope_avg_temp_summer'))
+head(Slope_matrix_avg_temp_summer)
+
+# 2) extract SE:
+result_SE_avg_temp_summer <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(avg_temp_summer ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_avg_temp_summer[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_avg_temp_summer[[1]] #print the first object
+head(result_SE_avg_temp_summer)
+
+# convert it into a dataframe:
+SE_matrix_avg_temp_summer<-ldply(result_SE_avg_temp_summer, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_avg_temp_summer, old = c('.id','1'), new = c('sub.location','SE_avg_temp_summer'))
+head(SE_matrix_avg_temp_summer)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+#### calculate slopes and SE for avg_temp_winter in the time range of (perch) time series:####
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_temp_satellite_all$sub.location)
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(avg_temp_winter ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] #
+M1<-lm(avg_temp_winter ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_avg_temp_winter <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(avg_temp_winter ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_avg_temp_winter[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_avg_temp_winter[[1]] #print the first object
+head(result_slope_avg_temp_winter)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_avg_temp_winter<-ldply(result_slope_avg_temp_winter, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_avg_temp_winter, old = c('.id','1'), new = c('sub.location','slope_avg_temp_winter'))
+head(Slope_matrix_avg_temp_winter)
+
+# 2) extract SE:
+result_SE_avg_temp_winter <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(avg_temp_winter ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_avg_temp_winter[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_avg_temp_winter[[1]] #print the first object
+head(result_SE_avg_temp_winter)
+
+# convert it into a dataframe:
+SE_matrix_avg_temp_winter<-ldply(result_SE_avg_temp_winter, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_avg_temp_winter, old = c('.id','1'), new = c('sub.location','SE_avg_temp_winter'))
+head(SE_matrix_avg_temp_winter)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+#### calculate slopes and SE for n_days_exceeding_10_year in the time range of (perch) time series:####
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_temp_satellite_all$sub.location)
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(n_days_exceeding_10_year ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] #
+M1<-lm(n_days_exceeding_10_year ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_n_days_exceeding_10_year <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(n_days_exceeding_10_year ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_n_days_exceeding_10_year[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_n_days_exceeding_10_year[[1]] #print the first object
+head(result_slope_n_days_exceeding_10_year)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_n_days_exceeding_10_year<-ldply(result_slope_n_days_exceeding_10_year, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_n_days_exceeding_10_year, old = c('.id','1'), new = c('sub.location','slope_n_days_exceeding_10_year'))
+head(Slope_matrix_n_days_exceeding_10_year)
+
+# 2) extract SE:
+result_SE_n_days_exceeding_10_year <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(n_days_exceeding_10_year ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_n_days_exceeding_10_year[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_n_days_exceeding_10_year[[1]] #print the first object
+head(result_SE_n_days_exceeding_10_year)
+
+# convert it into a dataframe:
+SE_matrix_n_days_exceeding_10_year<-ldply(result_SE_n_days_exceeding_10_year, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_n_days_exceeding_10_year, old = c('.id','1'), new = c('sub.location','SE_n_days_exceeding_10_year'))
+head(SE_matrix_n_days_exceeding_10_year)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+
+#### calculate slopes and SE for first_day_exceeding_10_julian in the time range of (perch) time series:####
+# check if there is autocorrelation, to know whether to include year as random or not: 
+# new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
+# run models without random and see how much difference there is
+
+# check model for single site
+unique(filtered_temp_satellite_all$sub.location)
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Asköfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Finbo, Åland", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Forsmark", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Gaviksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Holmön", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kinnbäcksfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Kumlinge, Åland", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Lagnö", ]  # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Långvindsfjärden", ] # ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Norrbyn", ]# ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Råneå", ] #ok, no autocorr
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Karlskrona Ö skärgård", ] # ok, no autocorr
+
+M1<-lm(first_day_exceeding_10_julian ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+#plot(M1)
+E1<-resid(M1)
+acf(E1)
+# or
+my_site_age1$E1<-resid(M1)
+plot(E1~year, data=my_site_age1)
+acf(my_site_age1$E1) # Significant spikes outside the blue bands suggest autocorrelation at those lags.
+# install.packages("lmtest")
+library(lmtest)
+dwtest(M1)  # Durbin–Watson test
+# DW ≈ 2: no autocorrelation.DW < 2: positive autocorrelation.DW > 2: negative autocorrelation.Check the p-value to assess significance.
+# Alternatively:
+library(car)
+durbinWatsonTest(M1)  # from 'car' package, can consider higher lags
+# Breusch–Godfrey test (general autocorrelation, higher lags). Use this to test for autocorrelation at one or more lags
+# Test up to lag 4, adjust 'order' to what makes sense for your data
+bgtest(M1, order = 4) # If the p-value is small, residuals show autocorrelation up to the specified lag.
+# Box.test with Ljung-Box, test up to lag 10 (adjust as needed)
+Box.test(my_site_age1$E1, lag = 10, type = "Ljung-Box") # Small p-value indicates residual autocorrelation across the tested lags.
+
+# extract slope coeff and SE: no need of corr str! (Hence for LRT)
+
+# check model for single site
+my_site_age1 <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == "Vaxholm", ] #
+M1<-lm(first_day_exceeding_10_julian ~ year, 
+       na.action=na.omit, data=my_site_age1) 
+summary(M1)
+coef_value<-summary(M1)$coefficients
+coef_value[2]
+coef_value[4]
+
+# 1) extract slope
+# to avoid lack of convergence I have to remove NA:
+# filtered_CPUE_Abborre_NA<-na.omit(filtered_CPUE_Abborre) 
+
+result_slope_first_day_exceeding_10_julian <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(first_day_exceeding_10_julian ~ year, na.action=na.omit, data=my_site)
+  coef_value<-summary(M3)$coefficients[2]
+  result_slope_first_day_exceeding_10_julian[[sub.location]]<-coef_value # I need to index whatever object I m storing the value 
+}
+
+result_slope_first_day_exceeding_10_julian[[1]] #print the first object
+head(result_slope_first_day_exceeding_10_julian)
+
+# convert it into a dataframe:
+library(plyr); library(dplyr)
+Slope_matrix_first_day_exceeding_10_julian<-ldply(result_slope_first_day_exceeding_10_julian, rbind) 
+# rename variables in columns:
+setnames(Slope_matrix_first_day_exceeding_10_julian, old = c('.id','1'), new = c('sub.location','slope_first_day_exceeding_10_julian'))
+head(Slope_matrix_first_day_exceeding_10_julian)
+
+# 2) extract SE:
+result_SE_first_day_exceeding_10_julian <- vector("list")
+for (sub.location in unique(filtered_temp_satellite_all$sub.location)) {
+  my_site <- filtered_temp_satellite_all[filtered_temp_satellite_all$sub.location == sub.location, ]
+  M3 <- lm(first_day_exceeding_10_julian ~ year, na.action=na.omit, data=my_site)
+  se_value<-summary(M3)$coefficients[4]
+  result_SE_first_day_exceeding_10_julian[[sub.location]]<-se_value # I need to index whatever object I m storing the value 
+}
+
+result_SE_first_day_exceeding_10_julian[[1]] #print the first object
+head(result_SE_first_day_exceeding_10_julian)
+
+# convert it into a dataframe:
+SE_matrix_first_day_exceeding_10_julian<-ldply(result_SE_first_day_exceeding_10_julian, rbind) 
+# rename variables in columns:
+setnames(SE_matrix_first_day_exceeding_10_julian, old = c('.id','1'), new = c('sub.location','SE_first_day_exceeding_10_julian'))
+head(SE_matrix_first_day_exceeding_10_julian)
+# if ERROR, use:
+#Slope_matrix<-do.call(rbind, result_slope) # not ideal but I found the way
+#slope_year<-as.numeric(Slope_matrix[1:268])
+#Site_ID_COORD<-names(result_slope)
+#head(Site_ID_COORD)
+#table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
+#head(table_slopes) # halleluja
+
+# sort all as descending by site name:
+detach(package:plyr)
+table_coeff_dd_year<-Slope_matrix_dd_year %>% arrange(desc(sub.location))
+table_SE_dd_year<-SE_matrix_dd_year %>% arrange(desc(sub.location))
+table_coeff_avg_temp_year<-Slope_matrix_avg_temp_year %>% arrange(desc(sub.location))
+c<-SE_matrix_avg_temp_year %>% arrange(desc(sub.location))
+table_coeff_avg_temp_summer<-Slope_matrix_avg_temp_summer %>% arrange(desc(sub.location))
+table_SE_avg_temp_summer<-SE_matrix_avg_temp_summer %>% arrange(desc(sub.location))
+table_coeff_avg_temp_winter<-Slope_matrix_avg_temp_winter %>% arrange(desc(sub.location))
+table_SE_avg_temp_winter<-SE_matrix_avg_temp_winter %>% arrange(desc(sub.location))
+table_coeff_n_days_exceeding_10_year<-Slope_matrix_n_days_exceeding_10_year %>% arrange(desc(sub.location))
+table_SE_n_days_exceeding_10_year<-SE_matrix_n_days_exceeding_10_year %>% arrange(desc(sub.location))
+table_coeff_first_day_exceeding_10_julian<-Slope_matrix_first_day_exceeding_10_julian%>% arrange(desc(sub.location))
+table_SE_first_day_exceeding_10_julian<-SE_matrix_first_day_exceeding_10_julian %>% arrange(desc(sub.location))
+
+head(table_coeff_dd_year)
+head(table_SE_dd_year)
+head(table_coeff_avg_temp_year)
+head(table_SE_avg_temp_year)
+head(table_coeff_avg_temp_summer)
+head(table_SE_avg_temp_summer)
+head(table_coeff_avg_temp_winter)
+head(table_SE_avg_temp_winter)
+head(table_coeff_n_days_exceeding_10_year)
+head(table_SE_n_days_exceeding_10_year)
+head(table_coeff_first_day_exceeding_10_julian)
+head(table_SE_first_day_exceeding_10_julian)
+
+# merge all
+table_final_temp <- table_coeff_dd_year %>%
+  inner_join(table_SE_dd_year, by = "sub.location") %>%
+  inner_join(table_coeff_avg_temp_year, by = "sub.location") %>%
+  inner_join(table_SE_avg_temp_year, by = "sub.location")%>%
+  inner_join(table_coeff_avg_temp_summer, by = "sub.location") %>%
+  inner_join(table_SE_avg_temp_summer, by = "sub.location") %>%
+  inner_join(table_coeff_avg_temp_winter, by = "sub.location")%>%
+  inner_join(table_SE_avg_temp_winter, by = "sub.location") %>%
+  inner_join(table_coeff_n_days_exceeding_10_year, by = "sub.location") %>%
+  inner_join(table_SE_n_days_exceeding_10_year, by = "sub.location")%>%
+  inner_join(table_coeff_first_day_exceeding_10_julian, by = "sub.location") %>%
+  inner_join(table_SE_first_day_exceeding_10_julian, by = "sub.location")
 
 
 ##### model with slopes of covariates as explanatory  ####
 
-# merge table_final1 with table_final_stsp and ...
+# merge coeff from perch length with all coeff and SE from covariates:
 # you need to add a variable in table_final1 that is "sub.location", it got lost after skipping the computations of 
 # covariate means over the time
+head(table_final1)
+head(table_final_stsp)
+head(table_final_abbo_cyprinids1)
+head(table_final_temp)
+
+library(stringr)
+
+table_final2 <- table_final1 %>%
+  mutate(
+    sub.location = str_remove(sub.location_age, "_\\d+$"),
+    age = str_extract(sub.location_age, "\\d+$") |> as.integer()
+  )
+
+# validate that all rows match the expected pattern
+bad_rows <- !grepl("_\\d+$", table_final2$sub.location_age)
+which(bad_rows)
+
+# merge all
+table_final3 <- table_final2 %>%
+  inner_join(table_final_stsp, by = "sub.location") %>%
+  inner_join(table_final_abbo_cyprinids1, by = "sub.location") %>%
+  inner_join(table_final_temp, by = "sub.location")
+
+# create one variable with values from abbo less 25 and 25 and above depending on the age of the response:
+table_final3$slope_abbo_comparable_size <- ifelse(table_final3$age %in% c(2, 3), table_final3$slope_abbo_less25,
+              ifelse(table_final3$age %in% c(4, 5), table_final3$slope_abbo_25andabove, NA))
+# same for SE:
+table_final3$SE_abbo_comparable_size <- ifelse(table_final3$age %in% c(2, 3), table_final3$SE_abbo_less25,
+                                                  ifelse(table_final3$age %in% c(4, 5), table_final3$SE_abbo_25andabove, NA))
+
+#### exploration of models, number of explanatory and random factors ####
+### beyond optimal model without interactions
+M1<-lm(slope_year ~ age + slope_year_stsp + slope_abbo_comparable_size + slope_cyprinids 
+       + slope_dd_year,
+       weights = 1/(SE_slope)^2, na.action = na.omit,data=table_final3)
+vif(M1)
+cor.test(table_final3$slope_year_stsp,table_final3$slope_dd_year)
+plot(table_final3$slope_year_stsp,table_final3$slope_dd_year)
+# some collinearity between stsp and dd_lat - maybe not with other temp variable?
+cor.test(table_final3$slope_year_stsp,table_final3$slope_avg_temp_year) # strong coll
+cor.test(table_final3$slope_year_stsp,table_final3$slope_avg_temp_summer) # strong coll
+cor.test(table_final3$slope_year_stsp,table_final3$slope_avg_temp_winter) # moderate coll
+cor.test(table_final3$slope_year_stsp,table_final3$slope_n_days_exceeding_10_year) # moderate coll
+cor.test(table_final3$slope_year_stsp,table_final3$slope_first_day_exceeding_10_julian) # low coll
+
+# leave temp out for now, and also cyprinids, include interaction
+M1<-lm(slope_year ~ age * slope_year_stsp + slope_abbo_comparable_size ,
+       weights = 1/(SE_slope)^2, na.action = na.omit,data=table_final3)
+summary(M1)
+
+
+# testing if random factor is significant withouth weight. delete temp for now: it is
+M0<-gls(slope_year ~ age + slope_year_stsp + slope_abbo_comparable_size,
+        method = "REML", na.action = na.omit,data=table_final3)
+M2<-lme(slope_year ~ age + slope_year_stsp + slope_abbo_comparable_size,
+        random = ~1|sub.location,method = "REML",
+        na.action = na.omit,data=table_final3)
+anova(M0,M2)
+anova.lme(M2, type = "marginal", adjustSigma = F) 
+rsquared(M2)
+
+# Most likely I will need a random factor, and the weight and including temp and maybe cyprinids in different models
+# test also if slope_abbo_comparable_size perform better than the other abbo variables
+# test different alternative temp variables
+
+# 1) using lme4:
+library(lme4)
+m1 <- lmer(slope_year ~ age + slope_year_stsp + slope_abbo_comparable_size  + (1 | sub.location),
+          data = table_final3,
+          weights = 1 / (SE_slope^2),   # SE is per-observation standard error of y
+          REML = TRUE)
+summary(m1)
+
+# 2) using nlme:
+m_nlme <- lme(
+  fixed  = slope_year ~ age + slope_year_stsp + slope_abbo_comparable_size,                 # fixed effects
+  random = ~ 1 | sub.location,           # random intercept
+  data   = table_final3,
+  weights = varFixed(~ SE_slope^2),           # known residual variance ∝ SE^2
+  method = "REML"
+)
+
+summary(m_nlme)
+
+# 3) multilevel meta-analysis - great if y is an estimate with SE (for effect sizes estimated with a precision, SE)
+library(metafor)
+m_meta <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_year_stsp + slope_abbo_comparable_size,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+
+summary(m_meta)
+
+# comparing with a modek withouth random factor:
+
+m_meta2 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_year_stsp + slope_abbo_comparable_size,         # fixed effects (include interactions with *)
+  #random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+
+summary(m_meta2)
+anova(m_meta,m_meta2) # signific
+
+# let's go for (3)
+
+# HOW MANY PREDICTORS TO INCLUDE IN THE MODEL?
+# iF i USE the 10:1 rule of thumb, considering that I have 44 replicates,  I can include 4 factors + interactions 
+# since each interaction represents one additional parameters
+# however, if random factor is signif (and it is), I have to be more conservative
+### calculate  effective sample size (ESS) to know how many predictors I can include:
+# The effective sample size (ESS) in a mixed model accounts for the fact that observations within the same cluster
+# (e.g., site) are correlated. the formula is: n(eff) = n/(1+(m-1)p), Where:
+# n = total number of observations = 44
+# m = average cluster size (observations per site) = 
+# p = intra-class correlation (ICC), i.e., proportion of variance explained by the random effect
+# and p is random effect variance (sigma site^2)/(sigma site^2+sigma residual^2)
+# but sigma residual is not estimated with the meta-analysis because the residual (within‑effect)
+# variance is fixed to the values I have given, i.e. SE_slope^2.
+# hence, I use this formula:
+
+Vi <- table_final3$SE_slope^2
+tau2 <- m_meta$sigma2[1]           # random effect variance
+mean_V <- mean(Vi, na.rm = TRUE)   # average sampling variance
+
+ICC <- tau2 / (tau2 + mean_V)
+m <- 44 / 11                       # average cluster size
+n_eff <- 44 / (1 + (m - 1) * ICC)
+
+ICC # proportion of variance explained by the random effect
+n_eff # effective sample size: 18
+# that means that I can include only 2 factors!
+
+# and if I redo the this starting from a model with no fixed explanatory variable but only the random factor: SAME!
+m_meta0 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ 1,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+
+summary(m_meta0)
+Vi <- table_final3$SE_slope^2
+tau2 <- m_meta$sigma2[1]           # random effect variance
+mean_V <- mean(Vi, na.rm = TRUE)   # average sampling variance
+
+ICC <- tau2 / (tau2 + mean_V)
+m <- 44 / 11                       # average cluster size
+n_eff <- 44 / (1 + (m - 1) * ICC)
+
+ICC # proportion of variance explained by the random effect
+n_eff # effective sample size: 18
+
+##### multilevel meta-analysis - run separate models with separate explanatory variables ####
+
+# In meta-analysis, the variance explained is about heterogeneity (between-effect variance), not raw outcome 
+# variance. The usual metric is pseudo-R², which measures the proportion of heterogeneity explained by moderators.
+# How to calculate pseudo-R² in metafor: Fit two models:Unconditional model (no moderators)and Full model
+# (with moderators and compute pseudo_R2 as below
+
+# unconditional model:
+m_meta0 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ 1,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+
+# models with moderators:
+# stsp and age: stsp signif positive
+m_meta1 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_year_stsp,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta1)
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta1$sigma2[1]
+
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.40
+
+# stsp and conspecifics: stsp signif positive
+m_meta2 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_year_stsp + slope_abbo_comparable_size,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta2)
+
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta2$sigma2[1]
+
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.35
+
+# abbo less25 and age: none signif
+m_meta3 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_abbo_less25,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta3)
+
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta3$sigma2[1]
+
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # negative
+
+# abbo more than 25 and age: none signif
+m_meta4 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_abbo_25andabove,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta4)
+
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta4$sigma2[1]
+
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.03
+
+# abbo less25 and stsp: stsp signif
+m_meta5 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_year_stsp + slope_abbo_less25,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta5)
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta5$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.36
+
+
+# abbo more25 and stsp: stsp signif
+m_meta6 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_year_stsp + slope_abbo_25andabove,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta6)
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta6$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.34
+
+# dd_year and age: dd_year signif posit
+m_meta7 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_dd_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta7)
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta7$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.33
+
+# slope_avg_year_temp and age: slope_avg_temp_year signif posit
+m_meta7 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_avg_temp_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta7)
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta7$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.47
+
+
+# slope_avg_year_summer and age: slope_avg_temp_summer signif posit
+m_meta7 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_avg_temp_summer,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta7)
+# pseudo-R2:
+tau2_full <- m_meta7$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.36
+
+# slope_avg_year_winter and age: slope_avg_year_winter signif posit
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_avg_temp_winter,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.45
+
+# slope_avg_year_winter and age: slope_n_days_exceeding_10_year signif posit
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_n_days_exceeding_10_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.60
+
+# slope_avg_year_winter and age: none signif
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_first_day_exceeding_10_julian,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # negative
+
+# cyprinids and age: none signif
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_cyprinids,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.01
+
+# cautiously testing stsp and temp together, moderate collineraity: slope_n_days_exceeding_10_year is signif
+cor.test(table_final3$slope_year_stsp,table_final3$slope_n_days_exceeding_10_year, method = "spearman") # moderate coll
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_n_days_exceeding_10_year + slope_year_stsp,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.62
+
+# cautiously testing an interaction: nine signif
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_n_days_exceeding_10_year * slope_year_stsp,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.59
+
+# cautiously testing stsp and temp together, strong collineraity: none signif
+cor.test(table_final3$slope_dd_year,table_final3$slope_n_days_exceeding_10_year, method = "spearman") # moderate coll
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_dd_year + slope_year_stsp,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.33
+
+# cautiously testing an interaction: n0ne signif
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_dd_year * slope_year_stsp,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.24
+
+
+# best two factors model so far is: slope_n_days_exceeding_10_year
+# if I remove age R2 is only two units lower (age indeed is ns)
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_n_days_exceeding_10_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.58
+
+
+
+
+
 
 ##### old ####
 ### select only the significant slope of stsp: 26 obs
