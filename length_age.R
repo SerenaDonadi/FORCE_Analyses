@@ -5538,6 +5538,7 @@ ICC # proportion of variance explained by the random effect
 n_eff # effective sample size: 18
 
 ##### multilevel meta-analysis - run separate models with separate explanatory variables ####
+library(metafor)
 
 # In meta-analysis, the variance explained is about heterogeneity (between-effect variance), not raw outcome 
 # variance. The usual metric is pseudo-R², which measures the proportion of heterogeneity explained by moderators.
@@ -5572,6 +5573,23 @@ tau2_full <- m_meta1$sigma2[1]
 pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
 pseudo_R2 # 0.40
 
+# age and conspecifics: none signif
+m_meta2 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ age + slope_abbo_comparable_size,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta2)
+# pseudo-R2:
+tau2_null <- m_meta0$sigma2[1]
+tau2_full <- m_meta2$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.02
+
+
 # stsp and conspecifics: stsp signif positive
 m_meta2 <- rma.mv(
   yi = slope_year,              # the estimate per unit
@@ -5586,7 +5604,6 @@ summary(m_meta2)
 # pseudo-R2:
 tau2_null <- m_meta0$sigma2[1]
 tau2_full <- m_meta2$sigma2[1]
-
 pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
 pseudo_R2 # 0.35
 
@@ -5722,7 +5739,7 @@ tau2_full <- m_meta8$sigma2[1]
 pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
 pseudo_R2 # 0.45
 
-# slope_avg_year_winter and age: slope_n_days_exceeding_10_year signif posit
+# slope_n_days_exceeding_10_year  and age: slope_n_days_exceeding_10_year signif posit
 m_meta8 <- rma.mv(
   yi = slope_year,              # the estimate per unit
   V  = SE_slope^2,              # its sampling variance
@@ -5737,7 +5754,7 @@ tau2_full <- m_meta8$sigma2[1]
 pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
 pseudo_R2 # 0.60
 
-# slope_avg_year_winter and age: none signif
+# slope_first_day_exceeding_10_julian and age: none signif
 m_meta8 <- rma.mv(
   yi = slope_year,              # the estimate per unit
   V  = SE_slope^2,              # its sampling variance
@@ -5846,9 +5863,398 @@ tau2_full <- m_meta8$sigma2[1]
 pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
 pseudo_R2 # 0.58
 
+##### plotting from meta-analysis model exploration ####
+
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_n_days_exceeding_10_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.58
 
 
+# 1) quick plot, moderator not centered
+# Build a grid of moderator values spanning the observed range
+x <- with(table_final3, slope_n_days_exceeding_10_year)
+x_seq <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE), length.out = 200)
 
+# Get predictions at each value of the moderator
+# For rma/rma.mv, use 'newmods' to pass the moderator values
+pred <- predict(m_meta8, newmods = x_seq)
+
+# Plot: fitted line + 95% CI band, plus raw points for reference
+plot(x, table_final3$slope_year,
+     pch = 19, col = rgb(0,0,0,0.35),
+     xlab = "Slope of number of days exceeding 10C (per year)",
+     ylab = "Slope of length at age")
+lines(x_seq, pred$pred, lwd = 2, col = "#1f77b4")
+lines(x_seq, pred$ci.lb, lwd = 1, lty = 2, col = "#1f77b4")
+lines(x_seq, pred$ci.ub, lwd = 1, lty = 2, col = "#1f77b4")
+
+# Optional: add a semi-transparent confidence band
+polygon(
+  x = c(x_seq, rev(x_seq)),
+  y = c(pred$ci.lb, rev(pred$ci.ub)),
+  col = adjustcolor("#1f77b4", alpha.f = 0.15),
+  border = NA
+)
+
+# Optional: add a rug to show data density along x
+rug(x, col = "#666666")
+
+# What it shows: The estimated change in slope_year as the moderator increases, with uncertainty (95% CI). 
+# Random intercepts are not added; this is the overall (population-level) partial effect.
+
+# 2) Centering the moderator (recommended for interpretability) --- IT'S THE SAME
+# If you want the intercept to correspond to a meaningful value (e.g., the sample mean of the moderator), 
+# you can center the moderator first. The shape of the line is the same, but the intercept becomes more 
+# interpretable.
+
+table_final3$x_c <- scale(table_final3$slope_n_days_exceeding_10_year, center = TRUE, scale = FALSE)
+
+m_meta8c <- rma.mv(
+  yi     = slope_year,
+  V      = SE_slope^2,
+  mods   = ~ x_c,
+  random = ~ 1 | sub.location,
+  data   = table_final3,
+  method = "REML"
+)
+
+# Prediction grid around the centered scale
+x_seq_c <- seq(min(table_final3$x_c, na.rm = TRUE),
+               max(table_final3$x_c, na.rm = TRUE),
+               length.out = 200)
+pred_c <- predict(m_meta8c, newmods = x_seq_c)
+
+# Plot on original scale but use predictions from centered model
+x_mean <- attr(table_final3$x_c, "scaled:center")
+x_seq_orig <- x_seq_c + x_mean
+
+plot(table_final3$slope_n_days_exceeding_10_year, table_final3$slope_year,
+     pch = 19, col = rgb(0,0,0,0.35),
+     xlab = "Slope of number of days exceeding 10C (per year)",
+     ylab = "Slope of length at age")
+lines(x_seq_orig, pred_c$pred, lwd = 2, col = "#2ca02c")
+polygon(
+  x = c(x_seq_orig, rev(x_seq_orig)),
+  y = c(pred_c$ci.lb, rev(pred_c$ci.ub)),
+  col = adjustcolor("#2ca02c", alpha.f = 0.15),
+  border = NA
+)
+# rug(table_final3$slope_n_days_exceeding_10_year, col = "#666666")
+
+#NB: Use predict() with newmods for any rma/rma.mv model; when there are multiple moderators, pass a design matrix
+# via model.matrix(...)[, -1].
+
+# 3) USING VISREG FOR A CLEAN PARTIAL EFFECT PLOT: not working
+
+visreg(m_meta8, "slope_n_days_exceeding_10_year",
+       overlay = TRUE, rug = TRUE,
+       data = table_final3,
+       xlab = "Slope of number of days exceeding 10C (per year)",
+       ylab = "Slope of length at age")
+
+# 4) Predicting within specific clusters 
+# f you want location-specific curves (adding empirical Bayes random intercepts), you can extract BLUPs and shift the line per cluster. 
+
+# Empirical Bayes estimates (BLUPs) of random intercepts per location
+bl <- ranef(m_meta8)  # list; for simple random intercept, first element is the location-level effects
+bl_df <- as.data.frame(bl[[1]])
+names(bl_df) <- c("sub.location", "blup")
+
+# Choose a few locations to display
+set.seed(1)
+locs <- sample(bl_df$sub.location, size = min(6, nrow(bl_df)))
+
+x_seq <- seq(min(table_final3$slope_n_days_exceeding_10_year, na.rm = TRUE),
+             max(table_final3$slope_n_days_exceeding_10_year, na.rm = TRUE),
+             length.out = 150)
+pred <- predict(m_meta8, newmods = x_seq)
+
+plot(NA, xlim = range(x_seq),
+     ylim = range(c(pred$ci.lb, pred$ci.ub)),
+     xlab = "Days exceeding threshold (per year)",
+     ylab = "Estimated slope per year (yi)")
+
+# Overall line
+lines(x_seq, pred$pred, lwd = 2, col = "black")
+
+# Add location-specific shifts
+cols <- RColorBrewer::brewer.pal(6, "Set2")
+i <- 1
+for (loc in locs) {
+  shift <- bl_df$blup[bl_df$sub.location == loc]
+  lines(x_seq, pred$pred + shift, col = cols[i], lwd = 2)
+  i <- i + 1
+}
+legend("topleft", legend = c("Overall", locs),
+       col = c("black", cols[1:length(locs)]), lwd = 2, bty = "n")
+
+# 5) using ggplot2
+
+library(metafor)
+library(ggplot2)
+
+# Build a sequence over the observed moderator range
+x <- table_final3$slope_n_days_exceeding_10_year
+x_seq <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE), length.out = 300)
+
+# Get predictions for each x value (fixed part, random effects = 0)
+pred <- predict(m_meta8, newmods = x_seq)
+
+# Combine into a tidy data frame for ggplot
+pred_df <- data.frame(
+  slope_n_days_exceeding_10_year = x_seq,
+  fit  = pred$pred,
+  lwr  = pred$ci.lb,
+  upr  = pred$ci.ub
+)
+
+# Plot
+ggplot() +
+  # Raw points (semi-transparent)
+  geom_point(
+    data = table_final3,
+    aes(x = slope_n_days_exceeding_10_year, y = slope_year),
+    color = "black", alpha = 0.35, size = 2
+  ) +
+  # 95% CI ribbon
+  geom_ribbon(
+    data = pred_df,
+    aes(x = slope_n_days_exceeding_10_year, ymin = lwr, ymax = upr),
+    fill = "#1f77b4", alpha = 0.15
+  ) +
+  # Fitted line
+  geom_line(
+    data = pred_df,
+    aes(x = slope_n_days_exceeding_10_year, y = fit),
+    color = "#1f77b4", linewidth = 1.2
+  ) +
+  labs(
+    x = "Slope of No. of days exceeding 10C",
+    y = "Slope of length at age",
+    title = "Partial effect of days exceeding threshold on yearly slope",
+    subtitle = "rma.mv fixed-effect relationship with 95% CI"
+  ) +
+  theme_classic(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank()
+  )
+
+#### BEST models (with dots coloured by age) ####
+
+library(metafor)
+library(ggplot2)
+
+### model with slope_n_days_exceeding_10_year
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_n_days_exceeding_10_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.58
+
+# --- Build prediction grid for the moderator ---
+x <- table_final3$slope_n_days_exceeding_10_year
+x_seq <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE), length.out = 300)
+
+pred <- predict(m_meta8, newmods = x_seq)
+
+pred_df <- data.frame(
+  slope_n_days_exceeding_10_year = x_seq,
+  fit  = pred$pred,
+  lwr  = pred$ci.lb,
+  upr  = pred$ci.ub
+)
+
+# --- Ensure age is treated as a factor with clear labels ---
+table_final3$age_f <- factor(table_final3$age,
+                             levels = c(2, 3, 4, 5),
+                             labels = c("Age 2", "Age 3", "Age 4", "Age 5"))
+
+# --- Plot ---
+ggplot() +
+  # Raw points colored by age (semi-transparent)
+  geom_point(
+    data = table_final3,
+    aes(x = slope_n_days_exceeding_10_year, y = slope_year, color = age_f),
+    alpha = 0.60, size = 2.3
+  ) +
+  # CI ribbon (overall marginal effect)
+  geom_ribbon(
+    data = pred_df,
+    aes(x = slope_n_days_exceeding_10_year, ymin = lwr, ymax = upr),
+    fill = "#1f77b4", alpha = 0.15, inherit.aes = FALSE
+  ) +
+  # Fitted line
+  geom_line(
+    data = pred_df,
+    aes(x = slope_n_days_exceeding_10_year, y = fit),
+    color = "#1f77b4", linewidth = 1.2, inherit.aes = FALSE
+  ) +
+  scale_color_brewer(palette = "Set2", name = "Age group") +
+  labs(
+    x = "Slope of No. of days exceeding 10°C",
+    y = "Slope of length at age",
+    title = "Partial effect of (one) moderator",
+    subtitle = "Population-level (fixed part) with 95% CI; points colored by age"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    legend.position = "right"
+  )
+
+### model with stsp:
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_year_stsp,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.58
+
+# --- Build prediction grid for the moderator ---
+x <- table_final3$slope_year_stsp
+x_seq <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE), length.out = 300)
+
+pred <- predict(m_meta8, newmods = x_seq)
+
+pred_df <- data.frame(
+  slope_year_stsp = x_seq,
+  fit  = pred$pred,
+  lwr  = pred$ci.lb,
+  upr  = pred$ci.ub
+)
+
+# --- Ensure age is treated as a factor with clear labels ---
+table_final3$age_f <- factor(table_final3$age,
+                             levels = c(2, 3, 4, 5),
+                             labels = c("Age 2", "Age 3", "Age 4", "Age 5"))
+
+# --- Plot ---
+ggplot() +
+  # Raw points colored by age (semi-transparent)
+  geom_point(
+    data = table_final3,
+    aes(x = slope_year_stsp, y = slope_year, color = age_f),
+    alpha = 0.60, size = 2.3
+  ) +
+  # CI ribbon (overall marginal effect)
+  geom_ribbon(
+    data = pred_df,
+    aes(x = slope_year_stsp, ymin = lwr, ymax = upr),
+    fill = "#1f77b4", alpha = 0.15, inherit.aes = FALSE
+  ) +
+  # Fitted line
+  geom_line(
+    data = pred_df,
+    aes(x = slope_year_stsp, y = fit),
+    color = "#1f77b4", linewidth = 1.2, inherit.aes = FALSE
+  ) +
+  scale_color_brewer(palette = "Set2", name = "Age group") +
+  labs(
+    x = "Slope of stickleback density",
+    y = "Slope of length at age",
+    title = "Partial effect of (one) moderator",
+    subtitle = "Population-level (fixed part) with 95% CI; points colored by age"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    legend.position = "right"
+  )
+
+### model with slope_avg_temp_year:
+m_meta8 <- rma.mv(
+  yi = slope_year,              # the estimate per unit
+  V  = SE_slope^2,              # its sampling variance
+  mods = ~ slope_avg_temp_year,         # fixed effects (include interactions with *)
+  random = ~ 1 | sub.location,   # random effect for location
+  data = table_final3,
+  method = "REML"
+)
+summary(m_meta8)
+# pseudo-R2:
+tau2_full <- m_meta8$sigma2[1]
+pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
+pseudo_R2 # 0.58
+
+# --- Build prediction grid for the moderator ---
+x <- table_final3$slope_avg_temp_year
+x_seq <- seq(min(x, na.rm = TRUE), max(x, na.rm = TRUE), length.out = 300)
+
+pred <- predict(m_meta8, newmods = x_seq)
+
+pred_df <- data.frame(
+  slope_avg_temp_year = x_seq,
+  fit  = pred$pred,
+  lwr  = pred$ci.lb,
+  upr  = pred$ci.ub
+)
+
+# --- Ensure age is treated as a factor with clear labels ---
+table_final3$age_f <- factor(table_final3$age,
+                             levels = c(2, 3, 4, 5),
+                             labels = c("Age 2", "Age 3", "Age 4", "Age 5"))
+
+# --- Plot ---
+ggplot() +
+  # Raw points colored by age (semi-transparent)
+  geom_point(
+    data = table_final3,
+    aes(x = slope_avg_temp_year, y = slope_year, color = age_f),
+    alpha = 0.60, size = 2.3
+  ) +
+  # CI ribbon (overall marginal effect)
+  geom_ribbon(
+    data = pred_df,
+    aes(x = slope_avg_temp_year, ymin = lwr, ymax = upr),
+    fill = "#1f77b4", alpha = 0.15, inherit.aes = FALSE
+  ) +
+  # Fitted line
+  geom_line(
+    data = pred_df,
+    aes(x = slope_avg_temp_year, y = fit),
+    color = "#1f77b4", linewidth = 1.2, inherit.aes = FALSE
+  ) +
+  scale_color_brewer(palette = "Set2", name = "Age group") +
+  labs(
+    x = "Slope of average year temperature",
+    y = "Slope of length at age",
+    title = "Partial effect of (one) moderator",
+    subtitle = "Population-level (fixed part) with 95% CI; points colored by age"
+  ) +
+  theme_minimal(base_size = 13) +
+  theme(
+    plot.title = element_text(face = "bold"),
+    panel.grid.minor = element_blank(),
+    legend.position = "right"
+  )
 
 
 ##### old ####
