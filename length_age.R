@@ -2957,6 +2957,7 @@ summary(length_age12_stack$distance)
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
   plot() 
 
+
 ##### NICE FIG FOR PRINTING####
 dev.off()
 tiff(filename = "G:/My Drive/FORCE_Analyses//Fig.tiff",
@@ -3315,6 +3316,18 @@ rsquared(M)
 summary(M)
 plot(M)
 
+
+
+##### validation of best model ####
+
+# checking R2 if I drop age and its interactions from the model:
+M1<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan + gear_code + day_of_month +
+          dd_year_avg_lifespan+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1, type = "marginal", adjustSigma = F) 
+rsquared(M1)
 
 
 ###### checking a 4 way interaction: TO DO or skip ######
@@ -5404,6 +5417,11 @@ table_final3$slope_abbo_comparable_size <- ifelse(table_final3$age %in% c(2, 3),
 # same for SE:
 table_final3$SE_abbo_comparable_size <- ifelse(table_final3$age %in% c(2, 3), table_final3$SE_abbo_less25,
                                                   ifelse(table_final3$age %in% c(4, 5), table_final3$SE_abbo_25andabove, NA))
+
+# export to excel:
+library(openxlsx)
+write.xlsx(table_final3, file="G:\\My Drive\\table_final3.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
 #### exploration of models, number of explanatory and random factors ####
 ### beyond optimal model without interactions
