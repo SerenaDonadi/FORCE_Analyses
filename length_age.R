@@ -3068,12 +3068,34 @@ sd(length_age12_stack$BIASmean_avg_lifespan, na.rm = T)
 
 ggemmeans(M1a, terms = c("dd_year_avg_lifespan", "age")) %>%
   print(n = Inf)
+# validating with real data:
+ggplot(length_age12_stack, aes(x = dd_year_avg_lifespan, y = total_length, color = age)) +
+  geom_point(size = 1)+
+  facet_wrap(~age)
+summary(length_age12_stack$dd_year_avg_lifespan)
+
+length_age12_stack %>% 
+  filter(age==2) %>% 
+  summarise(max=max(dd_year_avg_lifespan ,na.rm=TRUE)) # 750
+
+# make prediction for high value of DD
+dd_year_avg_lifespan_NA<-na.omit(length_age12_stack$dd_year_avg_lifespan)
+mean(dd_year_avg_lifespan_NA)
+sd(dd_year_avg_lifespan_NA)
+2*101.6954+520.7313
+3*101.6954+520.7313 
+2.5*101.6954+520.7313 
+# for values of DD of 724, the model predict length of 259 for age 5 and 215 for age 2
+# for values pf DD of 826, the model predict length of 256 for age 5 and 233 for age 2 
+# for values of DD of 775, the model predict length of 257 for age 5 and 224 for age 2
+# for values of DD of 750, the model predict length of 258 for age 5 and 220 for age 2
 
 ggemmeans(M1a, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age")) %>%
   print(n = Inf)
 205.05 -302.23 
 136.26-211.84
 summary(length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
+
 
 ggemmeans(M1a, terms = c("cyprinids_avg_lifespan", "age")) %>%
   print(n = Inf)
@@ -3611,6 +3633,20 @@ head(SE_matrix)
 #table_slopes<-cbind.data.frame(Site_ID_COORD,slope_year)
 #head(table_slopes) # halleluja
 
+# extract for each location the difference between the max and min year to calculate where we have the steepest increase
+year_span_df <- length_age12_stack_time_series7 %>%
+  filter(!is.na(sub.location_age)) %>%                     # optional: keep only valid locations
+  group_by(sub.location_age) %>%
+  summarise(
+    min_year = suppressWarnings(min(year, na.rm = TRUE)),
+    max_year = suppressWarnings(max(year, na.rm = TRUE)),
+    year_span = max_year - min_year,
+    .groups = "drop"
+  )
+
+year_span_df
+
+
 # sort all as descending by site name:
 detach(package:plyr)
 table_LRT_pvalues<-LRT_matrix %>% arrange(desc(sub.location_age))
@@ -3619,6 +3655,8 @@ table_SE<-SE_matrix %>% arrange(desc(sub.location_age))
 head(table_LRT_pvalues)
 head(table_coeff)
 head(table_SE)
+year_span_df1<-year_span_df %>% arrange(desc(sub.location_age))
+
 
 # 4. merge slopes, pvalues, SE 
 table_final<- inner_join(table_LRT_pvalues,table_coeff, by = "sub.location_age")
@@ -3645,6 +3683,12 @@ table(table_final1$trend)
 table(table_final1$all_trends)
 
 table(length_age12_stack_time_series7$sub.location,length_age12_stack_time_series7$distance)
+
+# merge with time span of each series:
+table_final2<- inner_join(table_final1,year_span_df1, by = "sub.location_age")
+head(table_final2)
+
+
 
 ##### calculate avg stsp and conspecifics over time for each site and age: old, no need now #####
 
