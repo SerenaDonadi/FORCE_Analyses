@@ -5423,6 +5423,15 @@ library(openxlsx)
 write.xlsx(table_final3, file="G:\\My Drive\\table_final3.xlsx",
            sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
+# or: 
+# install.packages("writexl")  # if needed
+library(writexl)
+
+# For a single data.frame:
+write_xlsx(length_age12_stack_time_series7, path = "G:/My Drive/length_age12_stack_time_series7.xlsx")
+
+
+
 #### exploration of models, number of explanatory and random factors ####
 ### beyond optimal model without interactions
 M1<-lm(slope_year ~ age + slope_year_stsp + slope_abbo_comparable_size + slope_cyprinids 
