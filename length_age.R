@@ -6559,7 +6559,7 @@ ggplot(coef_boot, aes(term, estimate)) +
   geom_boxplot(width = 0.1, alpha = 0.5, fill = NA, size = 1)
 
 
-# Covariate correlation
+# Covariate correlation # 
 ggplot(cor_boot, aes(x = cor_temp_stick)) +
   geom_histogram(bins = 30) +
   labs(x = "Correlation(temp slope, stick slope)") +
