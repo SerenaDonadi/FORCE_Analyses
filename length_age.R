@@ -3688,8 +3688,6 @@ table(length_age12_stack_time_series7$sub.location,length_age12_stack_time_serie
 table_final2<- inner_join(table_final1,year_span_df1, by = "sub.location_age")
 head(table_final2)
 
-
-
 ##### calculate avg stsp and conspecifics over time for each site and age: old, no need now #####
 
 # Extract here the means for each sublocation and age, of "perceived" stsp and conspecifics 
@@ -5586,7 +5584,7 @@ ICC # proportion of variance explained by the random effect
 n_eff # effective sample size: 18
 # that means that I can include only 2 factors!
 
-# and if I redo the this starting from a model with no fixed explanatory variable but only the random factor: SAME!
+# and if I redo this starting from a model with no fixed explanatory variable but only the random factor: SAME!
 m_meta0 <- rma.mv(
   yi = slope_year,              # the estimate per unit
   V  = SE_slope^2,              # its sampling variance
@@ -5616,7 +5614,7 @@ library(metafor)
 # How to calculate pseudo-R² in metafor: Fit two models:Unconditional model (no moderators)and Full model
 # (with moderators and compute pseudo_R2 as below
 
-# unconditional model:
+# unconditional model: no moderators (fixed factors)
 m_meta0 <- rma.mv(
   yi = slope_year,              # the estimate per unit
   V  = SE_slope^2,              # its sampling variance
@@ -5934,7 +5932,7 @@ tau2_full <- m_meta8$sigma2[1]
 pseudo_R2 <- (tau2_null - tau2_full) / tau2_null
 pseudo_R2 # 0.58
 
-##### plotting from meta-analysis model exploration ####
+##### plotting from meta-analysis models -  exploration ####
 
 m_meta8 <- rma.mv(
   yi = slope_year,              # the estimate per unit
@@ -6326,6 +6324,273 @@ ggplot() +
     panel.grid.minor = element_blank(),
     legend.position = "right"
   )
+
+
+#### MAX CODES FOR BOOTSTRAPPING ####
+library(lme4)
+library(tidyr)
+library(dplyr)
+library(purrr)
+library(ggbeeswarm)
+library(readr)
+library(broom.mixed)
+library(lubridate)
+library(stringr)
+library(ggplot2)
+theme_set(theme_light())
+
+### Read data
+
+# Read length-data (I also take temperature from here)
+d <- length_age12_stack_time_series7 |>
+  mutate(
+    year_ct = year - min(year),
+    year_f = as.factor(year),
+    yday = yday(dmy(catch_date)),
+    yday_ct = yday - min(yday),
+    # Make a new column called location to match stickleback data
+    location = str_remove(sub.location_age, "_.*"),
+    location_age_f = as.factor(sub.location_age)
+  )
+
+unique(d$location)
+table(length_age12_stack_time_series7$location,length_age12_stack_time_series7$sub.location)
+unique(filtered_stsp$sub.location)
+# SD note: sublocations are the originally units, and are also in the stsp dataset.
+# not a big deal in this cases as each location corresponds to one sublocation,
+# but maybe good to keep sublocation for reference, e.g. match the names in the other analysis
+# also lat and long will be a bit different
+
+stick <- filtered_stsp |>
+  mutate(
+    year_ct = year - min(year),
+    year_f = as.factor(year),
+    # I assume these sites below are similar (they are mismatching otherwise)
+    location = case_when(
+      location == "Torhamn, Karlskrona Ö skärgård" ~ "Karlskrona Ö skärgård",
+      location == "Askrikefjärden" ~ "Vaxholm",
+      TRUE ~ location
+    )
+  ) |>
+  drop_na(BIASmean)
+
+# First fit a model to get the main response (slope of length-at-age). Do this by location and age
+size_slopes <- d |>
+  group_by(location, age) |>
+  group_modify(~ {
+    m <- lmer(
+      total_length ~ year_ct + yday_ct + (1 | year_f),
+      data = .x,
+      REML = TRUE
+    )
+    
+    tidy(m, effects = "fixed") |>
+      filter(term == "year_ct") |>
+      mutate(
+        size_slope = estimate,
+        size_slope_se = std.error,
+        .keep = "none"
+      )
+  }) |>
+  ungroup() |>
+  mutate(weights_sc = (1 / size_slope_se^2) / mean(1 / size_slope_se^2))
+
+
+#SD question: why this weight? I use this: (1 / size_slope_se^2)
+# SD: comforting to see that the slopes we have estimated hare the same :D
+
+### Do the full bootstrap
+
+# Prepare for the main boot strap by setting globally relevant ranges of predictor values
+# for the conditional predictions, so that we use the same new_data in the prediction
+# across all bootsrapts
+
+temp_trends <- d |>
+  distinct(location, year_ct, avg_temp_year) |> # removes duplicate rows, keeping only unique combinations of the variables
+  group_by(location) |>
+  group_modify(~ {
+    m <- lm(avg_temp_year ~ year_ct, data = .x)
+    tibble(temp_slope = coef(m)[["year_ct"]])
+  }) |>
+  ungroup()
+
+stick_trends <- stick |>
+  group_by(location) |>
+  group_modify(~ {
+    m <- lm(BIASmean ~ year_ct, data = .x)
+    tibble(stick_slope = coef(m)[["year_ct"]])
+  }) |>
+  ungroup()
+
+temp_grid_global <- seq(
+  min(temp_trends$temp_slope, na.rm = TRUE),
+  max(temp_trends$temp_slope, na.rm = TRUE),
+  length.out = 60
+)
+
+stick_grid_global <- seq(
+  min(stick_trends$stick_slope, na.rm = TRUE),
+  max(stick_trends$stick_slope, na.rm = TRUE),
+  length.out = 60
+)
+
+
+# Bootstrap! Approach is to fit models to the covariates on bootstrapped data, then n times,
+# fit a model with the length trend as the response and the n_th covariate slope as the covariate
+
+nboot <- 500
+set.seed(123)
+
+boot_results <- map(seq_len(nboot), function(b) {
+  # Bootstrap temperature trends
+  temp_slopes <- d |>
+    group_by(location) |>
+    slice_sample(prop = 1, replace = TRUE) |>
+    ungroup() |>
+    distinct(year_ct, avg_temp_year, location) |>
+    group_by(location) |>
+    group_modify(~ {
+      m <- lm(avg_temp_year ~ year_ct, data = .x)
+      tibble(temp_slope = coef(m)[["year_ct"]])
+    }) |>
+    ungroup()
+  
+  # Bootstrap stickleback trends
+  stick_slopes <- stick |>
+    group_by(location) |>
+    slice_sample(prop = 1, replace = TRUE) |>
+    ungroup() |>
+    group_by(location) |>
+    group_modify(~ {
+      m <- lm(BIASmean ~ year_ct, data = .x)
+      tibble(stick_slope = coef(m)[["year_ct"]])
+    }) |>
+    ungroup()
+  
+  # Join with length-trend data
+  d2 <- size_slopes |>
+    left_join(temp_slopes, by = "location") |>
+    left_join(stick_slopes, by = "location")
+  
+  
+  # Fit the main weighted regression, relating slopes to slopes
+  m2 <- lm(
+    size_slope ~ temp_slope + stick_slope,
+    data = d2,
+    weights = weights_sc
+  )
+  
+  # Coefficients
+  coef_tbl <- tidy(m2) |>
+    filter(term %in% c("temp_slope", "stick_slope")) |>
+    mutate(boot_id = b)
+  
+  # Reference values when making the conditional predictions for the other variable
+  temp_ref <- mean(d2$temp_slope, na.rm = TRUE)
+  stick_ref <- mean(d2$stick_slope, na.rm = TRUE)
+  
+  # Temperature predictions
+  pred_temp <- tibble(
+    boot_id     = b,
+    variable    = "temperature",
+    x           = temp_grid_global,
+    temp_slope  = temp_grid_global,
+    stick_slope = stick_ref
+  )
+  pred_temp$pred_size_slope <- predict(m2, newdata = pred_temp)
+  
+  # Stickleback prediction
+  pred_stick <- tibble(
+    boot_id     = b,
+    variable    = "stickleback",
+    x           = stick_grid_global,
+    temp_slope  = temp_ref,
+    stick_slope = stick_grid_global
+  )
+  pred_stick$pred_size_slope <- predict(m2, newdata = pred_stick)
+  
+  # Bootstrap-level correlation between covariates
+  cor_tbl <- tibble(
+    boot_id = b,
+    cor_temp_stick = cor(
+      d2$temp_slope,
+      d2$stick_slope,
+      use = "complete.obs"
+    )
+  )
+  
+  list(
+    coef = coef_tbl,
+    pred = bind_rows(pred_temp, pred_stick),
+    cor_covars = cor_tbl
+  )
+})
+
+
+# Collect bootstrap output
+coef_boot <- map_dfr(boot_results, "coef")
+pred_boot <- map_dfr(boot_results, "pred")
+cor_boot <- map_dfr(boot_results, "cor_covars")
+
+### Summarise and plot output
+
+# Summarize output
+coef_summary <- coef_boot |>
+  summarise(
+    median = median(estimate),
+    lwr_95 = quantile(estimate, 0.025),
+    upr_95 = quantile(estimate, 0.975),
+    .by = term
+  )
+
+pred_summary <- pred_boot |>
+  group_by(variable, x) |>
+  summarise(
+    est = mean(pred_size_slope),
+    lwr = quantile(pred_size_slope, 0.025),
+    upr = quantile(pred_size_slope, 0.975),
+    .groups = "drop"
+  )
+
+# Plot
+# coefficient distributions
+ggplot(coef_boot, aes(term, estimate)) +
+  geom_quasirandom(alpha = 0.3) +
+  geom_boxplot(width = 0.1, alpha = 0.5, fill = NA, size = 1)
+
+
+# Covariate correlation
+ggplot(cor_boot, aes(x = cor_temp_stick)) +
+  geom_histogram(bins = 30) +
+  labs(x = "Correlation(temp slope, stick slope)") +
+  theme_minimal()
+
+summary(cor_boot$cor_temp_stick)
+
+# Conditional predictions
+ggplot(pred_summary, aes(x = x, y = est)) +
+  geom_line() +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
+  facet_wrap(~variable, scales = "free_x") +
+  labs(x = "Covariate trend", y = "Predicted size trend")
+
+### TODO
+
+#How to do bootstrapping for temperature etc, when the variable is repeated each year? Should I bootstrap years, or rows? Probably the former…
+
+#Should the final model be with an age interaction? Probably there’s some age effect there
+
+#This example is only for the two main predictors, do we want to add more?
+  
+#  Did I treat the data correctly?
+  
+#  What do we think about the predictor-correlation?
+
+
+
+
+
+
 
 
 ##### old ####
