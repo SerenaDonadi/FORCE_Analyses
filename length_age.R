@@ -4763,7 +4763,7 @@ temp_satellite_all_with_years <- temp_satellite_all %>%
 filtered_temp_satellite_all <- temp_satellite_all_with_years %>%
   filter(year >= first_year & year <= last_year)
 
-#### calculate slopes and SE for avg_dd_year in the time range of (perch) time series:####
+#### calculate slopes and SE for dd_year in the time range of (perch) time series:####
 # check if there is autocorrelation, to know whether to include year as random or not: 
 # new addition: don't include a correlation str if not necessary. test for residual autocorrelation and/or
 # run models without random and see how much difference there is
@@ -6356,7 +6356,7 @@ d <- length_age12_stack_time_series7 |>
 unique(d$location)
 table(length_age12_stack_time_series7$location,length_age12_stack_time_series7$sub.location)
 unique(filtered_stsp$sub.location)
-# SD note: sublocations are the originally units, and are also in the stsp dataset.
+# SD note: sublocations are the originally spatial units, and are also in the stsp dataset.
 # not a big deal in this cases as each location corresponds to one sublocation,
 # but maybe good to keep sublocation for reference, e.g. match the names in the other analysis
 # also lat and long will be a bit different
@@ -6396,8 +6396,10 @@ size_slopes <- d |>
   mutate(weights_sc = (1 / size_slope_se^2) / mean(1 / size_slope_se^2))
 
 
-#SD question: why this weight? I use this: (1 / size_slope_se^2)
-# SD: comforting to see that the slopes we have estimated hare the same :D
+#SD question: why this weight? This step is purely for scaling, not statistics.
+# It rescales the weights so that The average weight = 1
+#The regression behaves like an ordinary regression in terms of scale
+#Coefficients remain numerically stable.The intercept is interpretable.Prediction is numerically well-behaved
 
 ### Do the full bootstrap
 
@@ -6405,8 +6407,12 @@ size_slopes <- d |>
 # for the conditional predictions, so that we use the same new_data in the prediction
 # across all bootsrapts
 
+# SD: I get it now, this step serves only to obtain relevant ranges of slopes. That is, temp_trends 
+# is never used later, but I use bootstrap (dvs resampling) of the temp and stsp data within each location
+
 temp_trends <- d |>
-  distinct(location, year_ct, avg_temp_year) |> # removes duplicate rows, keeping only unique combinations of the variables
+  distinct(location, year_ct, avg_temp_year) |> # removes duplicate rows, keeping only unique combinations of the variables. 
+  #SD: I think year_ct and avg_temp_year are redundant, as they both have a different value for each year
   group_by(location) |>
   group_modify(~ {
     m <- lm(avg_temp_year ~ year_ct, data = .x)
@@ -6439,21 +6445,28 @@ stick_grid_global <- seq(
 # fit a model with the length trend as the response and the n_th covariate slope as the covariate
 
 nboot <- 500
-set.seed(123)
+set.seed(123) # ensures you get the same “random” bootstrap each time 
 
 boot_results <- map(seq_len(nboot), function(b) {
   # Bootstrap temperature trends
   temp_slopes <- d |>
-    group_by(location) |>
-    slice_sample(prop = 1, replace = TRUE) |>
-    ungroup() |>
     distinct(year_ct, avg_temp_year, location) |>
+    group_by(location) |>
+    slice_sample(prop = 1, replace = TRUE) |> # takes 100% of rows per group (same size as the original), with replacement.
+    ungroup() |>
     group_by(location) |>
     group_modify(~ {
       m <- lm(avg_temp_year ~ year_ct, data = .x)
       tibble(temp_slope = coef(m)[["year_ct"]])
     }) |>
     ungroup()
+  
+  # SD: we have 1 unique temp value per location and year, which is repeated a number of time that depends
+  # on how many fish were measured. How can we bootstrap that??  I am resampling the duplicate rows.
+  # shouldn't we move distinct before the bootstrapping? If after, as it is now, all duplicates disappear
+  # and the bootstrap sample has exactly the same set of rows every time, in a new order
+  # we maybe should bootstrap over years, not over raw rows. but then we loose the matching temp-year?
+  # I don't think so, as some years get repeated, some years get left out ->  which creates variation in the estimated trend.
   
   # Bootstrap stickleback trends
   stick_slopes <- stick |>
@@ -6472,10 +6485,13 @@ boot_results <- map(seq_len(nboot), function(b) {
     left_join(temp_slopes, by = "location") |>
     left_join(stick_slopes, by = "location")
   
+  #SD: size_slopes: 52 rows (one per location) — fixed
+  #temp_slopes: also 52 rows, one slope per location — but values change each bootstrap
+  #stick_slopes: also 52 rows, one slope per location — values change each bootstrap
   
   # Fit the main weighted regression, relating slopes to slopes
   m2 <- lm(
-    size_slope ~ temp_slope + stick_slope,
+    size_slope ~ temp_slope*age + stick_slope*age,
     data = d2,
     weights = weights_sc
   )
@@ -6490,23 +6506,25 @@ boot_results <- map(seq_len(nboot), function(b) {
   stick_ref <- mean(d2$stick_slope, na.rm = TRUE)
   
   # Temperature predictions
-  pred_temp <- tibble(
+  pred_temp <- expand_grid(
+    age         = c(2:5),
     boot_id     = b,
     variable    = "temperature",
-    x           = temp_grid_global,
     temp_slope  = temp_grid_global,
     stick_slope = stick_ref
   )
+  
   pred_temp$pred_size_slope <- predict(m2, newdata = pred_temp)
   
   # Stickleback prediction
-  pred_stick <- tibble(
+  pred_stick <- expand_grid(
+    age         = c(2:5),
     boot_id     = b,
     variable    = "stickleback",
-    x           = stick_grid_global,
     temp_slope  = temp_ref,
     stick_slope = stick_grid_global
   )
+  
   pred_stick$pred_size_slope <- predict(m2, newdata = pred_stick)
   
   # Bootstrap-level correlation between covariates
@@ -6543,52 +6561,63 @@ coef_summary <- coef_boot |>
     .by = term
   )
 
-pred_summary <- pred_boot |>
-  group_by(variable, x) |>
+pred_summary_stick <- pred_boot |>
+  filter(variable == "stickleback") |> 
   summarise(
     est = mean(pred_size_slope),
     lwr = quantile(pred_size_slope, 0.025),
     upr = quantile(pred_size_slope, 0.975),
-    .groups = "drop"
+    .by = c(stick_slope, variable, age)
   )
+
+pred_summary_temp <- pred_boot |>
+  filter(variable == "temperature") |> 
+  summarise(
+    est = mean(pred_size_slope),
+    lwr = quantile(pred_size_slope, 0.025),
+    upr = quantile(pred_size_slope, 0.975),
+    .by = c(temp_slope, variable, age)
+  )
+
+pred_summary <- bind_rows(
+  
+  pred_summary_temp |>
+    rename(x = temp_slope),
+  
+  pred_summary_stick |>
+    rename(x = stick_slope)
+)
 
 # Plot
 # coefficient distributions
 ggplot(coef_boot, aes(term, estimate)) +
+  #facet_wrap(~term, scales = "free") +
   geom_quasirandom(alpha = 0.3) +
+  geom_hline(yintercept = 0, alpha = 0.5, linetype = 2) +
   geom_boxplot(width = 0.1, alpha = 0.5, fill = NA, size = 1)
 
-
-# Covariate correlation # 
+# Covariate correlation
 ggplot(cor_boot, aes(x = cor_temp_stick)) +
   geom_histogram(bins = 30) +
-  labs(x = "Correlation(temp slope, stick slope)") +
-  theme_minimal()
+  coord_cartesian(expand = 0) +
+  labs(x = "Correlation(temp slope, stick slope)")
 
 summary(cor_boot$cor_temp_stick)
+summary(abs(cor_boot$cor_temp_stick))
 
 # Conditional predictions
-ggplot(pred_summary, aes(x = x, y = est)) +
+pred_summary |> 
+  ggplot(aes(x = x, y = est, color = factor(age), fill = factor(age))) +
+  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, color = NA) +
   geom_line() +
-  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2) +
-  facet_wrap(~variable, scales = "free_x") +
+  facet_grid(variable~age) +
   labs(x = "Covariate trend", y = "Predicted size trend")
 
-### TODO
-
-#How to do bootstrapping for temperature etc, when the variable is repeated each year? Should I bootstrap years, or rows? Probably the former…
-
-#Should the final model be with an age interaction? Probably there’s some age effect there
-
-#This example is only for the two main predictors, do we want to add more?
-  
-#  Did I treat the data correctly?
-  
-#  What do we think about the predictor-correlation?
-
-
-
-
+pred_summary |> 
+  ggplot(aes(x = x, y = est, color = factor(age), fill = factor(age))) +
+  geom_line() +
+  facet_wrap(~variable, scales = "free_x") +
+  labs(x = "Covariate trend", y = "Predicted size trend")
 
 
 
