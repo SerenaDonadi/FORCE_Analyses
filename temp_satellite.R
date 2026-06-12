@@ -110,6 +110,7 @@ temp_satellite_n_days_exceeding_10_year <- temp_satellite1 %>%
   group_by(location,sub.location, gear_code, year) %>%
   summarise(n_days_exceeding_10_year = n())
 
+
 # calculate N days with temp > 10 until July:
 temp_satellite_n_days_exceeding_10_jan_jul <- temp_satellite1 %>%
   filter(temp > 10) %>%
@@ -150,3 +151,38 @@ df <- data.frame(temp_satellite_all[,c("avg_temp_year","dd_year","avg_temp_summe
                            "first_day_exceeding_10_julian")])
 # plot pairwise scatterplots of covariates:
 pairs(df)
+
+# check corelation bteween the degree days above 10 °C
+plot(temp_satellite_all$dd_year, temp_satellite_all$n_days_exceeding_10_year)
+shapiro.test(temp_satellite_all$n_days_exceeding_10_year)
+cor.test(temp_satellite_all$dd_year, temp_satellite_all$n_days_exceeding_10_year, method = "spearman")
+cor.test(temp_satellite_all$dd_year, temp_satellite_all$avg_temp_year, method = "spearman")
+cor.test(temp_satellite_all$n_days_exceeding_10_year, temp_satellite_all$avg_temp_year, method = "spearman")
+
+# and with n days with even warmer temp
+# bonus
+temp_bonus1 <- temp_satellite1 %>%
+  group_by(location, sub.location, gear_code, year) %>%
+  summarise(
+    n_days_exceeding_15_year = sum(temp > 15, na.rm = TRUE),
+    .groups = "drop"
+  )
+temp_bonus2 <- temp_satellite1 %>%
+  group_by(location, sub.location, gear_code, year) %>%
+  summarise(
+    n_days_exceeding_20_year = sum(temp > 20, na.rm = TRUE),
+    .groups = "drop"
+  )
+
+temp_satellite_bonus <- temp_satellite_year %>%
+  left_join(temp_satellite_n_days_exceeding_10_year, by = c("location", "sub.location", "gear_code", "year")) %>%
+  left_join(temp_bonus1, by = c("location", "sub.location", "gear_code", "year")) %>%
+  left_join(temp_bonus2, by = c("location", "sub.location", "gear_code", "year"))
+
+cor.test(temp_satellite_bonus$dd_year, temp_satellite_bonus$n_days_exceeding_15_year, method = "spearman")
+cor.test(temp_satellite_bonus$dd_year, temp_satellite_bonus$n_days_exceeding_20_year, method = "spearman")
+plot(temp_satellite_bonus$dd_year, temp_satellite_bonus$n_days_exceeding_15_year)
+plot(temp_satellite_bonus$dd_year, temp_satellite_bonus$n_days_exceeding_20_year)
+ 
+cor.test(temp_satellite_bonus$dd_year, temp_satellite_bonus$n_days_exceeding_15_year, method = "spearman")
+cor.test(temp_satellite_bonus$avg_temp_year, temp_satellite_bonus$n_days_exceeding_15_year, method = "spearman")

@@ -629,7 +629,7 @@ gillnets_totCPUE_wide_select<-gillnets_totCPUE_wide %>%
 
 colnames(gillnets_totCPUE_wide)
 sort(unique(gillnets_totCPUE$Art))
-
+summary(gillnets_totCPUE_wide$totCPUE_Id)
 
 # merge gillnets_length_indexes table with CPUE of spp:
 gillnets_pool0<-left_join(gillnets_length_indexes, gillnets_totCPUE_wide_select, by = c("location","sub.location","year")) # 

@@ -408,7 +408,6 @@ stsp_lag$BIASmean_sum_since_5YearBefore<-(stsp_lag$BIASmean+
 
 # merge with stsp data:  merge and keep all records in left dataset, and only matching record in right dataset
 length_age10a<-left_join(length_age10, stsp_lag, by = c("year","location","sub.location","gear_code")) 
-
 # same for distance from offshore data:
 # convert gear to factor, rename it and rename its levels:
 dist_offshore$gear_code <- as.factor(dist_offshore$gear)
@@ -2642,13 +2641,14 @@ length_age12_stack_std <- length_age12_stack %>%
 summary(length_age12_stack_std$total_length)
 summary(length_age12_stack$BIASmean)
 summary(length_age12_stack_std$cyprinids_avg_lifespan)
+summary(length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan)
 
 unique(length_age12_stack_std$location)
 
 table(length_age12_stack_std$sub.location, length_age12_stack_std$BIASmean)
 # show me where I have NAs
 Na_dataset<-length_age12_stack %>%
-  filter(is.na(CPUE_Abbo_samesize)) 
+  filter(is.na(BIASmean)) 
 unique(Na_dataset$sub.location)
 
 
@@ -2907,6 +2907,172 @@ summary(M1a)
 summary(M1a)$tTable
 plot(M1a)
 
+##### exploring contribution of single term:####
+# Partial (Type II/III) ANOVA: Use ANOVA on your fitted model to get partial R², which quantifies each predictor’s unique contribution.
+car::Anova(M1a, type = "II") # doesn't work, maybe bc I have a random factor
+#  Partial R² / Semi-partial R²: These give the variance explained by each variable independent of others.
+rsq::rsq.partial(M1a) # not supported model
+# Hierarchical partitioning: good when predictors are correlated. It decomposes total R² into independent effects and	joint effects
+hier.part::hier.part(y, dataframe_of_predictors) # package ‘hier.part’ is not available for this version of R
+# Use model selection and sum Akaike weights across models
+# to do
+# For mixed models (LMMs and GLMMs), the best and most widely accepted methods for assessing the 
+# contribution of individual predictors are not based on simple R² changes. Instead.
+# partial R2 for mixed models:
+library(partR2)
+partR2(M1a, partvars = c("BIASmean_avg_lifespan", "age", "dd_year_avg_lifespan")) # only supports merMod objects at the moment
+# AIC-based variable importance (model weights)
+library(MuMIn)
+model_set <- dredge(M1a) # not working with na.omit
+importance(model_set)
+
+# Likelihood ratio tests (LRTs) :
+M1<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M2<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           dd_year_avg_lifespan*age+
+           CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "ML",data=length_age12_stack_std)
+# INTERACTION STSP*distance:
+anova(M1,M2)
+AIC(M1,M2)
+
+devM1 <- -2 * logLik(M1)
+devM2 <- -2 * logLik(M2)
+(devM2-devM1)/devM2*100
+(devM1-devM2)/devM1*100
+
+M3<-lme(total_length ~ BIASmean_avg_lifespan*distance+ gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+# INTERACTION STSP*AgE:
+anova(M1,M3)
+AIC(M1,M3)
+
+M4<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+# INTERACTION temp*AgE:
+anova(M1,M4)
+AIC(M1,M4)
+
+M5<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+# INTERACTION conspec*AgE:
+anova(M1,M5)
+AIC(M1,M5)
+
+M6<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+# INTERACTION cyprinid*AgE:
+anova(M1,M6)
+AIC(M1,M6)
+
+# removing age from a model where age is only main, not interacting factor:
+M7a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan+age + gear_code + day_of_month +
+          dd_year_avg_lifespan+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M7<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan + gear_code + day_of_month +
+          dd_year_avg_lifespan+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+#AIC(M1,M7)
+anova(M7a,M7)
+AIC(M7a,M7)
+
+# removing stsp from a model where stsp is only main, not interacting factor:
+# create a dataset without NA in stsp:
+length_age12_stack_std_stspNA<-length_age12_stack_std[!is.na(length_age12_stack_std$BIASmean_avg_lifespan),]
+
+M8a<-lme(total_length ~ BIASmean_avg_lifespan+distance+age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std_stspNA)
+M8<-lme(total_length ~ distance+age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std_stspNA)
+#AIC(M1,M8)
+anova(M8a,M8)
+AIC(M8a,M8)
+
+# removing temp from a model where temp is only main, not interacting factor:
+M9a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M9<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+#AIC(M1,M9)
+anova(M9a,M9)
+AIC(M9a,M9)
+
+# removing conspec from a model where consp is only main, not interacting factor:
+M10a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M10<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+anova(M10a,M10)
+AIC(M10a,M10)
+
+# removing cyprin from a model where cyprin is only main, not interacting factor:
+M11a<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M11<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+AIC(M11a,M11)
+anova(M11a,M11)
+
+# removing distance from a model where distance is only main, not interacting factor:
+M12a<-lme(total_length ~ distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+M12<-lme(total_length ~ BIASmean_avg_lifespan*age + gear_code + day_of_month +
+          dd_year_avg_lifespan*age+
+          CPUE_Abbo_samesize_avg_lifespan*age + cyprinids_avg_lifespan*age, 
+        random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+        na.action = na.omit, method = "ML",data=length_age12_stack_std)
+AIC(M12a,M12)
+anova(M12a,M12)
+
+#####
+# validation:
 E <- resid(M1a, type = "normalized")
 Fit <- fitted(M1a)
 
@@ -3059,8 +3225,14 @@ ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "age")) %>%
   print(n = Inf)
 249.07-292.27
-(249.07-292.27)/292.27*100
+(249.07-292.27)/249.07*100
+# in terms of volume: where W =a*L^b, with a= 0.01 and b=3 for cm, but this is mm, so a = 0.00001
+(0.00001*249.07^3-0.00001*292.27^3)/(0.00001*249.07^3)*100
+# ho need however to retain 0.00001 in the above equation
+
 196.48-174.20
+(196.48-174.20)/174.20
+(0.00001*196.48^3-0.00001*174.20^3)/(0.00001*174.20^3)*100
 
 summary(length_age12_stack_std$BIASmean_avg_lifespan)
 sd(length_age12_stack$BIASmean_avg_lifespan, na.rm = T)
@@ -3089,23 +3261,47 @@ sd(dd_year_avg_lifespan_NA)
 # for values pf DD of 826, the model predict length of 256 for age 5 and 233 for age 2 
 # for values of DD of 775, the model predict length of 257 for age 5 and 224 for age 2
 # for values of DD of 750, the model predict length of 258 for age 5 and 220 for age 2
+(232.97-122.63)/122.63*100 # 90% increase in length for age two over the temp range
+(271.24-256.22)/271.24*100 # 6% reduction in length for age five over the temp range
+# in terms of biomass:
+(232.97^3-122.63^3)/122.63^3*100 # 586% increase in volume for age two over the temp range
+(271.24^3-256.22^3)/271.24^3*100 # 16% reduction in volume for age five over the temp range
+(0.00001*232.97^3-0.00001*122.63^3)/(0.00001*122.63^3)*100
+
 
 ggemmeans(M1a, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age")) %>%
   print(n = Inf)
 205.05 -302.23 
 136.26-211.84
 summary(length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
-
+(302.23-205.05)/302.23
+(211.84-136.26)/211.84
+# in terms of volume:
+(302.23^3-205.05^3)/302.23^3
+(211.84^3-136.26^3)/211.84^3
+# difference in grams, where W = 0.00001 * L_mm**3
+0.00001*97.18**3
+0.00001*75.58**3
 
 ggemmeans(M1a, terms = c("cyprinids_avg_lifespan", "age")) %>%
   print(n = Inf)
 (187.33 -170.35)/187.33*100
-(256.25-276.54)/276.54*100
+(276.54-256.25)/256.25*100
+# in terms of volume:
+(187.33^3 -170.35^3)/187.33^3*100
+(276.54^3-256.25^3)/256.25^3*100
 
 ggemmeans(M1a, terms = c("BIASmean_avg_lifespan", "distance")) %>%
   print(n = Inf)
 (229.95-212.01)/ 212.01*100
 (184.86 -225.10)/184.86*100
+# # in terms of volume:
+(229.95^3-212.01^3)/ 212.01^3*100
+(184.86^3 -225.10^3)/184.86^3*100
+
+# is it that we always have lots of stsp in exposed area?
+plot(length_age12_stack$distance, length_age12_stack$BIASmean_avg_lifespan)
+
 
 ggemmeans(M1a, terms = c("gear_code"))
 ggemmeans(M1a, terms = c("day_of_month"))%>%
@@ -3549,6 +3745,9 @@ F1<-fitted(M3)
 F1
 #(234.8402-163.8301)/163.8301*100 # 43% increase from 2005 to 2022  :0
 (208.8240 - 169.4361)/169.4361*100 # 23% increase from 2016 to 2022 Vaxholm age 3
+# in terms of biomass (volume):
+(208.8240^3 - 169.4361^3)/169.4361^3*100 #87% increases in volume
+
 # visual check:
 visreg(M3)
 
@@ -6327,7 +6526,7 @@ ggplot() +
 
 
 #### MAX CODES FOR BOOTSTRAPPING ####
-# last update to the his script on 19/02/2026 (skip two older previous versions)
+# last update to the his script on 12/06/2026 (skip three older previous versions)
 library(lme4)
 library(tidyr)
 library(dplyr)
@@ -6446,7 +6645,7 @@ stick_grid_global <- seq(
 # Bootstrap! Approach is to fit models to the covariates on bootstrapped data, then n times,
 # fit a model with the length trend as the response and the n_th covariate slope as the covariate
 
-nboot <- 500
+nboot <- 500 # Max did it 5000 in the last version, check
 set.seed(123) # ensures you get the same “random” bootstrap each time 
 
 boot_results <- map(seq_len(nboot), function(b) {
@@ -6463,7 +6662,7 @@ boot_results <- map(seq_len(nboot), function(b) {
       #   REML = TRUE
       # )
       m <- lm(
-        total_length ~ year_ct + yday_ct, # SD: I think we may need a random factor year here? Test differences in the results
+        total_length ~ year_ct + yday_ct, # SD: I think we may need a random factor year here? Test differences in the results. no convergence
         data = .x
       )
       tidy(m, effects = "fixed") |>
@@ -6520,8 +6719,9 @@ boot_results <- map(seq_len(nboot), function(b) {
   # Some models fail, especially as we increase the number of bootstrap replicates. This avoids breaking the entire loop
   m2 <- tryCatch(lmer(
     size_slope ~ temp_slope*age + stick_slope*age + (1|location),
+    #size_slope ~ stick_slope*age + (1|location), # if I want to include temp and stsp in alternative models pga collinearity
     data = d2,
-    weights = weights_sc
+    weights = weights_sc # does it still make sense to include weight? try also without
   ),
   error = function(e) NULL
   )
@@ -6531,8 +6731,22 @@ boot_results <- map(seq_len(nboot), function(b) {
   # Coefficients
   coef_tbl <- tidy(m2) |>
     dplyr::select(-effect, -group) |>
+    # start R2
+    bind_rows(
+      tibble(
+        term = c("R2m", "R2c"),
+        estimate = as.numeric(MuMIn::r.squaredGLMM(m2))
+      )
+    ) |> 
+    # end R2
     # filter(term %in% c("temp_slope", "stick_slope")) |>
     mutate(boot_id = b)
+  
+  # Coefficients
+  #coef_tbl <- tidy(m2) |>
+  #  dplyr::select(-effect, -group) |>
+  #  # filter(term %in% c("temp_slope", "stick_slope")) |>
+  #  mutate(boot_id = b)
   
   # Reference values when making the conditional predictions for the other variable
   temp_ref <- mean(d2$temp_slope, na.rm = TRUE)
@@ -6633,6 +6847,8 @@ coef_summary <- coef_boot |>
     prop_positive = mean(estimate > 0),
     max_est = max(estimate),
     min_est = min(estimate),
+#    median_est = median(estimate),
+#    mean_est = mean(estimate),
     .by = term
   ) |> 
   mutate(
@@ -6640,6 +6856,10 @@ coef_summary <- coef_boot |>
     y_pos = max_est + 0.05 * (max_est - min_est)
   ) |> 
   filter(!grepl("sd", term))
+
+# export table with summary of bootstrapped estimates
+write.xlsx(coef_summary, file="C:/RprojectsSerena/FORCE_Analyses/coef_summary.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
 
 coef_boot |> 
   filter(!grepl("sd", term)) |> 
@@ -6658,7 +6878,7 @@ coef_boot |>
   geom_text(
     data = coef_summary,
     aes(x = term, y = y_pos, label = label),
-    hjust = 0, vjust = 0,
+    hjust = -0.5, vjust = 1,
     inherit.aes = FALSE,
     size = 3
   )
@@ -6679,18 +6899,23 @@ pred_summary |>
   geom_line() +
   #facet_grid(variable~age) +
   facet_wrap(~variable, scales = "free_x") +
-  labs(x = "Covariate trend", y = "Predicted size trend")
+  labs(x = "Covariate trend", y = "Predicted size trend") +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 13)
+  )
 
-#pred_summary |> 
-#  ggplot(aes(x = x, y = est, color = factor(age), fill = factor(age))) +
-#  geom_ribbon(aes(ymin = lwr, ymax = upr), alpha = 0.2, color = NA) +
-#  geom_line() +
-#  facet_grid(variable~age) +
-#  labs(x = "Covariate trend", y = "Predicted size trend")
 
-### TO DO (SD)
+tiff(filename = "C:/RprojectsSerena/FORCE_Analyses/Fig.tiff",
+     units="in", width=5, height=4.5, res=600)
+
+### TO DO (SD) - done, see notes
 # try with random factor year when estimating slope of length per site*age
 # try models with either stsp*age and temp*age
+# does it still make sense to include weight? try also without
 
 
 ##### old ####
