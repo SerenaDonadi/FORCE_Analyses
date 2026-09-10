@@ -448,6 +448,12 @@ dist_all <- rbind(dist_offshore, dist_offshore_additional_avg_aligned)
 # remove duplicate (NAs):
 dist_all2<-na.omit(dist_all)
 
+# export for storing in the repository
+library(openxlsx)
+write.xlsx(dist_all2, file="G:/My Drive/dist_all2.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+
 # merge with dist from offshore data:
 length_age10b<-left_join(length_age10a, dist_all2, by = c("location","sub.location","gear_code")) 
 
@@ -2907,6 +2913,8 @@ summary(M1a)
 summary(M1a)$tTable
 plot(M1a)
 
+is.numeric(length_age12_stack_std$age)
+
 ##### exploring contribution of single term:####
 # Partial (Type II/III) ANOVA: Use ANOVA on your fitted model to get partial R², which quantifies each predictor’s unique contribution.
 car::Anova(M1a, type = "II") # doesn't work, maybe bc I have a random factor
@@ -3308,6 +3316,14 @@ ggemmeans(M1a, terms = c("day_of_month"))%>%
   print(n = Inf)
 
 # mean and SD used for starndardization of variables:
+
+length_age12_stack %>%
+  summarise(
+    mean_distance = mean(distance, na.rm = TRUE),
+    sd_distance   = sd(distance, na.rm = TRUE)
+  )
+
+
 BIASmean_avg_lifespan_NA<-na.omit(length_age12_stack$BIASmean_avg_lifespan)
 mean(BIASmean_avg_lifespan_NA)
 sd(BIASmean_avg_lifespan_NA)
@@ -3546,6 +3562,133 @@ M1<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan + ge
         na.action = na.omit, method = "REML",data=length_age12_stack_std)
 anova.lme(M1, type = "marginal", adjustSigma = F) 
 rsquared(M1)
+
+##### Testing non linear effect (after reviewer asked) ####
+
+### using polynomial terms: polynomials of degree 2
+M1a_poly<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+           poly(dd_year_avg_lifespan, 2, raw = TRUE)*age +
+           poly(CPUE_Abbo_samesize_avg_lifespan, 2, raw = TRUE)*age +
+           cyprinids_avg_lifespan*age, 
+         random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+         na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1a_poly, type = "marginal", adjustSigma = F) 
+rsquared(M1a_poly)
+summary(M1a_poly)
+summary(M1a_poly)$tTable
+plot(M1a_poly)
+AIC(M1a, M1a_poly)
+#####
+# why Warning message:In AIC.default(M1a_poly, M1b_poly) :models are not all fitted to the same number of observations
+# maybe the poly model exclude more values than the other?
+nobs(M1a)
+nobs(M1a_poly)
+length(M1a$data$total_length)
+length(M1a_poly$data$total_length)
+length(resid(M1a))
+length(resid(M1a_poly))
+# To identify the exact rows excluded:
+rows1 <- as.numeric(rownames(model.frame(M1a)))
+rows2 <- as.numeric(rownames(model.frame(M1a_poly)))
+setdiff(rows1, rows2)
+
+summary(length_age12_stack_std$dd_year_avg_lifespan)
+summary(length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan)
+sum(!is.finite(length_age12_stack_std$dd_year_avg_lifespan))
+sum(!is.finite(length_age12_stack_std$CPUE_Abbo_samesize_avg_lifespan))
+
+logLik(M1a)
+logLik(M1a_poly)
+attributes(logLik(M1a))
+attributes(logLik(M1a_poly))
+
+attr(logLik(M1a), "nall")
+attr(logLik(M1a_poly), "nall")
+# here is the difference: but only 4 obs
+# The warning from AIC.default() is based on the the logLik attributes, not necessarily on the residual length.
+attr(logLik(M1a), "nobs")
+attr(logLik(M1a_poly), "nobs")
+#####
+# compare the fixed str with ML, not REML!
+M1a_ml <- update(M1a, method = "ML")
+M1a_poly_ml <- update(M1a_poly, method = "ML")
+
+AIC(M1a_ml, M1a_poly_ml)
+anova(M1a_ml, M1a_poly_ml)
+
+ggemmeans(M1a_poly, terms = c("BIASmean_avg_lifespan", "age")) %>%
+  plot() 
+ggemmeans(M1a_poly, terms = c("BIASmean_avg_lifespan[all]", "age")) %>%
+  plot() 
+ggemmeans(M1a_poly, terms = c("dd_year_avg_lifespan[all]", "age")) %>%
+  plot()
+ggemmeans(M1a_poly, terms = c("CPUE_Abbo_samesize_avg_lifespan[all]", "age")) %>%
+  plot()
+ggemmeans(M1a_poly, terms = c("cyprinids_avg_lifespan", "age")) %>%
+  plot()
+ggemmeans(M1a_poly, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  plot() 
+ggemmeans(M1a_poly, terms = c("gear_code")) %>%
+  plot() 
+ggemmeans(M1a_poly, terms = c("day_of_month")) %>%
+  plot()
+
+## if I only have temp as poly:
+M1b_poly<-lme(total_length ~ BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+                poly(dd_year_avg_lifespan, 2, raw = TRUE)*age +
+                CPUE_Abbo_samesize_avg_lifespan*age +
+                cyprinids_avg_lifespan*age, 
+              random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+              na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1b_poly, type = "marginal", adjustSigma = F) 
+rsquared(M1b_poly)
+summary(M1b_poly)
+summary(M1b_poly)$tTable
+plot(M1b_poly)
+AIC(M1a_poly,M1b_poly)
+
+
+### using gamm: no good
+# age as factor:
+M1a_gamm1<-gamm(total_length ~age +
+       s(dd_year_avg_lifespan, by = factor(age)) +
+         s(CPUE_Abbo_samesize_avg_lifespan, by = factor(age)) +
+         distance +gear_code +day_of_month +
+       BIASmean_avg_lifespan *age +
+       cyprinids_avg_lifespan*age,
+     random=list(location=~1,sub.location=~1), data=length_age12_stack_std)
+
+summary(M1a_gamm1$gam)
+anova(M1a_gamm1$gam)
+plot(M1a_gamm1$gam) 
+gam.check (M1a_gamm1$gam) # k is too low
+plot.gam(M1a_gamm1,  shade=TRUE, residuals=TRUE, rug=T,pers=F, all.terms=T,shade.col = 2,by.resids=T,  scheme=3) # It plots resid of both CB and B
+plot.gam(M1a_gamm1,  shade=TRUE, residuals=F, rug=T,pers=F, all.terms=T,shade.col = 2, scheme=2)
+plot.gam(M1a_gamm1)
+
+
+# age as numeric: too few levels of age to support it. no convergence
+M1a_gamm2<-gamm(total_length ~age +
+                  te(dd_year_avg_lifespan, age, k=2)+
+                  te(CPUE_Abbo_samesize_avg_lifespan, age, k=2)+
+                  distance +gear_code +day_of_month +
+                  BIASmean_avg_lifespan *age +
+                  cyprinids_avg_lifespan*age,
+                random=list(location=~1,sub.location=~1), data=length_age12_stack_std)
+
+# another formulation: doesn't converge
+M1a_gamm3<-gamm(total_length ~age + s(CPUE_Abbo_samesize_avg_lifespan) +
+                  s(dd_year_avg_lifespan, by = factor(age)) +
+                  s(dd_year_avg_lifespan) +
+                  s(CPUE_Abbo_samesize_avg_lifespan, by = factor(age)) +
+                  distance +gear_code +day_of_month +
+                  BIASmean_avg_lifespan *age +
+                  cyprinids_avg_lifespan*age,
+                random=list(location=~1), data=length_age12_stack_std)
+
+summary(M1a_gamm3$gam)
+anova(M1a_gamm3$gam)
+
 
 
 ###### checking a 4 way interaction: TO DO or skip ######

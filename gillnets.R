@@ -315,6 +315,12 @@ gillnets7a<-gillnets7 %>%
 min(gillnets7a$n_station)
 max(gillnets7a$n_station)
 
+# export for repository:
+library(openxlsx)
+write.xlsx(gillnets_CPUE, file="G:/My Drive/gillnets_CPUE.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+
 #####
 # Grouping
 #####
