@@ -3646,6 +3646,356 @@ summary(M1b_poly)
 summary(M1b_poly)$tTable
 plot(M1b_poly)
 AIC(M1a_poly,M1b_poly)
+##### FINAL model with quadratic term - after reviewer ####
+# with interaction for both linear and quadratic term: is the same
+# This model allows both: the slope of temperature to differ among ages, and 
+# the curvature of temperature to differ among ages
+M1c_poly<-lme(total_length ~ (dd_year_avg_lifespan + I(dd_year_avg_lifespan^2))*age+
+                BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age + gear_code + day_of_month +
+                CPUE_Abbo_samesize_avg_lifespan*age +
+                cyprinids_avg_lifespan*age, 
+              random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+              na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1c_poly, type = "marginal", adjustSigma = F) 
+rsquared(M1c_poly)
+summary(M1c_poly)
+summary(M1c_poly)$tTable
+AIC(M1b_poly,M1c_poly) # same
+AIC(M1a,M1c_poly) # better than the model with linear terms
+222659-222906.0
+# intraclass correlation is σα2/ (σα2 + σε2):
+10.88191  /(10.88191  +20.20816)
+
+# export results in excel
+anovaM1a<-anova.lme(M1c_poly, type = "marginal", adjustSigma = F) 
+write.xlsx(anovaM1a, file="G:/My Drive/anovaM1a.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+summaryM1a<-summary(M1c_poly)$tTable
+write.xlsx(summaryM1a, file="G:/My Drive/summaryM1a.xlsx",
+           sheetName = "", colNames = TRUE, rowNames = TRUE, append = F)
+
+
+ggemmeans(M1c_poly, terms = c("dd_year_avg_lifespan[all]", "age")) %>%
+  plot()
+
+# validation:
+E <- resid(M1c_poly, type = "normalized")
+Fit <- fitted(M1c_poly)
+op <- par(mfrow = c(1, 2)) 
+#op <- par(mfrow = c(3, 2)) 
+plot(x = Fit,y = E,
+     xlab = "Fitted values", ylab = "Residuals",main = "Residuals versus fitted values")
+#abline(h = 0, lty = 2)
+#lines(lowess(fitted(M1c_poly),
+#             resid(M1c_poly,type = "normalized")), col = "red",lwd = 2)
+hist(E, nclass = 15,main = "Histogram of residuals", xlab = "Residuals") 
+
+op <- par(mfrow = c(2, 2)) 
+# res vs temp
+used <- na.omit(length_age12_stack_std[, c(
+  "total_length",
+  "dd_year_avg_lifespan",
+  "age",
+  "BIASmean_avg_lifespan",
+  "distance",
+  "gear_code",
+  "day_of_month",
+  "CPUE_Abbo_samesize_avg_lifespan",
+  "cyprinids_avg_lifespan",
+  "location",
+  "sub.location"
+)])
+plot(used$dd_year_avg_lifespan,
+     resid(M1c_poly), xlab = "Year DD", ylab = "Residuals")
+lines(lowess(used$dd_year_avg_lifespan,
+             resid(M1c_poly)),
+      col = "red",
+      lwd = 2)
+abline(h = 0, lty = 2)
+# check also for the otehr predictors:
+plot(used$CPUE_Abbo_samesize_avg_lifespan,
+     resid(M1c_poly),xlab = "Conspecific of similar size CPUE", ylab = "Residuals")
+lines(lowess(used$dd_year_avg_lifespan,
+             resid(M1c_poly)),
+      col = "red",
+      lwd = 2)
+abline(h = 0, lty = 2)
+
+plot(used$BIASmean_avg_lifespan,
+     resid(M1c_poly),xlab = "Stickleback density", ylab = "Residuals")
+lines(lowess(used$dd_year_avg_lifespan,
+             resid(M1c_poly)),
+      col = "red",
+      lwd = 2)
+abline(h = 0, lty = 2)
+
+plot(used$cyprinids_avg_lifespan,
+     resid(M1c_poly),xlab = "Cyprinids CPUE", ylab = "Residuals")
+lines(lowess(used$dd_year_avg_lifespan,
+             resid(M1c_poly)),
+      col = "red",
+      lwd = 2)
+abline(h = 0, lty = 2)
+
+# compare with residaul patterns from linear model:
+plot(M1a)
+plot(fitted(M1a),
+     resid(M1a))
+abline(h = 0, lty = 2)
+used_1a <- na.omit(length_age12_stack_std[, c(
+  "total_length",
+  "dd_year_avg_lifespan",
+  "age",
+  "BIASmean_avg_lifespan",
+  "distance",
+  "gear_code",
+  "day_of_month",
+  "CPUE_Abbo_samesize_avg_lifespan",
+  "cyprinids_avg_lifespan",
+  "location",
+  "sub.location"
+)])
+plot(used_1a$dd_year_avg_lifespan,
+     resid(M1a))
+lines(lowess(used_1a$dd_year_avg_lifespan,
+             resid(M1a)),
+      col = "red",
+      lwd = 2)
+abline(h = 0, lty = 2)
+
+
+# NICE FIG FOR PRINTING
+dev.off()
+tiff(filename = "C:/RprojectsSerena/FORCE_Analyses//Fig.tiff",
+     units="in", width=8, height=4, res=600)
+# change the colors:
+gg_data <- ggemmeans(M1c_poly, terms = c("BIASmean_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Stickleback density",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+gg_data <- ggemmeans(M1c_poly, terms = c("dd_year_avg_lifespan[all]", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Year DD",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+gg_data <- ggemmeans(M1c_poly, terms = c("cyprinids_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Cyprinids CPUE",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+gg_data <- ggemmeans(M1c_poly, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Conspecific of similar size CPUE",
+    y = "Total length",
+    color = "Age",
+    fill = "Age"
+  ) +
+  scale_color_manual(values = c("orange","green", "red", "blue" )) + # change colors here
+  scale_fill_manual(values = c("orange","green", "red", "blue")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+tiff(filename = "C:/RprojectsSerena/FORCE_Analyses//Fig.tiff",
+     units="in", width=7, height=4, res=600)
+gg_data <- ggemmeans(M1c_poly, terms = c("BIASmean_avg_lifespan", "distance"))
+ggplot(gg_data, aes(x = x, y = predicted, color = group)) +
+  geom_line(size = 1) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.2, color = NA) +
+  labs(
+    x = "Distance from open sea",
+    y = "Total length",
+    color = "Distance",
+    fill = "Distance"
+  ) +
+  scale_color_manual(values = c("purple","violet", "pink" )) + # change colors here
+  scale_fill_manual(values = c("purple","violet", "pink")) + # change colors here
+  theme_minimal() +
+  theme(
+    legend.position = "right",
+    text = element_text(size = 15)
+  )
+
+# check predictions:
+ggemmeans(M1c_poly, terms = c("BIASmean_avg_lifespan", "age")) %>%
+  print(n = Inf)
+
+# TO DO! MODIFY - I only run ggmeans here
+249.38-295.09
+(249.38-295.09)/249.38*100
+# in terms of volume: where W =a*L^b, with a= 0.01 and b=3 for cm, but this is mm, so a = 0.00001
+(0.00001*249.38^3-0.00001*295.09^3)/(0.00001*249.38^3)*100
+# ho need however to retain 0.00001 in the above equation
+
+202.85-180.49
+(202.85-180.49)/180.49
+(0.00001*202.85^3-0.00001*180.49^3)/(0.00001*180.49^3)*100
+
+summary(length_age12_stack$BIASmean_avg_lifespan)
+sd(length_age12_stack$BIASmean_avg_lifespan, na.rm = T)
+0.6525926*6
+
+# change per 1 SD, equivalent to 0.65 tons/km2 stsp:
+# age2: 3.73
+202.85-199.12
+199.12-195.40
+195.40-191.67
+# age 5: 7.6
+295.09-287.48
+287.48-279.86
+279.86-272.24
+
+
+ggemmeans(M1c_poly, terms = c("dd_year_avg_lifespan[all]", "age")) %>%
+  print(n = Inf)
+summary(length_age12_stack$dd_year_avg_lifespan)
+# increases associated to 100 degree diffenece (~1SD)
+# age 2n(at estreme left of range of temp)
+113.72-154.09 # differnce
+(113.72-154.09)/154.09*100 # % increase
+(113.72^3-154.09^3)/154.09^3*100 #in volume
+# age 5
+233.24-251.84
+(233.24-251.84)/233.24*100
+(233.24^3-251.84^3)/233.24^3*100
+270+ 101.7*(1+1+0.93)
+270+ 101.7*(1+1+1.90)
+
+# validating with real data:
+ggplot(length_age12_stack, aes(x = dd_year_avg_lifespan, y = total_length, color = age)) +
+  geom_point(size = 1)+
+  facet_wrap(~age)
+summary(length_age12_stack$dd_year_avg_lifespan)
+
+length_age12_stack %>% 
+  filter(age==5) %>% 
+  summarise(max=max(dd_year_avg_lifespan ,na.rm=TRUE),
+            min=min(dd_year_avg_lifespan ,na.rm=TRUE)) # 750
+
+
+ggemmeans(M1c_poly, terms = c("CPUE_Abbo_samesize_avg_lifespan", "age")) %>%
+  print(n = Inf)
+219.93-203.93
+203.93-187.93
+303.08-283.78
+283.78-264.49
+  
+206.61 -303.08 
+139.93 -219.93
+summary(length_age12_stack$CPUE_Abbo_samesize_avg_lifespan)
+(303.08-206.61)/303.08
+(219.93-139.93 )/219.93
+# in terms of volume:
+(303.08^3-206.61^3)/303.08^3
+(219.93^3-139.93 ^3)/219.93^3
+# difference in grams, where W = 0.00001 * L_mm**3
+0.00001*97.18**3
+0.00001*75.58**3
+
+ggemmeans(M1c_poly, terms = c("cyprinids_avg_lifespan", "age")) %>%
+  print(n = Inf)
+(194.18 -175.65)
+(194.18 -175.65)/194.18*100
+(194.18^3 -175.65^3)/194.18^3*100
+(276.54-259.21)
+(274.19-259.21)/259.21*100
+(274.19^3-259.21^3)/259.21^3*100
+summary(length_age12_stack$cyprinids_avg_lifespan)
+194.18-191.09
+191.09-188.00
+259.21-261.70
+261.70-264.20
+264.20-266.70
+
+ggemmeans(M1c_poly, terms = c("BIASmean_avg_lifespan", "distance")) %>%
+  print(n = Inf)
+237.89-219.24
+(237.89-219.24)/ 219.24*100
+186.33 -227.59
+(186.33 -227.59)/186.33*100
+# # in terms of volume:
+(237.89^3-219.24^3)/ 219.24^3*100
+(186.33^3 -227.59^3)/186.33^3*100
+
+# is it that we always have lots of stsp in exposed area?
+plot(length_age12_stack$distance, length_age12_stack$BIASmean_avg_lifespan)
+
+
+ggemmeans(M1c_poly, terms = c("gear_code"))
+ggemmeans(M1c_poly, terms = c("day_of_month"))%>%
+  print(n = Inf)
+
+
+
+
+
+
+#####
+## with age as factor
+length_age12_stack_std$age_f<-as.factor(length_age12_stack_std$age)
+M1d_poly<-lme(total_length ~ (dd_year_avg_lifespan + I(dd_year_avg_lifespan^2))*age_f+
+                BIASmean_avg_lifespan*distance+BIASmean_avg_lifespan*age_f + gear_code + day_of_month +
+                CPUE_Abbo_samesize_avg_lifespan*age_f +
+                cyprinids_avg_lifespan*age_f, 
+              random=~1|location/sub.location,weights = varIdent(form =~ 1|sub.location), control = lmc,
+              na.action = na.omit, method = "REML",data=length_age12_stack_std)
+anova.lme(M1d_poly, type = "marginal", adjustSigma = F) 
+rsquared(M1d_poly)
+summary(M1d_poly)
+summary(M1d_poly)$tTable
+plot(M1d_poly)
+AIC(M1d_poly,M1c_poly)
+
+library(ggeffects)
+ggemmeans(M1d_poly, terms = c("dd_year_avg_lifespan[all]", "age_f")) %>%
+  plot()
+# weird
+
 
 
 ### using gamm: no good
